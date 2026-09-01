@@ -1,0 +1,182 @@
+rules_version = '2';
+
+// Regras reais do MVP: `usuarios`, `setores`, `arquivos` e `solicitacoes`.
+// Princípios: negar tudo por padrão; liberar apenas o necessário;
+// isolamento por perfil e setor; transições de status controladas.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- Helpers ----
+    function estaAutenticado() {
+      return request.auth != null;
+    }
+
+    function docUsuario() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
+    }
+
+    function estaAtivo() {
+      return docUsuario().ativo == true;
+    }
+
+    function ehAdmin() {
+      return estaAtivo() && docUsuario().nivel_acesso == 2;
+    }
+
+    function setoresDoUsuario() {
+      return docUsuario().ids_setor;
+    }
+
+    function pertenceAoSetor(idSetor) {
+      return idSetor in setoresDoUsuario();
+    }
+
+    // ---- usuarios ----
+    // Autenticado lê apenas o próprio documento.
+    // Cliente não cria nem altera (gestão de usuários fora do MVP por interface),
+    // o que impede elevação de privilégio (nivel_acesso, ids_setor, ativo).
+    match /usuarios/{idUsuario} {
+      allow read: if estaAutenticado() && request.auth.uid == idUsuario;
+      allow write: if false;
+    }
+
+    // ---- setores ----
+    // Leitura para exibição do nome do setor. Restrita a autenticado+ativo que
+    // pertence ao setor (mesmo isolamento por setor já usado). Sem escrita pelo cliente.
+    match /setores/{idSetor} {
+      allow read: if estaAutenticado() && estaAtivo() && pertenceAoSetor(idSetor);
+      allow write: if false;
+    }
+
+    // ---- arquivos ----
+    match /arquivos/{idArquivo} {
+      // Leitura por perfil e setor:
+      // - usuário comum: nível 1 do próprio setor;
+      // - admin: nível 1 e 2 dos próprios setores.
+      allow read: if estaAutenticado()
+        && estaAtivo()
+        && pertenceAoSetor(resource.data.id_setor)
+        && (
+          resource.data.nivel_acesso == 1
+          || (ehAdmin() && resource.data.nivel_acesso == 2)
+        );
+
+      // Somente admin cria/edita/remove, e apenas no próprio setor.
+      allow create: if ehAdmin()
+        && pertenceAoSetor(request.resource.data.id_setor)
+        && request.resource.data.id_usuario == request.auth.uid
+        && request.resource.data.nivel_acesso in [1, 2];
+
+      allow update: if ehAdmin()
+        && pertenceAoSetor(resource.data.id_setor)
+        && pertenceAoSetor(request.resource.data.id_setor)
+        && request.resource.data.nivel_acesso in [1, 2];
+
+      allow delete: if ehAdmin()
+        && pertenceAoSetor(resource.data.id_setor);
+
+      // Auditoria: apenas admin do setor do arquivo lê e escreve.
+      match /auditoria/{idAuditoria} {
+        allow read: if ehAdmin();
+        allow create: if ehAdmin()
+          && request.resource.data.id_usuario == request.auth.uid;
+        allow update, delete: if false;
+      }
+    }
+
+    // ---- solicitacoes ----
+    match /solicitacoes/{idSolicitacao} {
+      // Leitura: solicitante lê a própria; admin lê as do próprio setor.
+      allow read: if estaAutenticado() && estaAtivo() && (
+        resource.data.id_solicitante == request.auth.uid
+        || (ehAdmin() && pertenceAoSetor(resource.data.id_setor))
+      );
+
+      // Criação: apenas o próprio solicitante, no próprio setor, com estado inicial correto.
+      // nome_beneficiario e descricao são obrigatórios (string não-vazia); conclusao nasce vazia.
+      allow create: if estaAutenticado() && estaAtivo()
+        && request.resource.data.id_solicitante == request.auth.uid
+        && pertenceAoSetor(request.resource.data.id_setor)
+        && request.resource.data.status == 'em_aberto'
+        && request.resource.data.id_responsavel == ''
+        && request.resource.data.nome_responsavel == ''
+        && request.resource.data.id_nuvem == ''
+        && request.resource.data.conclusao == ''
+        && request.resource.data.nome_beneficiario is string
+        && request.resource.data.nome_beneficiario.size() > 0
+        && request.resource.data.descricao is string
+        && request.resource.data.descricao.size() > 0;
+
+      // Atualização pelo solicitante (dono), apenas enquanto em_aberto:
+      // - pode manter em_aberto (editar tipo/descricao) ou cancelar;
+      // - não altera setor, solicitante, responsável (id/nome), beneficiário, conclusao nem anexo.
+      allow update: if estaAutenticado() && estaAtivo()
+        && resource.data.id_solicitante == request.auth.uid
+        && resource.data.status == 'em_aberto'
+        && request.resource.data.status in ['em_aberto', 'cancelada']
+        && request.resource.data.id_setor == resource.data.id_setor
+        && request.resource.data.id_solicitante == resource.data.id_solicitante
+        && request.resource.data.nome_solicitante == resource.data.nome_solicitante
+        && request.resource.data.nome_beneficiario == resource.data.nome_beneficiario
+        && request.resource.data.id_responsavel == resource.data.id_responsavel
+        && request.resource.data.nome_responsavel == resource.data.nome_responsavel
+        && request.resource.data.conclusao == resource.data.conclusao
+        && request.resource.data.id_nuvem == resource.data.id_nuvem
+        && request.resource.data.descricao is string
+        && request.resource.data.descricao.size() > 0;
+
+      // Atualização pelo admin do setor, respeitando transições válidas:
+      // em_aberto -> em_andamento (assumir; grava id_responsavel = próprio uid
+      //   e nome_responsavel = próprio nome)
+      // em_andamento -> concluida
+      // em_aberto|em_andamento -> cancelada
+      // em_andamento -> em_andamento (responder/anexar)
+      // Imutáveis para o admin: nome_solicitante, nome_beneficiario e descricao.
+      // A conclusao só pode ser gravada/alterada na transição em_andamento -> em_andamento.
+      allow update: if ehAdmin()
+        && pertenceAoSetor(resource.data.id_setor)
+        && request.resource.data.id_setor == resource.data.id_setor
+        && request.resource.data.id_solicitante == resource.data.id_solicitante
+        && request.resource.data.nome_solicitante == resource.data.nome_solicitante
+        && request.resource.data.nome_beneficiario == resource.data.nome_beneficiario
+        && request.resource.data.descricao == resource.data.descricao
+        && (
+          (resource.data.status == 'em_aberto'
+            && request.resource.data.status == 'em_andamento'
+            && request.resource.data.id_responsavel == request.auth.uid
+            && request.resource.data.nome_responsavel == docUsuario().nome_completo
+            && request.resource.data.conclusao == resource.data.conclusao)
+          || (resource.data.status == 'em_andamento'
+            && request.resource.data.status == 'em_andamento')
+          || (resource.data.status == 'em_andamento'
+            && request.resource.data.status == 'concluida'
+            && request.resource.data.conclusao == resource.data.conclusao)
+          || (resource.data.status in ['em_aberto', 'em_andamento']
+            && request.resource.data.status == 'cancelada'
+            && request.resource.data.conclusao == resource.data.conclusao)
+        );
+
+      // Sem exclusão de solicitações no MVP.
+      allow delete: if false;
+
+      // Auditoria: solicitante e admin do setor podem ler; escrita registra o autor
+      // e exige vínculo com a solicitação (dono ou admin do setor).
+      match /auditoria/{idAuditoria} {
+        function solPai() {
+          return get(/databases/$(database)/documents/solicitacoes/$(idSolicitacao)).data;
+        }
+        allow read: if estaAutenticado() && estaAtivo() && (
+          solPai().id_solicitante == request.auth.uid
+          || (ehAdmin() && pertenceAoSetor(solPai().id_setor))
+        );
+        allow create: if estaAutenticado() && estaAtivo()
+          && request.resource.data.id_usuario == request.auth.uid
+          && (
+            solPai().id_solicitante == request.auth.uid
+            || (ehAdmin() && pertenceAoSetor(solPai().id_setor))
+          );
+        allow update, delete: if false;
+      }
+    }
+  }
+}

@@ -1,0 +1,25 @@
+# Imagem para o ambiente local controlado (emuladores Firebase).
+# Node 20 (slim) + JRE headless + firebase-tools. Sem tocar o host.
+FROM node:20-bookworm-slim
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends default-jre-headless \
+  && rm -rf /var/lib/apt/lists/*
+
+# firebase-tools global (mesma versão pinada do projeto).
+RUN npm install -g firebase-tools@13.29.1
+
+WORKDIR /app
+
+# Config necessária para subir os emuladores.
+COPY firebase.json firestore.rules firestore.indexes.json storage.rules .firebaserc ./
+
+# Pré-baixa os binários dos emuladores para acelerar o start.
+RUN firebase setup:emulators:firestore \
+  && firebase setup:emulators:storage \
+  && firebase setup:emulators:ui || true
+
+EXPOSE 4000 5000 8080 9099 9199
+
+# Sobe Auth, Firestore e Storage (Hosting servido pelo Vite no host).
+CMD ["firebase", "emulators:start", "--only", "auth,firestore,storage", "--project", "sec-musical-mvp"]

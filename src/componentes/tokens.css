@@ -1,0 +1,69 @@
+/* Design tokens base — Portal Musical MVP (mobile-first).
+   Cor, tipografia e espaçamento centralizados. */
+:root {
+  /* Paleta principal */
+  --cor-primaria: #2456c4;
+  --cor-primaria-escura: #1b419a;
+  --cor-primaria-clara: #e8effb;
+
+  /* Neutros */
+  --cor-texto: #1c2430;
+  --cor-texto-suave: #5b6674;
+  --cor-borda: #d5dbe3;
+  --cor-fundo: #f6f8fb;
+  --cor-superficie: #ffffff;
+
+  /* Estados */
+  --cor-sucesso: #1f7a4d;
+  --cor-sucesso-fundo: #e4f4ec;
+  --cor-erro: #b3261e;
+  --cor-erro-fundo: #fbe7e6;
+  --cor-alerta: #9a6a00;
+  --cor-alerta-fundo: #fbf1dc;
+  --cor-info: #1b56a4;
+  --cor-info-fundo: #e6f0fb;
+
+  /* Status de solicitação (padrão visual estável) */
+  --status-em-aberto: #9a6a00;
+  --status-em-aberto-fundo: #fbf1dc;
+  --status-em-andamento: #1b56a4;
+  --status-em-andamento-fundo: #e6f0fb;
+  --status-concluida: #1f7a4d;
+  --status-concluida-fundo: #e4f4ec;
+  --status-cancelada: #5b6674;
+  --status-cancelada-fundo: #eceff3;
+
+  /* Tipografia */
+  --fonte-base: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --fonte-tamanho-sm: 0.8125rem;
+  --fonte-tamanho-md: 0.9375rem;
+  --fonte-tamanho-lg: 1.125rem;
+  --fonte-tamanho-xl: 1.375rem;
+
+  /* Espaçamento */
+  --espaco-xs: 4px;
+  --espaco-sm: 8px;
+  --espaco-md: 16px;
+  --espaco-lg: 24px;
+  --espaco-xl: 32px;
+
+  /* Bordas e raios */
+  --raio-sm: 6px;
+  --raio-md: 10px;
+  --raio-lg: 14px;
+
+  /* Sombra */
+  --sombra-card: 0 1px 3px rgba(28, 36, 48, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--fonte-base);
+  font-size: var(--fonte-tamanho-md);
+  color: var(--cor-texto);
+  background: var(--cor-fundo);
+}

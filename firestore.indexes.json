@@ -1,0 +1,49 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "arquivos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "id_setor", "order": "ASCENDING" },
+        { "fieldPath": "nivel_acesso", "order": "ASCENDING" },
+        { "fieldPath": "data_atualizacao", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "arquivos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "id_setor", "order": "ASCENDING" },
+        { "fieldPath": "nivel_acesso", "order": "ASCENDING" },
+        { "fieldPath": "tipo", "order": "ASCENDING" },
+        { "fieldPath": "data_atualizacao", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "solicitacoes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "id_solicitante", "order": "ASCENDING" },
+        { "fieldPath": "data_solicitacao", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "solicitacoes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "id_setor", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "data_atualizacao", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "solicitacoes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "id_setor", "order": "ASCENDING" },
+        { "fieldPath": "data_atualizacao", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

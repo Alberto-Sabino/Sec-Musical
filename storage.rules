@@ -1,0 +1,37 @@
+rules_version = '2';
+
+// ATENÇÃO: regras de Storage NÃO VALIDADAS nesta fase.
+// Cloud Storage está pendente de Billing/Blaze; a Biblioteca opera com
+// infraestrutura de arquivos simulada (mock). Estas regras são um rascunho
+// inicial e NÃO devem ser consideradas concluídas nem testadas.
+//
+// Limitação conhecida: regras de Storage não leem o Firestore, portanto o
+// isolamento real por setor/nível dependerá de custom claims ou verificação
+// adicional, a ser definida quando o Storage real for habilitado.
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Caminho oficial da Biblioteca: biblioteca/{id_setor}/nivel_1|nivel_2/{id_arquivo}.pdf
+    match /biblioteca/{idSetor}/{nivel}/{arquivo} {
+      // Rascunho: exige autenticação. Isolamento por setor/perfil PENDENTE.
+      allow read: if request.auth != null;
+      // Escrita (upload/substituição/remoção) restrita — PENDENTE de definição
+      // segura com Storage real. Mantido negado até validação.
+      allow write: if false;
+    }
+
+    // Caminho oficial do anexo final de solicitações:
+    // solicitacoes/{id_setor}/{id_solicitante}/{id_solicitacao}/resposta.pdf
+    match /solicitacoes/{idSetor}/{idSolicitante}/{idSolicitacao}/{arquivo} {
+      // Rascunho NÃO VALIDADO. Isolamento real (dono baixa só concluída;
+      // admin do setor envia) PENDENTE de Storage real / custom claims.
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // Negar todo o restante por padrão.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

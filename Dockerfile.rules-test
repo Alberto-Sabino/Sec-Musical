@@ -1,0 +1,23 @@
+# Imagem leve e isolada para rodar os testes de regras do Firestore.
+# Node 20 (slim) + JRE headless (requisito do Firestore Emulator) + deps do projeto.
+FROM node:20-bookworm-slim
+
+# JRE headless mínimo para o emulador; limpa cache do apt para manter a imagem leve.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends default-jre-headless \
+  && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Instala dependências primeiro (cache de camadas).
+COPY package.json package-lock.json* ./
+RUN npm install --no-audit --no-fund
+
+# Copia apenas o necessário para os testes de regras.
+COPY firebase.json firestore.rules firestore.indexes.json .firebaserc ./
+COPY tests ./tests
+
+ENV CI=true
+
+# Sobe o emulador do Firestore e executa os testes de regras.
+CMD ["npm", "run", "test:rules"]

@@ -1,0 +1,22 @@
+# Ambiente local controlado: emuladores Firebase em container.
+# A aplicação (Vite) roda no host: `npm run dev`.
+#
+# Uso:
+#   docker compose up emuladores      # sobe Auth/Firestore/Storage
+#   npm run seed:emulador             # (host) popula dados de teste
+#   npm run dev                       # (host) app conversa com os emuladores
+services:
+  emuladores:
+    build:
+      context: .
+      dockerfile: Dockerfile.emuladores
+    ports:
+      - '4000:4000' # Emulator UI
+      - '8080:8080' # Firestore
+      - '9099:9099' # Auth
+      - '9199:9199' # Storage
+    # Monta regras/índices para refletir mudanças sem rebuild.
+    volumes:
+      - ./firestore.rules:/app/firestore.rules:ro
+      - ./firestore.indexes.json:/app/firestore.indexes.json:ro
+      - ./storage.rules:/app/storage.rules:ro

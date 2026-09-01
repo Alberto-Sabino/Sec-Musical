@@ -1,0 +1,37 @@
+# Dependências e build
+node_modules
+dist
+dist-ssr
+
+# Variáveis de ambiente (Vite)
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+
+# Firebase / emuladores
+.firebase
+.firebase/
+*-debug.log
+firebase-debug.log
+firestore-debug.log
+database-debug.log
+ui-debug.log
+storage-debug.log
+pubsub-debug.log
+firebase-export-*
+emulator-data
+
+# Caches de ferramentas
+.eslintcache
+.cache
+.vite
+
+# Editor / IDE / SO
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+*.log
+*.local
