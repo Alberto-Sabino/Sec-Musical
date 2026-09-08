@@ -26,23 +26,47 @@ const SETORES = [
 const SENHA = 'senha123'
 
 const USUARIOS = [
-  // Admins (nivel_acesso 2)
   {
-    email: 'admin.cachoeira@exemplo.com',
-    nome: 'Secretário Cachoeira',
+    email: 'albertosabino.as@gmail.com',
+    nome: 'Alberto Sabino da Silva',
+    celular: '12 992575921',
+    comum: 'Quilombo',
     nivel: 2,
     setores: ['cachoeira'],
   },
   {
-    email: 'admin.geral@exemplo.com',
-    nome: 'Secretário Geral',
+    email: 'daniel@exemplo.com',
+    nome: 'Daniel Gomes de Araújo',
+    celular: '12 971831367',
+    comum: 'Bairro União',
     nivel: 2,
     setores: ['cachoeira', 'queluz'],
   },
-  // Comuns (nivel_acesso 1)
-  { email: 'alberto@exemplo.com', nome: 'Alberto', nivel: 1, setores: ['cachoeira'] },
-  { email: 'jamilton@exemplo.com', nome: 'Jamilton', nivel: 1, setores: ['cachoeira'] },
-  { email: 'rubens@exemplo.com', nome: 'Rubens', nivel: 1, setores: ['queluz'] },
+  // Usuários genéricos (nivel_acesso 1)
+  {
+    email: 'usuario.central@exemplo.com',
+    nome: 'Usuário Central',
+    celular: '',
+    comum: 'Central',
+    nivel: 1,
+    setores: ['cachoeira'],
+  },
+  {
+    email: 'usuario.embau@exemplo.com',
+    nome: 'Usuário Embaú',
+    celular: '',
+    comum: 'Embaú',
+    nivel: 1,
+    setores: ['cachoeira'],
+  },
+  {
+    email: 'usuario.figueira@exemplo.com',
+    nome: 'Usuário Bairro da Figueira',
+    celular: '',
+    comum: 'Bairro da Figueira',
+    nivel: 1,
+    setores: ['queluz'],
+  },
 ]
 
 const app = initializeApp({ projectId: PROJETO, apiKey: 'demo' })
@@ -88,42 +112,12 @@ async function main() {
         id_usuario: u.uid,
         nome_completo: u.nome,
         email: u.email,
-        celular: '',
+        celular: u.celular || '',
+        comum_congregacao: u.comum || '',
         nivel_acesso: u.nivel,
         ativo: true,
         ids_setor: u.setores,
         data_criacao: serverTimestamp(),
-        data_atualizacao: serverTimestamp(),
-      })
-    }
-
-    // Arquivos de exemplo na Biblioteca, por setor.
-    // Cachoeira: 4 (um no nível 2 / restrito). Queluz: 3.
-    const ARQUIVOS = [
-      { setor: 'cachoeira', tipo: 'circular', titulo: 'Circular inicial', nivel: 1 },
-      { setor: 'cachoeira', tipo: 'topico', titulo: 'Tópicos do mês', nivel: 1 },
-      { setor: 'cachoeira', tipo: 'plano_aula', titulo: 'Plano de aula - iniciantes', nivel: 1 },
-      { setor: 'cachoeira', tipo: 'modelo', titulo: 'Modelo interno (restrito)', nivel: 2 },
-      { setor: 'queluz', tipo: 'circular', titulo: 'Circular inicial', nivel: 1 },
-      { setor: 'queluz', tipo: 'topico', titulo: 'Tópicos do mês', nivel: 1 },
-      { setor: 'queluz', tipo: 'outros', titulo: 'Comunicado geral', nivel: 1 },
-    ]
-
-    const contadorPorSetor = {}
-    for (const a of ARQUIVOS) {
-      contadorPorSetor[a.setor] = (contadorPorSetor[a.setor] || 0) + 1
-      const idArquivo = `arq_${a.setor}_${contadorPorSetor[a.setor]}`
-      const admin = comUid.find((u) => u.nivel === 2 && u.setores.includes(a.setor))
-      const nivelPasta = a.nivel === 2 ? 'nivel_2' : 'nivel_1'
-      const setorInfo = SETORES.find((s) => s.id === a.setor)
-      await setDoc(doc(db, 'arquivos', idArquivo), {
-        id_setor: a.setor,
-        tipo: a.tipo,
-        titulo: `${a.titulo} - ${setorInfo.nome}`,
-        nivel_acesso: a.nivel,
-        id_nuvem: `biblioteca/${a.setor}/${nivelPasta}/${idArquivo}.pdf`,
-        id_usuario: admin ? admin.uid : comUid[0].uid,
-        data_inclusao: serverTimestamp(),
         data_atualizacao: serverTimestamp(),
       })
     }
@@ -133,15 +127,15 @@ async function main() {
 
   console.log('Seed do emulador concluído.')
   console.log('Setores: Cachoeira Paulista - SP (cachoeira), Queluz - SP (queluz)')
-  console.log(`Senha padrão de todos: ${SENHA}`)
-  console.log('Admins:')
-  console.log('  - admin.cachoeira@exemplo.com  (Cachoeira)')
-  console.log('  - admin.geral@exemplo.com      (Cachoeira + Queluz)')
-  console.log('Comuns:')
-  console.log('  - alberto@exemplo.com          (Cachoeira)')
-  console.log('  - jamilton@exemplo.com         (Cachoeira)')
-  console.log('  - rubens@exemplo.com           (Queluz)')
-  console.log('Biblioteca: Cachoeira 4 arquivos (1 restrito nível 2), Queluz 3 arquivos.')
+  console.log('Usuários (nome - email - senha - nível):')
+  const larguraNome = Math.max(...USUARIOS.map((u) => u.nome.length))
+  const larguraEmail = Math.max(...USUARIOS.map((u) => u.email.length))
+  for (const u of USUARIOS) {
+    const papel = u.nivel === 2 ? 'Secretário' : 'Encarregado'
+    const nome = u.nome.padEnd(larguraNome)
+    const email = u.email.padEnd(larguraEmail)
+    console.log(`  - ${nome}  ${email}  ${SENHA}  ${papel}`)
+  }
   process.exit(0)
 }
 

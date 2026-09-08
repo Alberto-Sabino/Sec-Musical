@@ -13,11 +13,12 @@ import { baixarArquivo } from '@/servicos/infraestrutura_arquivos'
 
 // Tipos oficiais de solicitação (contrato do MVP).
 export const TIPOS_SOLICITACAO = [
+  { valor: 'avaliacao_exame', rotulo: 'Avaliação/Exame' },
+  { valor: 'ingresso_gem', rotulo: 'Ingresso no GEM' },
   { valor: 'troca_instrumento', rotulo: 'Troca de instrumento' },
-  { valor: 'avaliacao', rotulo: 'Avaliação' },
-  { valor: 'manutencao', rotulo: 'Manutenção' },
-  { valor: 'ficha', rotulo: 'Ficha' },
-  { valor: 'acesso', rotulo: 'Acesso' },
+  { valor: 'compra_manutencao', rotulo: 'Compra/Manutenção' },
+  { valor: 'transferencia', rotulo: 'Transferência' },
+  { valor: 'novo_colaborador', rotulo: 'Novo colaborador' },
 ]
 
 // Status oficiais.
@@ -59,11 +60,13 @@ export function rotuloTipo(tipo) {
 }
 
 // Cria uma solicitação para o usuário atual.
-// dados: { idUsuario, nomeUsuario, idSetor, tipo, nomeBeneficiario, descricao }.
+// dados: { idUsuario, nomeUsuario, comumCongregacao, idSetor, tipo, nomeBeneficiario, descricao }.
 // nome_beneficiario e descricao são obrigatórios.
+// comum_congregacao vem do contexto do solicitante (valor fixo, obrigatório).
 export async function criarSolicitacao({
   idUsuario,
   nomeUsuario,
+  comumCongregacao,
   idSetor,
   tipo,
   nomeBeneficiario,
@@ -71,6 +74,9 @@ export async function criarSolicitacao({
 }) {
   if (!tipo) {
     throw new Error('Selecione o tipo da solicitação.')
+  }
+  if (!comumCongregacao?.trim()) {
+    throw new Error('Seu cadastro não possui Comum Congregação definida. Contate o administrador.')
   }
   if (!nomeBeneficiario?.trim()) {
     throw new Error('Informe a pessoa afetada.')
@@ -86,6 +92,7 @@ export async function criarSolicitacao({
     id_setor: idSetor,
     id_solicitante: idUsuario,
     nome_solicitante: nomeUsuario || '',
+    comum_congregacao: comumCongregacao.trim(),
     nome_beneficiario: nomeBeneficiario.trim(),
     tipo,
     descricao: descricao.trim(),

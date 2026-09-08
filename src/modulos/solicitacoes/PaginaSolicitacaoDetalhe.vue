@@ -27,6 +27,10 @@
             <dd>{{ solicitacao.nome_solicitante || '—' }}</dd>
           </div>
           <div>
+            <dt>Comum Congregação</dt>
+            <dd>{{ solicitacao.comum_congregacao || '—' }}</dd>
+          </div>
+          <div>
             <dt>Aberta em</dt>
             <dd>{{ formatarData(solicitacao.data_solicitacao) }}</dd>
           </div>

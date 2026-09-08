@@ -2,7 +2,7 @@
   <ContainerPagina>
     <CabecalhoPagina
       :titulo="ehEdicao ? 'Editar solicitação' : 'Nova solicitação'"
-      :subtitulo="`Setor: ${nomeSetorAtivo}`"
+      :subtitulo="`Setor: ${nomeSetorAtivo} · Comum Congregação: ${comumCongregacao}`"
     />
 
     <EstadoCarregando v-if="carregandoInicial" texto="Carregando solicitação..." />
@@ -76,6 +76,7 @@ const { estado, nomeSetorAtivo } = usarSessao()
 
 const opcoesTipo = TIPOS_SOLICITACAO
 const ehEdicao = computed(() => !!route.params.id)
+const comumCongregacao = computed(() => estado.contexto?.comum_congregacao || '—')
 
 const carregandoInicial = ref(false)
 const salvando = ref(false)
@@ -133,6 +134,7 @@ async function persistirSolicitacao() {
   await criarSolicitacao({
     idUsuario: estado.contexto.id_usuario,
     nomeUsuario: estado.contexto.nome_completo,
+    comumCongregacao: estado.contexto.comum_congregacao,
     idSetor: estado.setorAtivo,
     tipo: form.tipo,
     nomeBeneficiario: form.nomeBeneficiario,

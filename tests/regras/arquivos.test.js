@@ -61,7 +61,7 @@ beforeEach(async () => {
     // Arquivo público (nível 1) e restrito (nível 2) no setor A.
     await setDoc(doc(db, 'arquivos', 'arq_pub_A'), {
       id_setor: SETOR_A,
-      tipo: 'circular',
+      tipo: 'circulares',
       titulo: 'Público A',
       nivel_acesso: 1,
       id_nuvem: `biblioteca/${SETOR_A}/nivel_1/arq_pub_A.pdf`,
@@ -69,7 +69,7 @@ beforeEach(async () => {
     })
     await setDoc(doc(db, 'arquivos', 'arq_rest_A'), {
       id_setor: SETOR_A,
-      tipo: 'circular',
+      tipo: 'circulares',
       titulo: 'Restrito A',
       nivel_acesso: 2,
       id_nuvem: `biblioteca/${SETOR_A}/nivel_2/arq_rest_A.pdf`,
@@ -78,7 +78,7 @@ beforeEach(async () => {
     // Arquivo público em outro setor (B).
     await setDoc(doc(db, 'arquivos', 'arq_pub_B'), {
       id_setor: SETOR_B,
-      tipo: 'circular',
+      tipo: 'circulares',
       titulo: 'Público B',
       nivel_acesso: 1,
       id_nuvem: `biblioteca/${SETOR_B}/nivel_1/arq_pub_B.pdf`,
@@ -145,7 +145,7 @@ test('arquivos: usuário inativo NÃO lê (bloqueado)', async () => {
 // ---- arquivos: escrita ----
 const NOVO = {
   id_setor: SETOR_A,
-  tipo: 'circular',
+  tipo: 'circulares',
   titulo: 'Novo',
   nivel_acesso: 1,
   id_nuvem: `biblioteca/${SETOR_A}/nivel_1/arq_novo.pdf`,

@@ -33,6 +33,7 @@ export async function criarSolicitacao(idSolicitacao, dados) {
     id_setor: dados.id_setor,
     id_solicitante: dados.id_solicitante,
     nome_solicitante: dados.nome_solicitante || '',
+    comum_congregacao: dados.comum_congregacao || '',
     nome_beneficiario: dados.nome_beneficiario,
     id_responsavel: '',
     nome_responsavel: '',

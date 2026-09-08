@@ -128,6 +128,18 @@ Antes de alterar código, o Kiro deve:
 - Não dizer que algo foi validado se não foi executado ou checado.
 - Não afirmar conclusão de lote se o critério de saída ainda não foi satisfeito.
 
+### Regras de ambiente e execução (ler antes de rodar qualquer comando)
+
+- **Descobrir antes de executar**: para saber como algo roda (build, testes, emuladores, ambiente), consultar primeiro este README, os `docs/steering/` e as `docs/specs/` (especialmente `docs/setup-local.md`). Nunca começar tentando executar código ou instalar dependências para "descobrir".
+- **Não instalar dependências de sistema** (ex.: Java/JRE) no host. O ambiente já está provisionado.
+- **Emuladores Firebase**: rodam no **Docker do usuário** e normalmente já estão em execução. Não iniciar/instalar emuladores no host.
+- **Testes de regras (Firestore)**: executam em container isolado, conforme `docs/setup-local.md`:
+  ```bash
+  docker build -f Dockerfile.rules-test -t portal-musical-rules-test .
+  docker run --rm portal-musical-rules-test
+  ```
+  Não usar `npm run test:rules` diretamente no host (depende de Java local, que não deve ser instalado).
+
 ### Em caso de incerteza
 
 Fazer **uma pergunta objetiva por vez**, curta e específica.

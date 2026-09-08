@@ -39,6 +39,7 @@
               <BadgeStatus :status="sol.status" />
             </div>
             <div class="item__meta">
+              <span v-if="sol.comum_congregacao">{{ sol.comum_congregacao }}</span>
               <span>Atualizada em {{ formatarData(sol.data_atualizacao) }}</span>
               <span v-if="sol.id_responsavel">Responsável definido</span>
             </div>

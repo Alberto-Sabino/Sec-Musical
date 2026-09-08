@@ -50,6 +50,7 @@ export async function carregarContextoUsuario(idUsuario) {
     id_usuario: documento.id_usuario,
     nome_completo: documento.nome_completo || '',
     email: documento.email || '',
+    comum_congregacao: documento.comum_congregacao || '',
     nivel_acesso: nivelAcesso,
     ativo: documento.ativo,
     ids_setor: idsSetor,

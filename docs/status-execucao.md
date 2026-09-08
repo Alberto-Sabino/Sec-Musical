@@ -13,7 +13,7 @@ Não registrar intenção como se fosse entrega concluída.
 - Fase ativa: Sprint 2
 - Spec ativa: `docs/specs/spec-10-execucao-operacional-sprint-2.md`
 - Lote atual: Lote 9 (preparado; publicação manual pelo responsável)
-- Atividade recente: Spec 11 — Melhoria de infraestrutura local (mock removido; arquivos reais via Storage emulator; flag única `VITE_APP_MODE`)
+- Atividade recente: Spec 12 — Ajuste de tipos e campo `comum_congregacao` (contrato + regra de segurança + seed)
 - Status geral: em andamento
 - Nota: Spec 09 fechada em modo parcial-operacional (pendência conhecida e aceita: Storage/Billing, restrita a arquivos)
 
@@ -27,40 +27,41 @@ Não registrar intenção como se fosse entrega concluída.
 ---
 
 ## Última atualização
-- Data: 2026-08-31
+- Data: 2026-09-08
 - Responsável: Kiro
 - Status: concluído
 
 ### Resumo
-- Objetivo: exibir nome do setor (não o id); ajustes de lista; seed do piloto.
-- Resultado: nome do setor em toda a UI; regra de leitura de `setores`; seed com Cachoeira/Queluz.
+- Objetivo: revisar tipos (arquivo/solicitação); incluir `comum_congregacao`; atualizar seed.
+- Resultado: novos tipos oficiais; campo `comum_congregacao` em `usuarios`/`solicitacoes` (obrigatório, denormalizado, imutável) com regra de segurança; seed sem arquivos e com novos usuários. Ver `docs/specs/spec-12-ajustes-tipos-e-comum-congregacao.md`.
 
 ### Arquivos impactados
-- src/servicos/repositorios/repositorioSetores.js (novo)
-- src/composables/usarSessao.js (nomesSetores, nomeSetorAtivo, opcoesSetor)
-- src/app/PaginaInicial.vue, biblioteca/fila/forms (subtítulos com nome do setor)
-- firestore.rules (regra de leitura de `setores`)
-- tests/regras/arquivos.test.js (testes de `setores`)
-- scripts/seed-emulador.mjs (setores/usuários do piloto)
-- docs mestre e steering-03 (regra de `setores`)
+- src/servicos/casos_de_uso/biblioteca.js (TIPOS_ARQUIVO)
+- src/servicos/casos_de_uso/solicitacoes.js (TIPOS_SOLICITACAO; validação comum)
+- src/servicos/casos_de_uso/autenticacao.js (comum_congregacao no contexto)
+- src/servicos/repositorios/repositorioSolicitacoes.js (grava comum_congregacao)
+- src/modulos/solicitacoes/PaginaSolicitacaoForm.vue (envio + exibição)
+- src/modulos/solicitacoes/PaginaSolicitacaoDetalhe.vue, admin/PaginaFilaDetalhe.vue, admin/PaginaFilaSolicitacoes.vue (exibição)
+- firestore.rules (validação/imutabilidade de comum_congregacao)
+- scripts/seed-emulador.mjs (remoção de arquivos; novos usuários; log)
+- tests/regras/solicitacoes.test.js, tests/regras/arquivos.test.js (novos tipos + casos comum)
+- docs mestre, steering-03, piloto-seed-dados, README, spec-12 (nova)
 
 ### Nova regra de segurança (aprovada)
-- `setores`: leitura por usuário autenticado+ativo que pertence ao setor; escrita negada. Documentada no mestre e steering-03.
+- `solicitacoes`: na criação, `comum_congregacao` deve ser string não-vazia e igual a `docUsuario().comum_congregacao`; imutável nos updates de solicitante e admin.
 
 ### Validação
-- Testes de regras (Docker): 47/47 pass
-- `npm run build` OK
-- Emulador recarregou as regras ("Rules updated")
+- Testes de regras (Docker): 61/61 pass (inclui 3 novos casos de comum_congregacao)
+- `npm run build` OK; `eslint` (src, scripts, tests) OK
+
+### Ambiente local controlado
+- Seed atualizado (senha `senha123`):
+  - secretários: Alberto Sabino da Silva (Cachoeira), Daniel Gomes de Araújo (Cachoeira+Queluz)
+  - encarregados: Central, Embaú (Cachoeira), Bairro da Figueira (Queluz)
+  - arquivos: não semeados (Biblioteca nasce vazia)
 
 ### Pendências
 - deploy real e Storage real: pendentes (Billing)
-
-### Ambiente local controlado
-- Emuladores via Docker; app no host (Vite). Seed atualizado:
-  - setores: Cachoeira Paulista - SP, Queluz - SP
-  - admins: admin.cachoeira (Cachoeira), admin.geral (Cachoeira+Queluz)
-  - comuns: alberto/jamilton (Cachoeira), rubens (Queluz) — senha `senha123`
-- Guia: `docs/ambiente-local.md`.
 
 ### Bloqueios
 - deploy depende de Billing e credenciais do responsável (fora do alcance do agente)

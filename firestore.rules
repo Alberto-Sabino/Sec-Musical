@@ -102,6 +102,9 @@ service cloud.firestore {
         && request.resource.data.nome_responsavel == ''
         && request.resource.data.id_nuvem == ''
         && request.resource.data.conclusao == ''
+        && request.resource.data.comum_congregacao is string
+        && request.resource.data.comum_congregacao.size() > 0
+        && request.resource.data.comum_congregacao == docUsuario().comum_congregacao
         && request.resource.data.nome_beneficiario is string
         && request.resource.data.nome_beneficiario.size() > 0
         && request.resource.data.descricao is string
@@ -117,6 +120,7 @@ service cloud.firestore {
         && request.resource.data.id_setor == resource.data.id_setor
         && request.resource.data.id_solicitante == resource.data.id_solicitante
         && request.resource.data.nome_solicitante == resource.data.nome_solicitante
+        && request.resource.data.comum_congregacao == resource.data.comum_congregacao
         && request.resource.data.nome_beneficiario == resource.data.nome_beneficiario
         && request.resource.data.id_responsavel == resource.data.id_responsavel
         && request.resource.data.nome_responsavel == resource.data.nome_responsavel
@@ -138,6 +142,7 @@ service cloud.firestore {
         && request.resource.data.id_setor == resource.data.id_setor
         && request.resource.data.id_solicitante == resource.data.id_solicitante
         && request.resource.data.nome_solicitante == resource.data.nome_solicitante
+        && request.resource.data.comum_congregacao == resource.data.comum_congregacao
         && request.resource.data.nome_beneficiario == resource.data.nome_beneficiario
         && request.resource.data.descricao == resource.data.descricao
         && (

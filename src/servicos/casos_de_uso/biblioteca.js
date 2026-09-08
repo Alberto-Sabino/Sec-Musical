@@ -6,10 +6,12 @@ import { NIVEL_ADMIN } from '@/servicos/casos_de_uso/autenticacao'
 
 // Tipos oficiais de arquivo (contrato do MVP).
 export const TIPOS_ARQUIVO = [
-  { valor: 'circular', rotulo: 'Circular' },
-  { valor: 'topico', rotulo: 'Tópico' },
-  { valor: 'plano_aula', rotulo: 'Plano de aula' },
-  { valor: 'modelo', rotulo: 'Modelo' },
+  { valor: 'circulares', rotulo: 'Circulares' },
+  { valor: 'topicos', rotulo: 'Tópicos' },
+  { valor: 'metodos', rotulo: 'Métodos' },
+  { valor: 'planos_aula', rotulo: 'Planos de aula' },
+  { valor: 'provas', rotulo: 'Provas' },
+  { valor: 'modelos', rotulo: 'Modelos' },
   { valor: 'outros', rotulo: 'Outros' },
 ]
 

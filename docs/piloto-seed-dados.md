@@ -27,6 +27,7 @@ Coleção `usuarios`, doc id = UID do Auth.
   "nome_completo": "Nome do Responsável",
   "email": "responsavel@exemplo.com",
   "celular": "",
+  "comum_congregacao": "Quilombo",
   "nivel_acesso": 2,
   "ativo": true,
   "ids_setor": ["setorA"],
@@ -41,7 +42,7 @@ Coleção `arquivos`, doc id = `id_arquivo`.
 ```json
 {
   "id_setor": "setorA",
-  "tipo": "circular",
+  "tipo": "circulares",
   "titulo": "Circular inicial",
   "nivel_acesso": 1,
   "id_nuvem": "biblioteca/setorA/nivel_1/<id_arquivo>.pdf",

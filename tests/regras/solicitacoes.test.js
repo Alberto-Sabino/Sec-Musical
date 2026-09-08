@@ -34,15 +34,16 @@ after(async () => {
   await testEnv.cleanup()
 })
 
-function solEmAberto(idSolicitante = UID_USUARIO, idSetor = SETOR_A) {
+function solEmAberto(idSolicitante = UID_USUARIO, idSetor = SETOR_A, comum = 'Quilombo') {
   return {
     id_setor: idSetor,
     id_solicitante: idSolicitante,
     nome_solicitante: 'Nome Solicitante',
+    comum_congregacao: comum,
     nome_beneficiario: 'Beneficiario X',
     id_responsavel: '',
     nome_responsavel: '',
-    tipo: 'avaliacao',
+    tipo: 'avaliacao_exame',
     status: 'em_aberto',
     descricao: 'Descricao inicial',
     conclusao: '',
@@ -61,18 +62,21 @@ beforeEach(async () => {
       ativo: true,
       ids_setor: [SETOR_A],
       nome_completo: 'Encarregado Um',
+      comum_congregacao: 'Quilombo',
     })
     await setDoc(doc(db, 'usuarios', UID_OUTRO), {
       nivel_acesso: 1,
       ativo: true,
       ids_setor: [SETOR_A],
       nome_completo: 'Encarregado Dois',
+      comum_congregacao: 'Capela do Jacú',
     })
     await setDoc(doc(db, 'usuarios', UID_ADMIN), {
       nivel_acesso: 2,
       ativo: true,
       ids_setor: [SETOR_A],
       nome_completo: 'Secretário Um',
+      comum_congregacao: 'Sede',
     })
     // Solicitação em aberto do usuário comum no setor A.
     await setDoc(doc(db, 'solicitacoes', 'sol1'), solEmAberto())
@@ -163,6 +167,22 @@ test('solicitacoes: usuário NÃO cria com conclusao preenchida (bloqueado)', as
   const dados = solEmAberto()
   dados.conclusao = 'algo'
   await assertFails(setDoc(doc(cUsuario(), 'solicitacoes', 'nova8'), dados))
+})
+
+test('solicitacoes: usuário NÃO cria sem comum_congregacao (bloqueado)', async () => {
+  const dados = solEmAberto(UID_USUARIO, SETOR_A, '')
+  await assertFails(setDoc(doc(cUsuario(), 'solicitacoes', 'nova9'), dados))
+})
+
+test('solicitacoes: usuário NÃO cria com comum_congregacao divergente do próprio cadastro (bloqueado)', async () => {
+  const dados = solEmAberto(UID_USUARIO, SETOR_A, 'Comum Falsa')
+  await assertFails(setDoc(doc(cUsuario(), 'solicitacoes', 'nova10'), dados))
+})
+
+test('solicitacoes: dono NÃO altera comum_congregacao (bloqueado)', async () => {
+  await assertFails(
+    updateDoc(doc(cUsuario(), 'solicitacoes', 'sol1'), { comum_congregacao: 'Outra' }),
+  )
 })
 
 // ---- edição/cancelamento pelo usuário ----

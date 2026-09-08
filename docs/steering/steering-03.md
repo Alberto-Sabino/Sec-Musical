@@ -33,6 +33,7 @@ Usar como referência principal:
 - `nome_completo`
 - `email`
 - `celular`
+- `comum_congregacao`
 - `nivel_acesso`
 - `ativo`
 - `ids_setor`
@@ -55,6 +56,7 @@ Usar como referência principal:
 - `id_setor`
 - `id_solicitante`
 - `nome_solicitante`
+- `comum_congregacao`
 - `id_responsavel`
 - `nome_responsavel`
 - `tipo`

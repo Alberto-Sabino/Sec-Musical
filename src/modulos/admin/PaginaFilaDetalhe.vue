@@ -27,6 +27,10 @@
             <dd>{{ solicitacao.nome_solicitante || '—' }}</dd>
           </div>
           <div>
+            <dt>Comum Congregação</dt>
+            <dd>{{ solicitacao.comum_congregacao || '—' }}</dd>
+          </div>
+          <div>
             <dt>Responsável</dt>
             <dd>{{ solicitacao.nome_responsavel || '—' }}</dd>
           </div>

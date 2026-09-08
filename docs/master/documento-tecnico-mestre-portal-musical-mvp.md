@@ -67,13 +67,14 @@ O MVP possui **dois módulos principais**.
 Função: centralizar documentos oficiais da parte musical.
 
 Tipos iniciais:
-- circular
-- topico
-- plano_aula - modelo - outros Funcionalidades: - listar arquivos permitidos; - filtrar por tipo; - baixar arquivo; - permitir ao Admin cadastrar, atualizar e remover arquivos; - permitir auditoria básica de alterações. ### 5.2 Solicitações Função: organizar pedidos operacionais e a devolutiva correspondente. Tipos iniciais: - troca_instrumento
-- avaliacao
-- manutencao
-- ficha
-- acesso
+- circulares
+- topicos
+- metodos - planos_aula - provas - modelos - outros Funcionalidades: - listar arquivos permitidos; - filtrar por tipo; - baixar arquivo; - permitir ao Admin cadastrar, atualizar e remover arquivos; - permitir auditoria básica de alterações. ### 5.2 Solicitações Função: organizar pedidos operacionais e a devolutiva correspondente. Tipos iniciais: - avaliacao_exame
+- ingresso_gem
+- troca_instrumento
+- compra_manutencao
+- transferencia
+- novo_colaborador
 
 Status:
 - em_aberto - em_andamento
@@ -175,6 +176,7 @@ Campos principais:
 - `nome_completo`
 - `email`
 - `celular`
+- `comum_congregacao`
 - `nivel_acesso`
 - `ativo`
 - `ids_setor`
@@ -207,6 +209,7 @@ Campos principais:
 - `id_setor`
 - `id_solicitante`
 - `nome_solicitante`
+- `comum_congregacao`
 - `nome_beneficiario`
 - `id_responsavel`
 - `nome_responsavel`
@@ -221,6 +224,12 @@ Campos principais:
 > `nome_solicitante` e `nome_responsavel` são campos de exibição (denormalizados):
 > gravados na criação (solicitante) e ao assumir (responsável). Evitam expor `id`
 > na interface e mantêm a leitura de `usuarios` restrita ao próprio documento.
+>
+> `comum_congregacao` (exibido na interface como "Comum Congregação") é um valor fixo
+> atribuído ao usuário em `usuarios` e **denormalizado** na solicitação na criação
+> (mesmo padrão de `nome_solicitante`). É **obrigatório** e **imutável** após a criação.
+> A regra de segurança exige que o valor gravado seja igual ao do documento do próprio
+> solicitante. Visível ao solicitante e ao admin do setor.
 >
 > `nome_beneficiario` (exibido na interface como "Pessoa afetada") identifica o músico
 > ou instrutor para quem a ficha é gerada. É **obrigatório** na criação e **imutável**
