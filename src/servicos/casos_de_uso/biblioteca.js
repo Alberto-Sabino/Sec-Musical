@@ -67,7 +67,7 @@ export async function listarBiblioteca({ nivelAcesso, idSetor, tipo }) {
 }
 
 // Baixa um arquivo a partir do `id_nuvem` persistido.
-// Retorna { nome, blob } vindos da infraestrutura (mock ou firebase).
+// Retorna { nome, blob } vindos da infraestrutura de arquivos.
 export async function baixarArquivoBiblioteca(idNuvem) {
   return baixarArquivo(idNuvem)
 }

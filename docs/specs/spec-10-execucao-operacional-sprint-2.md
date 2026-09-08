@@ -110,6 +110,8 @@ Entregar a experiência do admin para operar a fila do setor ativo, assumir aten
 - a conclusão só ocorre depois do tratamento compatível com o fluxo definido.
 
 ### Regra transitória para anexo final
+> Decisão superada (registro histórico): o mock do anexo final foi substituído pelo Storage real via emulador local (ver `docs/specs/spec-11-melhoria-infraestrutura-local.md`). O texto abaixo permanece como registro da Sprint 2.
+
 Se Storage real ainda não estiver disponível, o anexo final da solicitação pode ser simulado por implementação de infraestrutura mock, desde que:
 - o fluxo administrativo permaneça igual ao final;
 - `id_nuvem` siga o contrato oficial;

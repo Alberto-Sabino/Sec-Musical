@@ -100,6 +100,8 @@ Usar como referência principal:
 - `solicitacoes/{id_setor}/{id_solicitante}/{id_solicitacao}/resposta.pdf`
 
 ## Regra de segurança durante uso de mock
+> Decisão superada (registro histórico): não há mais mock de arquivos; a infra usa o Storage real via emulador local. As regras de segurança abaixo permanecem válidas em espírito — o Storage de **produção** e suas regras continuam pendentes de Billing e não devem ser declarados concluídos. Ver `docs/specs/spec-11-melhoria-infraestrutura-local.md`.
+
 Mock de arquivo não substitui segurança real.
 
 ### Regras

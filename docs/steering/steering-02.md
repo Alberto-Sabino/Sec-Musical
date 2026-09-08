@@ -108,6 +108,8 @@ Os casos de uso consomem interfaces estáveis.
 A infraestrutura pode ter mais de uma implementação, desde que preserve assinatura, contrato e comportamento esperado.
 
 ### Aplicação obrigatória neste MVP
+> Decisão superada (registro histórico): a implementação `mock` foi removida. A infra de arquivos tem uma única implementação real (`firebase.js`), com destino (emulador vs produção) selecionado por `VITE_APP_MODE`. Ver documento mestre e `docs/specs/spec-11-melhoria-infraestrutura-local.md`.
+
 Para operações de arquivo, prever:
 - implementação `mock`
 - implementação `firebase`

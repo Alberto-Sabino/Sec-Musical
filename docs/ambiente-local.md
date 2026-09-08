@@ -46,9 +46,10 @@ Cria:
 ### 3. Rodar a aplicação (host)
 Confirmar em `.env.local`:
 ```
-VITE_USE_EMULATORS=true
-VITE_FILE_INFRA=mock
+VITE_APP_MODE=emulador
 ```
+> `emulador` liga os emuladores locais e usa Storage real via emulador (sem Billing).
+> Dev e login dependem dos emuladores; para deploy real use `producao`.
 Então:
 ```bash
 npm run dev
@@ -64,6 +65,6 @@ Os dados do emulador são efêmeros (somem ao derrubar o container).
 ---
 
 ## Notas
-- Arquivos operam em modo `mock` (download/upload simulados) enquanto o Storage real não estiver ativo.
+- Arquivos (upload/download) usam o Storage real via SDK apontando para o **Storage emulator** local (modo `emulador`), sem exigir Billing. O Storage de produção segue pendente de Billing.
 - Para testar as regras de Firestore isoladamente: `docker build -f Dockerfile.rules-test -t portal-musical-rules-test . && docker run --rm portal-musical-rules-test` (42/42).
 - Este ambiente é de ensaio; não substitui a validação real de Storage.

@@ -10,5 +10,26 @@ export const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 }
 
-// Liga a conexão com os emuladores locais quando VITE_USE_EMULATORS = "true".
-export const usarEmuladores = import.meta.env.VITE_USE_EMULATORS === 'true'
+// Modo único da aplicação (fonte única de verdade do ambiente).
+// Deriva o comportamento das camadas a partir de UMA variável.
+//
+// Valores válidos de VITE_APP_MODE:
+//   "emulador" — emuladores locais ligados (Auth/Firestore/Storage); infra de
+//                arquivos real (SDK) apontando para o Storage emulator (não
+//                exige Billing). Modo de desenvolvimento.
+//   "producao" — sem emuladores; Storage real de produção (pendente de Cloud
+//                Billing/Blaze).
+//
+// Observação: o desenvolvimento e o login dependem dos emuladores, portanto
+// os emuladores estão sempre ligados em desenvolvimento (modo "emulador").
+export const MODOS_APP = {
+  EMULADOR: 'emulador',
+  PRODUCAO: 'producao',
+}
+
+const modoBruto = import.meta.env.VITE_APP_MODE
+// Default de desenvolvimento: "emulador" (emuladores sempre ligados localmente).
+export const MODO_APP = modoBruto === MODOS_APP.PRODUCAO ? MODOS_APP.PRODUCAO : MODOS_APP.EMULADOR
+
+// Comportamentos derivados (fonte única; camadas não leem env diretamente).
+export const usarEmuladores = MODO_APP === MODOS_APP.EMULADOR

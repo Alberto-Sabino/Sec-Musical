@@ -56,26 +56,30 @@ Só iniciar após fechamento real da Spec 09:
 
 - `docs/specs/spec-10-execucao-operacional-sprint-2.md`
 
+### Melhoria de infraestrutura local
+
+- `docs/specs/spec-11-melhoria-infraestrutura-local.md`
+
 ---
 
 ## Modo transitório sem Billing
 
-Enquanto Cloud Billing / Blaze não estiver habilitado, o projeto pode avançar com implementação real de UI, Auth, Firestore, navegação e regras de fluxo, usando mocks apenas nas operações de arquivo.
+Enquanto Cloud Billing / Blaze não estiver habilitado, o projeto avança com implementação real de UI, Auth, Firestore, navegação e regras de fluxo. As operações de arquivo (upload/download/remoção) também são **reais**, executadas contra o **Storage emulator local**, que não exige Billing.
+
+> Decisão atual: a antiga camada de arquivos simulada (mock) foi removida. Como o desenvolvimento e o login já dependem dos emuladores, os arquivos passam a usar o SDK real do Storage apontando para o emulador. Não há mais implementação mock.
 
 Regras:
 
-- mockar somente a camada de infraestrutura de arquivos;
-- não mockar no componente visual;
 - manter o mesmo contrato de dados do ambiente real;
-- manter o formato oficial de `id_nuvem`, mesmo em simulação;
+- manter o formato oficial de `id_nuvem`;
 - não criar campos temporários no Firestore;
-- não considerar Storage, upload real, download real ou regras de Storage como concluídos enquanto Billing não estiver ativo.
+- não considerar o Storage **de produção** (upload/download/regras) como concluído enquanto Billing não estiver ativo.
 
-Implementação esperada:
+Implementação:
 
-- interface estável para operações de arquivo;
-- implementação `mock` e implementação `firebase`;
-- troca por configuração, sem reescrever telas ou casos de uso.
+- interface estável para operações de arquivo, com uma única implementação real (`firebase.js`);
+- o modo é controlado por `VITE_APP_MODE` (`emulador` | `producao`), sem reescrever telas ou casos de uso;
+- `emulador`: Storage emulator local (sem Billing); `producao`: Storage real (pendente de Billing).
 
 ---
 

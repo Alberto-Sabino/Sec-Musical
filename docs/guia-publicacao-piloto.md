@@ -38,10 +38,9 @@ cp .env.example .env.local
 Preencher em `.env.local` as chaves reais do Firebase (Console > Configurações do projeto).
 Para produção com Storage real, ajustar:
 ```
-VITE_USE_EMULATORS=false
-VITE_FILE_INFRA=firebase
+VITE_APP_MODE=producao
 ```
-> Enquanto o Storage não estiver validado, manter `VITE_FILE_INFRA=mock`.
+> Enquanto o Storage de produção não estiver validado (Billing), desenvolver com `VITE_APP_MODE=emulador` (arquivos reais via Storage emulator, sem Billing).
 
 ---
 
@@ -88,8 +87,8 @@ Seguir `docs/piloto-seed-dados.md` (estrutura exata dos documentos).
    - criar o documento em `usuarios` com doc id = UID do Auth, definindo
      `nivel_acesso` (1 usuário / 2 admin), `ativo: true` e `ids_setor`.
 3. **Biblioteca**: cadastrar os primeiros arquivos.
-   - Com Storage real: usar a própria tela de admin (upload real).
-   - Sem Storage: cadastrar metadados seguindo o `id_nuvem` oficial (modo mock).
+   - Com Storage de produção: usar a própria tela de admin (upload real).
+   - Sem Billing: os uploads/downloads funcionam contra o Storage emulator local (modo `emulador`), seguindo o `id_nuvem` oficial.
 
 > Ensaio local opcional (emulador): `npm run emulators` e, em outro terminal,
 > `npm run seed:emulador` para popular dados de teste.
@@ -122,8 +121,10 @@ Seguir `docs/piloto-indicadores.md`:
 
 ## Pendência conhecida (aceita)
 Cloud Storage real, regras de Storage e upload/download reais permanecem pendentes
-de validação enquanto operados em modo mock. Ao ativar o Storage real:
-1. `VITE_FILE_INFRA=firebase` no ambiente;
+de validação enquanto não operados contra o Storage de produção. Em
+desenvolvimento, upload/download/remoção funcionam via Storage emulator.
+Ao ativar o Storage real:
+1. `VITE_APP_MODE=producao` no ambiente;
 2. revisar e validar `storage.rules`;
 3. `firebase deploy --only storage`;
 4. validar upload/download reais na Biblioteca e no anexo final de Solicitações.

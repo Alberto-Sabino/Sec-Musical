@@ -15,8 +15,9 @@ cp .env.example .env.local   # preencher as chaves do Firebase
 
 ## Variáveis de ambiente
 Ver `.env.example`. Destaques:
-- `VITE_USE_EMULATORS=true` — conecta Auth/Firestore/Storage aos emuladores locais.
-- `VITE_FILE_INFRA=mock` — infraestrutura de arquivos simulada (sem Billing). Use `firebase` só quando o Storage real estiver ativo.
+- `VITE_APP_MODE` — modo único da aplicação (flag única que deriva emuladores + destino dos arquivos):
+  - `emulador` — emuladores locais ligados; upload/download/remoção reais via **Storage emulator** (não exige Billing). Modo de desenvolvimento (padrão). O login e o desenvolvimento dependem dos emuladores.
+  - `producao` — sem emuladores; Storage real de **produção** (pendente de Billing; não considerar concluído enquanto Billing não estiver ativo).
 
 ## Executar a aplicação
 ```bash
@@ -39,5 +40,5 @@ docker run --rm portal-musical-rules-test
 Os testes ficam em `tests/regras/` e validam cenários permitidos e bloqueados de `usuarios` e `arquivos`.
 
 ## Estado atual
-- Arquivos (upload/download) operam em modo `mock`; Storage real e regras de Storage seguem pendentes de Billing.
+- Arquivos (upload/download) usam o **Storage real via SDK** apontando para o **Storage emulator** local (modo `emulador`), sem exigir Billing. O Storage de **produção** segue pendente de Billing.
 - Acompanhar progresso por lote em `docs/status-execucao.md`.

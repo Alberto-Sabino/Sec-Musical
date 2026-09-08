@@ -340,18 +340,21 @@ onMounted(carregar)
 <style scoped>
 .topo {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: var(--espaco-sm);
   margin-bottom: var(--espaco-md);
+  flex-wrap: wrap;
 }
 .topo__tipo {
   margin: 0;
   font-size: var(--fonte-tamanho-lg);
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 .dados {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: var(--espaco-md);
   margin: 0 0 var(--espaco-md);
 }
@@ -362,7 +365,8 @@ onMounted(carregar)
 .dados dd {
   margin: var(--espaco-xs) 0 0;
   font-weight: 600;
-  word-break: break-all;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 .acoes {
   display: flex;
@@ -416,5 +420,15 @@ onMounted(carregar)
 }
 .historico__data {
   color: var(--cor-texto-suave);
+}
+@media (min-width: 600px) {
+  .dados {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--espaco-md) var(--espaco-lg);
+  }
+  .topo {
+    align-items: center;
+    flex-wrap: nowrap;
+  }
 }
 </style>

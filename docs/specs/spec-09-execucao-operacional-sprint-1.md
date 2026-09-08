@@ -167,6 +167,8 @@ Entregar a experiência de leitura da Biblioteca para usuário e admin com filtr
 - os estados de loading, vazio e erro estão cobertos.
 
 ### Regra transitória de arquivos para a Biblioteca
+> Decisão superada (registro histórico): esta regra de mock foi substituída. A infraestrutura de arquivos passou a usar o Storage real via emulador local (ver documento mestre, seção do modo transitório, e `docs/specs/spec-11-melhoria-infraestrutura-local.md`). O texto abaixo permanece como registro da Sprint 1.
+
 Se Cloud Storage for Firebase ainda não estiver disponível por ausência de Billing/Blaze, a Biblioteca pode ser entregue com infraestrutura simulada de arquivos, desde que:
 - a UI permaneça igual à versão final;
 - a consulta use o contrato oficial;

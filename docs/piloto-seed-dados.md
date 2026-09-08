@@ -55,5 +55,5 @@ Coleção `arquivos`, doc id = `id_arquivo`.
 - `solicitacoes` nascem pelo uso (usuário abre pela interface); não precisa seed.
   - Campos de exibição `nome_solicitante` (gravado na criação) e `nome_responsavel`
     (gravado ao assumir) evitam expor `id` na interface.
-- Enquanto o Storage não estiver ativo, os arquivos operam em modo mock; o `id_nuvem`
-  já deve seguir o formato oficial para migração sem retrabalho.
+- Os arquivos usam o Storage emulator local (modo `emulador`); o `id_nuvem`
+  já deve seguir o formato oficial para migração ao Storage de produção sem retrabalho.

@@ -75,6 +75,8 @@ Pedir confirmação antes de:
 
 ## Regra operacional quando Billing estiver ausente
 Se Cloud Storage for Firebase não puder ser usado por ausência de Billing/Blaze, o Kiro deve:
+> Decisão superada (registro histórico): a "versão simulada" foi substituída pelo Storage real via emulador local. Mantém-se a diretriz de não declarar o Storage de produção concluído. Ver `docs/specs/spec-11-melhoria-infraestrutura-local.md`.
+
 - seguir com UI, Auth, Firestore e fluxo;
 - criar camada de infraestrutura de arquivos com interface estável;
 - implementar versão simulada isolada;

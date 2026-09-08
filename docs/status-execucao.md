@@ -13,8 +13,16 @@ Não registrar intenção como se fosse entrega concluída.
 - Fase ativa: Sprint 2
 - Spec ativa: `docs/specs/spec-10-execucao-operacional-sprint-2.md`
 - Lote atual: Lote 9 (preparado; publicação manual pelo responsável)
+- Atividade recente: Spec 11 — Melhoria de infraestrutura local (mock removido; arquivos reais via Storage emulator; flag única `VITE_APP_MODE`)
 - Status geral: em andamento
 - Nota: Spec 09 fechada em modo parcial-operacional (pendência conhecida e aceita: Storage/Billing, restrita a arquivos)
+
+### Mudança pós-Sprint — Infra de arquivos
+- Status: aplicado
+- Resultado: camada mock removida; infra de arquivos (upload/download/remoção) usa o SDK real do Storage contra o **Storage emulator** local (modo `emulador`); flag única `VITE_APP_MODE` (`emulador` | `producao`) substitui `VITE_USE_EMULATORS` + `VITE_FILE_INFRA`
+- Segurança: escrita de arquivos restrita a admin pelo Firestore (server-side) + UI (guard/`v-if`); `storage.rules` liberam escrita a qualquer autenticado (sem custom claims)
+- Validação: `npm run build` OK; `eslint src/` OK
+- Pendências: Storage de **produção** e regras pendentes de Billing (não concluído); autorização fina de admin no Storage (custom claims / `firestore.get()`) adiada; ver `docs/specs/spec-11-melhoria-infraestrutura-local.md`
 
 ---
 

@@ -253,34 +253,34 @@ Campos principais:
 
 ---
 
-## Modo transitório de execução sem Cloud Storage ativo
-Enquanto o projeto estiver sem Cloud Billing habilitado para uso de Cloud Storage for Firebase, a implementação poderá usar uma camada de infraestrutura com comportamento simulado exclusivamente para operações de arquivo.
+## Modo transitório de execução sem Cloud Storage de produção
+Enquanto o projeto estiver sem Cloud Billing habilitado para o Cloud Storage for Firebase de produção, as operações de arquivo são executadas de forma **real** contra o **Storage emulator local**, que não exige Billing. Não há camada simulada (mock).
+
+> Decisão atual (supera a estratégia de mock): como o desenvolvimento e o login dependem dos emuladores, a infraestrutura de arquivos usa o SDK real do Storage. Em desenvolvimento aponta para o emulador; em produção apontará para o Storage real (pendente de Billing). A antiga camada mock foi removida.
 
 ### Regras deste modo transitório
 - a interface e os casos de uso permanecem iguais ao modo final;
-- a simulação deve ficar isolada na camada de infraestrutura;
-- a interface não deve conhecer detalhes do mock;
+- a seleção de destino (emulador vs produção) fica isolada na camada de infraestrutura, controlada por `VITE_APP_MODE`;
+- a interface não conhece o destino do Storage;
 - o contrato de dados não muda;
 - `id_nuvem` continua obrigatório nos fluxos em que ele exista e deve seguir o formato oficial do projeto;
 - não persistir URL pública fixa;
-- não criar campos temporários para viabilizar o mock.
+- não criar campos temporários no Firestore.
 
 ### Escopo permitido no modo transitório
 Permitido:
-- listar arquivos com dados mockados;
-- simular download da Biblioteca;
-- simular upload/substituição/remoção de arquivos da Biblioteca;
-- simular upload do anexo final de Solicitações;
+- listar, baixar, enviar, substituir e remover arquivos da Biblioteca (reais, via emulador);
+- enviar e baixar o anexo final de Solicitações (real, via emulador);
 - persistir no Firestore somente os campos já previstos no contrato.
 
 Não permitido:
-- declarar Storage como validado;
-- declarar regras de Storage como testadas;
-- declarar segurança de arquivos como concluída;
-- alterar o contrato de dados para acomodar a simulação.
+- declarar o Storage de **produção** como validado;
+- declarar as regras de Storage de **produção** como testadas;
+- declarar a segurança de arquivos de **produção** como concluída;
+- alterar o contrato de dados.
 
 ### Objetivo
-Permitir avanço do desenvolvimento sem retrabalho, garantindo substituição posterior da infraestrutura simulada pela infraestrutura Firebase real sem mudança de telas, fluxos ou contrato.
+Permitir avanço do desenvolvimento com operações de arquivo reais (via emulador), garantindo transição ao Storage de produção apenas trocando `VITE_APP_MODE` para `producao`, sem mudança de telas, fluxos ou contrato.
 
 ---
 

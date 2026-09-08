@@ -11,8 +11,8 @@
       <BaseSelect
         v-model="tipoSelecionado"
         rotulo="Filtrar por tipo"
-        placeholder="Todos os tipos"
         :opcoes="opcoesTipo"
+        class="filtro__select"
         @update:modelValue="carregar"
       />
     </div>
@@ -113,7 +113,9 @@ const arquivoSelecionado = ref(null)
 const arquivoParaRemover = ref(null)
 const removendo = ref(false)
 
-const opcoesTipo = TIPOS_ARQUIVO
+// Inclui "Todos os tipos" como opção real (valor vazio = sem filtro), selecionável.
+// TIPOS_ARQUIVO é o contrato oficial e não deve ser alterado.
+const opcoesTipo = [{ valor: '', rotulo: 'Todos os tipos' }, ...TIPOS_ARQUIVO]
 
 function ehRestrito(arquivo) {
   return arquivo.nivel_acesso === NIVEL_ARQUIVO.RESTRITO
@@ -180,6 +182,9 @@ onMounted(carregar)
 <style scoped>
 .filtro {
   margin-bottom: var(--espaco-md);
+}
+.filtro__select :deep(.campo__controle) {
+  min-height: 52px;
 }
 .lista {
   list-style: none;

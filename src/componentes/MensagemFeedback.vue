@@ -13,6 +13,7 @@ defineProps({
 
 <style scoped>
 .feedback {
+  margin: var(--espaco-md) 0;
   padding: var(--espaco-sm) var(--espaco-md);
   border-radius: var(--raio-md);
   font-size: var(--fonte-tamanho-sm);

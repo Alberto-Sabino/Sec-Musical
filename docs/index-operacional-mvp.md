@@ -24,6 +24,7 @@ Mapear as specs operacionais criadas para transformar o Portal Musical MVP em tr
 ### Execução prática
 - Spec 09 — Execução operacional da Sprint 1
 - Spec 10 — Execução operacional da Sprint 2
+- Spec 11 — Melhoria de infraestrutura local
 
 ### Specs base de apoio
 As specs 01 a 08 continuam válidas como contrato funcional e técnico do domínio.
