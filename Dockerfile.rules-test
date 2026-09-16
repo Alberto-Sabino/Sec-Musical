@@ -14,7 +14,7 @@ COPY package.json package-lock.json* ./
 RUN npm install --no-audit --no-fund
 
 # Copia apenas o necessário para os testes de regras.
-COPY firebase.json firestore.rules firestore.indexes.json .firebaserc ./
+COPY firebase.json firestore.rules firestore.indexes.json storage.rules .firebaserc ./
 COPY tests ./tests
 
 ENV CI=true

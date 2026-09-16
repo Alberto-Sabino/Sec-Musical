@@ -83,9 +83,7 @@ function gerarSolicitacoes(total = 20) {
       status,
       descricao: `Solicitação ${numero} do tipo ${tipo} (dados de seed local).`,
       conclusao: concluida ? `Solicitação ${numero} concluída no ambiente de seed.` : '',
-      id_nuvem: concluida
-        ? montarIdNuvemResposta(idSetor, ID_SOLICITANTE_SEED, idSolicitacao)
-        : '',
+      id_nuvem: concluida ? montarIdNuvemResposta(idSetor, ID_SOLICITANTE_SEED, idSolicitacao) : '',
     })
   }
   return lista

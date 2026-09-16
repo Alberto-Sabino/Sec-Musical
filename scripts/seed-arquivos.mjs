@@ -21,6 +21,11 @@ const EMU_HOST = process.env.EMULATOR_HOST || '127.0.0.1'
 const STORAGE_PORT = Number(process.env.STORAGE_PORT || 9199)
 const FIRESTORE_PORT = Number(process.env.FIRESTORE_PORT || 8080)
 
+// Bucket do Storage. DEVE bater com VITE_FIREBASE_STORAGE_BUCKET usado pela app,
+// senão os objetos são gravados em um bucket diferente do que a app consulta.
+// Default alinhado ao .env atual (padrão novo do Firebase: .firebasestorage.app).
+const STORAGE_BUCKET = process.env.STORAGE_BUCKET || 'sec-musical-mvp.firebasestorage.app'
+
 // Valores conforme contrato oficial (src/servicos/casos_de_uso/biblioteca.js).
 const TIPOS = ['circulares', 'topicos', 'metodos', 'planos_aula', 'provas', 'modelos', 'outros']
 const NIVEL_PUBLICO = 1
@@ -29,6 +34,12 @@ const SETORES = ['cachoeira', 'queluz']
 
 // id_usuario de referência para os metadados (autor do cadastro no ambiente local).
 const ID_USUARIO_SEED = 'seed-admin'
+
+// MIME por extensão (Biblioteca aceita pdf e xlsx a partir da Spec 14).
+const MIME_POR_EXTENSAO = {
+  pdf: 'application/pdf',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+}
 
 // PDF mínimo válido (1 página em branco). Serve para exercitar o download real.
 const PDF_MINIMO = Buffer.from(
@@ -42,13 +53,26 @@ const PDF_MINIMO = Buffer.from(
   'latin1',
 )
 
-// Monta o id_nuvem no formato oficial: biblioteca/{id_setor}/nivel_1|nivel_2/{id_arquivo}.pdf
-function montarIdNuvem(idSetor, nivelAcesso, idArquivo) {
-  const segmentoNivel = nivelAcesso === NIVEL_RESTRITO ? 'nivel_2' : 'nivel_1'
-  return `biblioteca/${idSetor}/${segmentoNivel}/${idArquivo}.pdf`
+// XLSX mínimo (um .zip vazio válido). Suficiente para exercitar upload/download local.
+// Cabeçalho de arquivo ZIP vazio (End Of Central Directory record).
+const XLSX_MINIMO = Buffer.from([
+  0x50, 0x4b, 0x05, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+  0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+])
+
+// Conteúdo binário e extensão conforme o formato do arquivo.
+function binarioDe(extensao) {
+  return extensao === 'xlsx' ? XLSX_MINIMO : PDF_MINIMO
 }
 
-// Gera a lista de 20 arquivos distribuídos entre setores, tipos e níveis.
+// Monta o id_nuvem no formato oficial (Spec 14): extensão real no caminho.
+// biblioteca/{id_setor}/nivel_1|nivel_2/{id_arquivo}.{extensao}
+function montarIdNuvem(idSetor, nivelAcesso, idArquivo, extensao) {
+  const segmentoNivel = nivelAcesso === NIVEL_RESTRITO ? 'nivel_2' : 'nivel_1'
+  return `biblioteca/${idSetor}/${segmentoNivel}/${idArquivo}.${extensao}`
+}
+
+// Gera a lista de 20 arquivos distribuídos entre setores, tipos, níveis e formatos.
 function gerarArquivos(total = 20) {
   const lista = []
   for (let i = 0; i < total; i += 1) {
@@ -56,6 +80,8 @@ function gerarArquivos(total = 20) {
     const tipo = TIPOS[i % TIPOS.length]
     // Aproximadamente 1/3 restrito, 2/3 público.
     const nivelAcesso = i % 3 === 0 ? NIVEL_RESTRITO : NIVEL_PUBLICO
+    // Alguns arquivos em XLSX (ex.: modelos e provas) para exercitar o novo formato.
+    const extensao = tipo === 'modelos' || tipo === 'provas' ? 'xlsx' : 'pdf'
     const numero = String(i + 1).padStart(2, '0')
     lista.push({
       idArquivo: `seed-arquivo-${numero}`,
@@ -64,36 +90,39 @@ function gerarArquivos(total = 20) {
       titulo: `Documento ${numero} — ${tipo}`,
       nivel_acesso: nivelAcesso,
       id_usuario: ID_USUARIO_SEED,
+      extensao_arquivo: extensao,
     })
   }
   return lista
 }
 
-// Envia o PDF ao Storage emulator via REST (upload simples), sob o caminho id_nuvem.
-async function enviarPdf(idNuvem) {
+// Envia o binário ao Storage emulator via REST (upload simples), sob o caminho id_nuvem.
+async function enviarBinario(idNuvem, extensao) {
   const objeto = encodeURIComponent(idNuvem)
-  const url = `http://${EMU_HOST}:${STORAGE_PORT}/v0/b/${PROJETO}.appspot.com/o?name=${objeto}`
+  const url = `http://${EMU_HOST}:${STORAGE_PORT}/v0/b/${STORAGE_BUCKET}/o?name=${objeto}`
+  const corpo = binarioDe(extensao)
   const resposta = await fetch(url, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/pdf',
+      'Content-Type': MIME_POR_EXTENSAO[extensao],
       Authorization: 'Bearer owner',
     },
-    body: PDF_MINIMO,
+    body: corpo,
   })
   if (!resposta.ok) {
     const detalhe = await resposta.text().catch(() => '')
     throw new Error(`Falha ao enviar ${idNuvem} ao Storage (${resposta.status}): ${detalhe}`)
   }
+  return corpo.length
 }
 
 async function main() {
   const arquivos = gerarArquivos(20)
 
-  // 1) Envia os binários ao Storage emulator.
+  // 1) Envia os binários ao Storage emulator e captura o tamanho real.
   for (const a of arquivos) {
-    const idNuvem = montarIdNuvem(a.id_setor, a.nivel_acesso, a.idArquivo)
-    await enviarPdf(idNuvem)
+    const idNuvem = montarIdNuvem(a.id_setor, a.nivel_acesso, a.idArquivo, a.extensao_arquivo)
+    a.tamanho_bytes = await enviarBinario(idNuvem, a.extensao_arquivo)
   }
 
   // 2) Persiste os metadados (regras desativadas apenas para seed).
@@ -105,8 +134,8 @@ async function main() {
   await testEnv.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore()
     for (const a of arquivos) {
-      const idNuvem = montarIdNuvem(a.id_setor, a.nivel_acesso, a.idArquivo)
-      // Campos conforme repositorioArquivos.criarArquivo (não inventar campos).
+      const idNuvem = montarIdNuvem(a.id_setor, a.nivel_acesso, a.idArquivo, a.extensao_arquivo)
+      // Campos conforme repositorioArquivos.criarArquivo (Spec 14: extensao_arquivo, tamanho_bytes).
       await setDoc(doc(db, 'arquivos', a.idArquivo), {
         id_setor: a.id_setor,
         tipo: a.tipo,
@@ -114,6 +143,8 @@ async function main() {
         nivel_acesso: a.nivel_acesso,
         id_nuvem: idNuvem,
         id_usuario: a.id_usuario,
+        extensao_arquivo: a.extensao_arquivo,
+        tamanho_bytes: a.tamanho_bytes,
         data_inclusao: serverTimestamp(),
         data_atualizacao: serverTimestamp(),
       })

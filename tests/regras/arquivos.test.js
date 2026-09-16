@@ -150,7 +150,24 @@ const NOVO = {
   nivel_acesso: 1,
   id_nuvem: `biblioteca/${SETOR_A}/nivel_1/arq_novo.pdf`,
   id_usuario: UID_ADMIN,
+  // Campos adicionados na Sprint 3 (Spec 14).
+  extensao_arquivo: 'pdf',
+  tamanho_bytes: 12345,
 }
+
+test('arquivos: admin cria com os campos novos (extensao_arquivo, tamanho_bytes) (permitido)', async () => {
+  await assertSucceeds(setDoc(doc(ctxAdmin(), 'arquivos', 'arq_novo_meta'), NOVO))
+})
+
+test('arquivos: admin cria arquivo XLSX no próprio setor (permitido)', async () => {
+  await assertSucceeds(
+    setDoc(doc(ctxAdmin(), 'arquivos', 'arq_novo_xlsx'), {
+      ...NOVO,
+      id_nuvem: `biblioteca/${SETOR_A}/nivel_1/arq_novo_xlsx.xlsx`,
+      extensao_arquivo: 'xlsx',
+    }),
+  )
+})
 
 test('arquivos: admin cria no próprio setor (permitido)', async () => {
   await assertSucceeds(setDoc(doc(ctxAdmin(), 'arquivos', 'arq_novo'), NOVO))

@@ -14,6 +14,10 @@ WORKDIR /app
 # Config necessária para subir os emuladores.
 COPY firebase.json firestore.rules firestore.indexes.json storage.rules .firebaserc ./
 
+# Entrypoint com persistência (import/export no volume /data).
+COPY scripts/emuladores-entrypoint.sh /usr/local/bin/emuladores-entrypoint.sh
+RUN chmod +x /usr/local/bin/emuladores-entrypoint.sh
+
 # Pré-baixa os binários dos emuladores para acelerar o start.
 RUN firebase setup:emulators:firestore \
   && firebase setup:emulators:storage \
@@ -21,5 +25,5 @@ RUN firebase setup:emulators:firestore \
 
 EXPOSE 4000 5000 8080 9099 9199
 
-# Sobe Auth, Firestore e Storage (Hosting servido pelo Vite no host).
-CMD ["firebase", "emulators:start", "--only", "auth,firestore,storage", "--project", "sec-musical-mvp"]
+# Sobe Auth, Firestore e Storage com persistência (Hosting servido pelo Vite no host).
+CMD ["/usr/local/bin/emuladores-entrypoint.sh"]

@@ -48,11 +48,12 @@ VITE_APP_MODE=producao
 ```bash
 npm install
 npm run build          # deve terminar sem erro; gera dist/
+npm run test:unit      # helpers puros (formatação, upload, navegação)
 ```
-Opcional — testes de regras (via Docker, isolado):
+Opcional — testes de regras (Firestore e Storage, via Docker, isolado):
 ```bash
 docker build -f Dockerfile.rules-test -t portal-musical-rules-test .
-docker run --rm portal-musical-rules-test   # esperado: 42/42 pass
+docker run --rm portal-musical-rules-test   # esperado: todos os testes pass
 ```
 
 ---
@@ -61,8 +62,9 @@ docker run --rm portal-musical-rules-test   # esperado: 42/42 pass
 ```bash
 firebase deploy --only firestore:rules,firestore:indexes
 ```
-> As regras de Storage ainda são rascunho não validado. Só publicar Storage quando
-> for validar o Storage real:
+> As regras de Storage já são validadas localmente (emulador + testes em
+> `tests/regras/storage.test.js`), mas o Storage de **produção** segue pendente
+> de Billing. Só publicar Storage quando for validar o Storage real:
 > ```bash
 > firebase deploy --only storage
 > ```

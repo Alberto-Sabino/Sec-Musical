@@ -10,6 +10,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.emuladores
+    # Tempo para o export explícito concluir no `docker compose down/stop`.
+    stop_grace_period: 60s
     ports:
       - '4000:4000' # Emulator UI
       - '8080:8080' # Firestore
@@ -20,3 +22,8 @@ services:
       - ./firestore.rules:/app/firestore.rules:ro
       - ./firestore.indexes.json:/app/firestore.indexes.json:ro
       - ./storage.rules:/app/storage.rules:ro
+      # Volume persistente: mantém os dados dos emuladores entre reinícios.
+      - emulador-dados:/data
+
+volumes:
+  emulador-dados:

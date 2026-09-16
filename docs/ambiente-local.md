@@ -60,11 +60,14 @@ Abrir http://127.0.0.1:5173 e entrar com um dos usuários do seed.
 ```bash
 docker compose down
 ```
-Os dados do emulador são efêmeros (somem ao derrubar o container).
+Os dados do emulador são persistidos num volume Docker (`emulador-dados`): o
+`down` exporta o estado e o próximo `up` reimporta. Para começar limpo, remova o
+volume: `docker volume rm portalmusical_emulador-dados`.
 
 ---
 
 ## Notas
 - Arquivos (upload/download) usam o Storage real via SDK apontando para o **Storage emulator** local (modo `emulador`), sem exigir Billing. O Storage de produção segue pendente de Billing.
-- Para testar as regras de Firestore isoladamente: `docker build -f Dockerfile.rules-test -t portal-musical-rules-test . && docker run --rm portal-musical-rules-test` (42/42).
+- Para os testes de unidade (helpers puros, sem emulador): `npm run test:unit`.
+- Para testar as regras (Firestore e Storage) isoladamente: `docker build -f Dockerfile.rules-test -t portal-musical-rules-test . && docker run --rm portal-musical-rules-test`.
 - Este ambiente é de ensaio; não substitui a validação real de Storage.
