@@ -55,7 +55,7 @@ const setorSelecionado = ref(estado.setorAtivo)
 
 const saudacao = computed(() => {
   const nome = estado.contexto?.nome_completo
-  return nome ? `Bem-vindo, ${nome}` : 'Sessão ativa'
+  return nome ? `A paz de Deus, ${nome}.` : 'Sessão ativa'
 })
 
 // Mantém o select em sincronia com o setor ativo resolvido na sessão.

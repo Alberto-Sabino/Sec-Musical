@@ -11,13 +11,33 @@ rules_version = '2';
 // adicional, a ser definida quando o Storage real for habilitado.
 //
 // Decisão atual (ver docs/specs/spec-11-melhoria-infraestrutura-local.md):
-// a escrita aceita qualquer autenticado; a autorização real "apenas admin
-// envia" é imposta pelas regras do Firestore (server-side) e pela UI. Restringir
-// admin na própria regra de Storage (custom claims / firestore.get) é pendência.
+// a escrita exige autenticado e valida tipo MIME e tamanho (Specs 14/15); a
+// autorização real "apenas admin envia" é imposta pelas regras do Firestore
+// (server-side) e pela UI. Restringir admin na própria regra de Storage
+// (custom claims / firestore.get) é pendência.
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Caminho oficial da Biblioteca: biblioteca/{id_setor}/nivel_1|nivel_2/{id_arquivo}.pdf
+    // Tipos MIME aceitos na Biblioteca: PDF e XLSX (Spec 14).
+    function ehPdf() {
+      return request.resource.contentType == 'application/pdf';
+    }
+    function ehXlsx() {
+      return request.resource.contentType ==
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    }
+
+    // Teto de tamanho no caminho da Biblioteca. As rules de Storage não leem o
+    // Firestore, portanto não conseguem aplicar o limite por tipo (2 MB padrão
+    // vs. 50 MB para `metodos`). Aqui aplica-se o TETO máximo permitido (50 MB,
+    // exceção `metodos`); o limite fino por tipo é imposto na camada de casos de
+    // uso/UI (ver src/servicos/casos_de_uso/regrasUpload.js).
+    function dentroTetoBiblioteca() {
+      return request.resource.size <= 50 * 1024 * 1024;
+    }
+
+    // Caminho oficial da Biblioteca:
+    // biblioteca/{id_setor}/nivel_1|nivel_2/{id_arquivo}.{pdf|xlsx}
     match /biblioteca/{idSetor}/{nivel}/{arquivo} {
       // Exige autenticação. Isolamento fino por setor/perfil (só admin do setor
       // envia) NÃO é verificável apenas nas rules de Storage (elas não leem o
@@ -25,7 +45,10 @@ service firebase.storage {
       // "apenas admin envia" já é imposta na camada de casos de uso/UI e nas
       // regras do Firestore. PENDENTE de validação para produção.
       allow read: if request.auth != null;
-      allow write: if request.auth != null;
+      // Aceita apenas PDF ou XLSX, dentro do teto de tamanho da Biblioteca.
+      allow write: if request.auth != null
+        && (ehPdf() || ehXlsx())
+        && dentroTetoBiblioteca();
     }
 
     // Caminho oficial do anexo final de solicitações:
@@ -35,7 +58,10 @@ service firebase.storage {
       // setor envia) não é verificável apenas nas rules; PENDENTE de custom
       // claims para produção. Fluxo já é imposto nos casos de uso.
       allow read: if request.auth != null;
-      allow write: if request.auth != null;
+      // Anexo final de Solicitações é PDF fixo, até 2 MB (Spec 15).
+      allow write: if request.auth != null
+        && ehPdf()
+        && request.resource.size <= 2 * 1024 * 1024;
     }
 
     // Negar todo o restante por padrão.

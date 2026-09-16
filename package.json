@@ -12,6 +12,8 @@
     "preview": "vite preview",
     "emulators": "firebase emulators:start",
     "seed:emulador": "node scripts/seed-emulador.mjs",
+    "seed:arquivos": "node scripts/seed-arquivos.mjs",
+    "seed:solicitacoes": "node scripts/seed-solicitacoes.mjs",
     "test:rules": "firebase emulators:exec --only firestore \"node --test --test-concurrency=1 tests/regras\"",
     "lint": "eslint . --fix",
     "format": "eslint . --fix && prettier --write .",
