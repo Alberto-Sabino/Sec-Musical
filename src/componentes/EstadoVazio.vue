@@ -1,5 +1,8 @@
 <template>
-  <div class="vazio">
+  <div class="vazio" role="status">
+    <div v-if="$slots.icone" class="vazio__icone">
+      <slot name="icone" />
+    </div>
     <p class="vazio__titulo">{{ titulo }}</p>
     <p v-if="descricao" class="vazio__descricao">{{ descricao }}</p>
     <div v-if="$slots.acao" class="vazio__acao">
@@ -29,6 +32,13 @@ defineProps({
   margin: 0;
   font-weight: 600;
   color: var(--cor-texto);
+}
+.vazio__icone {
+  color: var(--cor-texto-suave);
+}
+.vazio__icone :deep(svg) {
+  width: 48px;
+  height: 48px;
 }
 .vazio__descricao {
   margin: 0;

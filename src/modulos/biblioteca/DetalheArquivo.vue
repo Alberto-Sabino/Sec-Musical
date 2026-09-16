@@ -1,6 +1,6 @@
 <template>
   <div v-if="arquivo" class="detalhe" role="dialog" aria-modal="true" @click.self="$emit('fechar')">
-    <div class="detalhe__caixa">
+    <div ref="caixa" class="detalhe__caixa" tabindex="-1" :aria-label="arquivo.titulo">
       <div class="detalhe__cabecalho">
         <h2 class="detalhe__titulo">{{ arquivo.titulo }}</h2>
         <span
@@ -21,6 +21,10 @@
           <dt>Atualização</dt>
           <dd>{{ dataFormatada }}</dd>
         </div>
+        <div>
+          <dt>Tamanho</dt>
+          <dd>{{ tamanhoFormatado }}</dd>
+        </div>
       </dl>
 
       <MensagemFeedback v-if="erroDownload" tipo="erro">
@@ -29,7 +33,7 @@
 
       <div class="detalhe__acoes">
         <BaseBotao variante="secundario" @click="$emit('fechar')">Fechar</BaseBotao>
-        <BaseBotao :carregando="baixando" @click="baixar">Baixar</BaseBotao>
+        <BaseBotao :carregando="baixando" @click="baixar">Baixar arquivo</BaseBotao>
       </div>
     </div>
   </div>
@@ -46,14 +50,20 @@ import {
   baixarArquivoBiblioteca,
 } from '@/servicos/casos_de_uso/biblioteca'
 import { formatarData } from '@/servicos/casos_de_uso/formato'
+import { formatarTamanho } from '@/servicos/casos_de_uso/formato'
 import { baixarBlob } from '@/servicos/casos_de_uso/download'
+import { usarModalAcessivel } from '@/composables/usarModalAcessivel'
 
 const props = defineProps({
   arquivo: { type: Object, default: null },
   // mostrarNivel: exibe sinalização público/restrito (uso admin).
   mostrarNivel: Boolean,
 })
-defineEmits(['fechar'])
+const emit = defineEmits(['fechar'])
+
+const caixa = ref(null)
+const aberto = computed(() => !!props.arquivo)
+usarModalAcessivel(aberto, caixa, () => emit('fechar'))
 
 const baixando = ref(false)
 const erroDownload = ref('')
@@ -62,6 +72,7 @@ const ehRestrito = computed(() => props.arquivo?.nivel_acesso === NIVEL_ARQUIVO.
 const rotuloNivel = computed(() => rotuloNivelArquivo(props.arquivo?.nivel_acesso))
 const rotuloTipo = computed(() => rotuloTipoArquivo(props.arquivo?.tipo) || '—')
 const dataFormatada = computed(() => formatarData(props.arquivo?.data_atualizacao))
+const tamanhoFormatado = computed(() => formatarTamanho(props.arquivo?.tamanho_bytes))
 
 async function baixar() {
   erroDownload.value = ''

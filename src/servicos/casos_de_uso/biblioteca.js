@@ -68,6 +68,39 @@ export async function listarBiblioteca({ nivelAcesso, idSetor, tipo }) {
   return listarArquivos({ idSetor, niveis, tipo: tipo || null })
 }
 
+// Normaliza texto para busca: minúsculo e sem acentos.
+function normalizar(texto) {
+  return String(texto || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+}
+
+// Ordena arquivos alfabeticamente por título (case-insensitive, estável).
+export function ordenarPorTitulo(arquivos) {
+  return [...arquivos].sort((a, b) =>
+    normalizar(a.titulo).localeCompare(normalizar(b.titulo), 'pt-BR'),
+  )
+}
+
+// Lista arquivos de um tipo específico, ordenados alfabeticamente por título (Spec 14).
+export async function listarBibliotecaPorTipo({ nivelAcesso, idSetor, tipo }) {
+  const lista = await listarBiblioteca({ nivelAcesso, idSetor, tipo })
+  return ordenarPorTitulo(lista)
+}
+
+// Busca por nome em todos os tipos visíveis do setor ativo (camada de aplicação).
+// Retorna vazio para termo em branco.
+export async function buscarBibliotecaPorNome({ nivelAcesso, idSetor, termo }) {
+  const alvo = normalizar(termo)
+  if (!alvo) {
+    return []
+  }
+  const lista = await listarBiblioteca({ nivelAcesso, idSetor, tipo: null })
+  return lista.filter((a) => normalizar(a.titulo).includes(alvo))
+}
+
 // Baixa um arquivo a partir do `id_nuvem` persistido.
 // Retorna { nome, blob } vindos da infraestrutura de arquivos.
 export async function baixarArquivoBiblioteca(idNuvem) {

@@ -20,6 +20,18 @@ const routes = [
     meta: { requerAuth: true },
   },
   {
+    path: '/biblioteca/tipo/:tipo',
+    name: 'biblioteca-tipo',
+    component: () => import('@/modulos/biblioteca/PaginaBibliotecaTipo.vue'),
+    meta: { requerAuth: true },
+  },
+  {
+    path: '/biblioteca/busca',
+    name: 'biblioteca-busca',
+    component: () => import('@/modulos/biblioteca/PaginaBibliotecaBusca.vue'),
+    meta: { requerAuth: true },
+  },
+  {
     path: '/biblioteca/novo',
     name: 'arquivo-novo',
     component: () => import('@/modulos/admin/PaginaArquivoForm.vue'),

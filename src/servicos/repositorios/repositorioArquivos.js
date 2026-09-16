@@ -63,6 +63,8 @@ export async function criarArquivo(idArquivo, dados) {
     nivel_acesso: dados.nivel_acesso,
     id_nuvem: dados.id_nuvem,
     id_usuario: dados.id_usuario,
+    extensao_arquivo: dados.extensao_arquivo,
+    tamanho_bytes: dados.tamanho_bytes,
     data_inclusao: serverTimestamp(),
     data_atualizacao: serverTimestamp(),
   })

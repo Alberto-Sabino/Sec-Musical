@@ -32,8 +32,10 @@
         />
 
         <UploaderArquivo
-          :rotulo="ehEdicao ? 'Substituir arquivo (opcional)' : 'Arquivo (PDF)'"
+          :rotulo="ehEdicao ? 'Substituir arquivo (opcional)' : 'Arquivo'"
           :texto-padrao="ehEdicao ? 'Manter arquivo atual' : 'Selecionar arquivo'"
+          :accept="accept"
+          :hint="hint"
           :erro="erros.arquivo"
           @selecionar="aoSelecionarArquivo"
         />
@@ -44,9 +46,9 @@
         }}</MensagemFeedback>
 
         <div class="form__acoes">
-          <BaseBotao variante="secundario" @click="voltar">Cancelar</BaseBotao>
-          <BaseBotao type="submit" :carregando="salvando">
-            {{ ehEdicao ? 'Salvar alterações' : 'Cadastrar' }}
+          <BaseBotao variante="secundario" @click="voltar">Voltar</BaseBotao>
+          <BaseBotao type="submit" :carregando="salvando" :disabled="!!erros.arquivo">
+            {{ ehEdicao ? 'Salvar alterações' : 'Cadastrar arquivo' }}
           </BaseBotao>
         </div>
       </form>
@@ -55,7 +57,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ContainerPagina from '@/componentes/ContainerPagina.vue'
 import CabecalhoPagina from '@/componentes/CabecalhoPagina.vue'
@@ -67,6 +69,7 @@ import UploaderArquivo from '@/componentes/UploaderArquivo.vue'
 import EstadoCarregando from '@/componentes/EstadoCarregando.vue'
 import MensagemFeedback from '@/componentes/MensagemFeedback.vue'
 import { usarSessao } from '@/composables/usarSessao'
+import { registrarGuardaFormulario } from '@/composables/usarGuardaFormulario'
 import {
   TIPOS_ARQUIVO,
   NIVEL_ARQUIVO,
@@ -77,6 +80,11 @@ import {
   atualizarArquivoExistente,
 } from '@/servicos/casos_de_uso/bibliotecaAdmin'
 import { obterArquivo } from '@/servicos/repositorios/repositorioArquivos'
+import {
+  acceptBiblioteca,
+  hintBiblioteca,
+  validarArquivoBiblioteca,
+} from '@/servicos/casos_de_uso/regrasUpload'
 
 const route = useRoute()
 const router = useRouter()
@@ -84,6 +92,10 @@ const { estado, nomeSetorAtivo } = usarSessao()
 
 const opcoesTipo = TIPOS_ARQUIVO
 const opcoesNivel = NIVEL_ARQUIVO_OPCOES
+
+const accept = acceptBiblioteca()
+// Hint dinâmica conforme o tipo selecionado (limite muda para `metodos`).
+const hint = computed(() => hintBiblioteca(form.tipo))
 
 const ehEdicao = computed(() => !!route.params.id)
 const carregandoInicial = ref(false)
@@ -101,9 +113,50 @@ const form = reactive({
 })
 const erros = reactive({})
 
+// Snapshot dos valores iniciais para detectar alteração pendente (dirty-guard).
+const formInicial = ref({ titulo: '', tipo: '', nivel_acesso: NIVEL_ARQUIVO.PUBLICO })
+
+function estaSujo() {
+  if (salvando.value || mensagemSucesso.value) {
+    return false
+  }
+  if (arquivoSelecionado.value) {
+    return true
+  }
+  return (
+    form.titulo !== formInicial.value.titulo ||
+    form.tipo !== formInicial.value.tipo ||
+    Number(form.nivel_acesso) !== Number(formInicial.value.nivel_acesso)
+  )
+}
+
+registrarGuardaFormulario(estaSujo)
+
 function aoSelecionarArquivo(file) {
   arquivoSelecionado.value = file
+  validarArquivoSelecionado()
 }
+
+// Valida o arquivo selecionado contra as regras da Biblioteca (formato + limite por tipo).
+// Mantém o restante do formulário; só marca/limpa erros.arquivo.
+function validarArquivoSelecionado() {
+  if (!arquivoSelecionado.value) {
+    delete erros.arquivo
+    return
+  }
+  const { ok, erro } = validarArquivoBiblioteca(arquivoSelecionado.value, form.tipo)
+  if (ok) {
+    delete erros.arquivo
+  } else {
+    erros.arquivo = erro
+  }
+}
+
+// Ao trocar o tipo, o limite pode mudar (ex.: metodos 50MB) — revalida o arquivo atual.
+watch(
+  () => form.tipo,
+  () => validarArquivoSelecionado(),
+)
 
 const NIVEIS_VALIDOS = [NIVEL_ARQUIVO.PUBLICO, NIVEL_ARQUIVO.RESTRITO]
 
@@ -120,6 +173,13 @@ function validar() {
   }
   if (!ehEdicao.value && !arquivoSelecionado.value) {
     erros.arquivo = 'Selecione um arquivo.'
+  }
+  // Se há arquivo selecionado, ele precisa passar nas regras (formato + limite por tipo).
+  if (arquivoSelecionado.value) {
+    const { ok, erro } = validarArquivoBiblioteca(arquivoSelecionado.value, form.tipo)
+    if (!ok) {
+      erros.arquivo = erro
+    }
   }
   return Object.keys(erros).length === 0
 }
@@ -180,6 +240,11 @@ onMounted(async () => {
     form.titulo = doc.titulo || ''
     form.tipo = doc.tipo || ''
     form.nivel_acesso = doc.nivel_acesso || NIVEL_ARQUIVO.PUBLICO
+    formInicial.value = {
+      titulo: form.titulo,
+      tipo: form.tipo,
+      nivel_acesso: form.nivel_acesso,
+    }
   } catch {
     mensagemErro.value = 'Não foi possível carregar o arquivo.'
   } finally {

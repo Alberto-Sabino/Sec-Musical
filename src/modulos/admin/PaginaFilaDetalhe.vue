@@ -1,18 +1,16 @@
 <template>
   <ContainerPagina>
-    <CabecalhoPagina titulo="Detalhe administrativo">
-      <template #acoes>
-        <BaseBotao variante="secundario" @click="voltar">Voltar</BaseBotao>
-      </template>
-    </CabecalhoPagina>
+    <CabecalhoPagina titulo="Detalhe administrativo" />
 
     <EstadoCarregando v-if="carregando" texto="Carregando solicitação..." />
 
     <MensagemFeedback v-else-if="erro" tipo="erro">{{ erro }}</MensagemFeedback>
 
     <template v-else-if="solicitacao">
+      <!-- 1. Identificação da solicitação -->
       <BaseCard>
         <div class="topo">
+          <component :is="iconeTipoSolicitacao(solicitacao.tipo)" class="topo__icone" />
           <h2 class="topo__tipo">{{ rotuloTipo(solicitacao.tipo) }}</h2>
           <BadgeStatus :status="solicitacao.status" />
         </div>
@@ -48,35 +46,69 @@
           <span class="mensagem__autor">Solicitante</span>
           <p class="mensagem__texto">{{ solicitacao.descricao }}</p>
         </div>
+      </BaseCard>
 
-        <MensagemFeedback v-if="mensagemAcao" :tipo="tipoMensagem">{{
-          mensagemAcao
+      <!-- 2. Assumir solicitação pendente -->
+      <BaseCard>
+        <h3 class="secao__titulo">Assumir solicitação</h3>
+        <!-- TODO: revisar mensagem -->
+        <p class="secao__ajuda">Assuma a solicitação para tratá-la.</p>
+        <MensagemFeedback v-if="msgAssumir" :tipo="msgAssumir.tipo">{{
+          msgAssumir.texto
         }}</MensagemFeedback>
-
-        <div class="acoes">
-          <BaseBotao v-if="emAberto" :carregando="assumindo" @click="assumir">Assumir</BaseBotao>
-          <BaseBotao v-if="emAndamento" :carregando="concluindo" @click="concluir">
-            Concluir
+        <div class="secao__acoes">
+          <BaseBotao :disabled="!emAberto" :carregando="assumindo" @click="assumir">
+            Assumir solicitação
           </BaseBotao>
           <BaseBotao
             v-if="emAberto || emAndamento"
             variante="destrutivo"
             @click="pedirCancelamento"
           >
-            Cancelar
+            Cancelar solicitação
           </BaseBotao>
         </div>
       </BaseCard>
 
-      <!-- Conclusão (resposta do responsável) -->
+      <!-- 3. Anexar um arquivo -->
       <BaseCard>
-        <h3 class="secao__titulo">Conclusão (Secretário)</h3>
+        <h3 class="secao__titulo">Anexar um arquivo</h3>
+        <p v-if="solicitacao.id_nuvem" class="anexo__atual">Anexo já vinculado.</p>
+        <UploaderArquivo
+          rotulo="Arquivo de resposta"
+          :texto-padrao="solicitacao.id_nuvem ? 'Substituir anexo' : 'Selecionar arquivo'"
+          :accept="acceptAnexo"
+          :hint="hintAnexo"
+          :erro="erroAnexo"
+          :disabled="!podeTratar"
+          @selecionar="aoSelecionarArquivo"
+        />
+        <MensagemFeedback v-if="msgAnexo" :tipo="msgAnexo.tipo">{{
+          msgAnexo.texto
+        }}</MensagemFeedback>
+        <div class="secao__acoes">
+          <BaseBotao
+            :disabled="!podeTratar || !arquivoSelecionado || !!erroAnexo"
+            :carregando="anexando"
+            @click="anexar"
+          >
+            Anexar arquivo
+          </BaseBotao>
+        </div>
+      </BaseCard>
+
+      <!-- 4. Adicionar uma conclusão -->
+      <BaseCard>
+        <h3 class="secao__titulo">Adicionar uma conclusão</h3>
         <BaseTextarea
           v-model="conclusao"
           placeholder="Resposta visível ao solicitante quando a solicitação for concluída"
           :rows="4"
           :disabled="!podeTratar"
         />
+        <MensagemFeedback v-if="msgConclusao" :tipo="msgConclusao.tipo">{{
+          msgConclusao.texto
+        }}</MensagemFeedback>
         <div class="secao__acoes">
           <BaseBotao
             :disabled="!podeTratar"
@@ -88,35 +120,29 @@
         </div>
       </BaseCard>
 
-      <!-- Anexo final -->
+      <!-- 5. Concluir -->
       <BaseCard>
-        <h3 class="secao__titulo">Anexo final</h3>
-        <p v-if="solicitacao.id_nuvem" class="anexo__atual">Anexo já vinculado.</p>
-        <UploaderArquivo
-          rotulo="Arquivo de resposta (PDF)"
-          :texto-padrao="solicitacao.id_nuvem ? 'Substituir anexo' : 'Selecionar arquivo'"
-          :disabled="!podeTratar"
-          @selecionar="aoSelecionarArquivo"
-        />
+        <h3 class="secao__titulo">Concluir</h3>
+        <!-- TODO: revisar mensagem -->
+        <p class="secao__ajuda">Conclua a solicitação após tratá-la.</p>
+        <MensagemFeedback v-if="msgConcluir" :tipo="msgConcluir.tipo">{{
+          msgConcluir.texto
+        }}</MensagemFeedback>
         <div class="secao__acoes">
-          <BaseBotao
-            :disabled="!podeTratar || !arquivoSelecionado"
-            :carregando="anexando"
-            @click="anexar"
-          >
-            Anexar
+          <BaseBotao :disabled="!emAndamento" :carregando="concluindo" @click="concluir">
+            Concluir solicitação
           </BaseBotao>
         </div>
       </BaseCard>
 
-      <!-- Histórico -->
+      <!-- 6. Histórico -->
       <BaseCard>
         <h3 class="secao__titulo">Histórico</h3>
         <EstadoVazio v-if="historico.length === 0" titulo="Sem histórico" />
         <ul v-else class="historico">
           <li v-for="h in historico" :key="h.id" class="historico__item">
             <span>{{ rotuloAcao(h) }}</span>
-            <span class="historico__data">{{ formatarData(h.data) }}</span>
+            <span class="historico__data">{{ formatarDataHora(h.data) }}</span>
           </li>
         </ul>
       </BaseCard>
@@ -125,7 +151,7 @@
     <ModalConfirmacao
       :aberto="confirmarCancelamento"
       titulo="Cancelar solicitação"
-      mensagem="Deseja cancelar esta solicitação? Esta ação não pode ser desfeita."
+      :mensagem="mensagemCancelamento"
       rotulo-confirmar="Cancelar solicitação"
       rotulo-cancelar="Voltar"
       destrutivo
@@ -138,7 +164,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import ContainerPagina from '@/componentes/ContainerPagina.vue'
 import CabecalhoPagina from '@/componentes/CabecalhoPagina.vue'
 import BaseCard from '@/componentes/BaseCard.vue'
@@ -165,10 +191,15 @@ import {
   concluirSolicitacao,
   cancelarSolicitacaoAdmin,
 } from '@/servicos/casos_de_uso/solicitacoesAdmin'
-import { formatarData } from '@/servicos/casos_de_uso/formato'
+import { formatarData, formatarDataHora } from '@/servicos/casos_de_uso/formato'
+import {
+  acceptSolicitacoes,
+  hintSolicitacoes,
+  validarAnexoSolicitacao,
+} from '@/servicos/casos_de_uso/regrasUpload'
+import { iconeTipoSolicitacao } from '@/modulos/solicitacoes/apresentacaoTipos'
 
 const route = useRoute()
-const router = useRouter()
 const { estado } = usarSessao()
 
 const solicitacao = ref(null)
@@ -178,6 +209,11 @@ const erro = ref('')
 
 const conclusao = ref('')
 const arquivoSelecionado = ref(null)
+const erroAnexo = ref('')
+
+// Regras do anexo final (PDF, 2 MB) — fonte única em regrasUpload.js.
+const acceptAnexo = acceptSolicitacoes()
+const hintAnexo = hintSolicitacoes()
 
 const assumindo = ref(false)
 const salvandoConclusao = ref(false)
@@ -186,13 +222,30 @@ const concluindo = ref(false)
 const cancelando = ref(false)
 const confirmarCancelamento = ref(false)
 
-const mensagemAcao = ref('')
-const tipoMensagem = ref('sucesso')
+// Mensagens por seção (cada card exibe o próprio feedback).
+const msgAssumir = ref(null) // { texto, tipo }
+const msgAnexo = ref(null)
+const msgConclusao = ref(null)
+const msgConcluir = ref(null)
+
+function fb(texto, tipo) {
+  return { texto, tipo }
+}
 
 const emAberto = computed(() => solicitacao.value?.status === STATUS.EM_ABERTO)
 const emAndamento = computed(() => solicitacao.value?.status === STATUS.EM_ANDAMENTO)
 // Tratamento (conclusão/anexo) só faz sentido enquanto em andamento.
 const podeTratar = computed(() => emAndamento.value)
+
+// Mensagem de confirmação citando o item (tipo + pessoa afetada).
+const mensagemCancelamento = computed(() => {
+  const s = solicitacao.value
+  if (!s) {
+    return 'Esta ação não pode ser desfeita.'
+  }
+  const pessoa = s.nome_beneficiario ? ` de ${s.nome_beneficiario}` : ''
+  return `Cancelar a solicitação de ${rotuloTipo(s.tipo)}${pessoa}? Esta ação não pode ser desfeita.`
+})
 
 const rotulosAcao = {
   [ACAO_AUDITORIA.CRIADA]: 'Criada',
@@ -205,11 +258,6 @@ const rotulosAcao = {
 }
 function rotuloAcao(h) {
   return rotulosAcao[h.acao] || h.acao
-}
-
-function mostrarMensagem(texto, tipo) {
-  mensagemAcao.value = texto
-  tipoMensagem.value = tipo
 }
 
 async function carregar() {
@@ -238,10 +286,18 @@ async function carregar() {
 
 function aoSelecionarArquivo(file) {
   arquivoSelecionado.value = file
+  // Valida formato/limite do anexo (PDF, 2 MB). Anexo continua opcional:
+  // um erro só bloqueia a ação de anexar, sem afetar o resto da tela.
+  if (!file) {
+    erroAnexo.value = ''
+    return
+  }
+  const { ok, erro } = validarAnexoSolicitacao(file)
+  erroAnexo.value = ok ? '' : erro
 }
 
 async function assumir() {
-  mensagemAcao.value = ''
+  msgAssumir.value = null
   assumindo.value = true
   try {
     const resultado = await assumirSolicitacao(
@@ -252,7 +308,7 @@ async function assumir() {
     aplicarResultadoAssumir(resultado)
     await carregar()
   } catch {
-    mostrarMensagem('Não foi possível assumir.', 'erro')
+    msgAssumir.value = fb('Não foi possível assumir.', 'erro')
   } finally {
     assumindo.value = false
   }
@@ -261,7 +317,7 @@ async function assumir() {
 // Traduz o resultado da transação de "assumir" em mensagem para o usuário.
 function aplicarResultadoAssumir(resultado) {
   if (resultado.ok) {
-    mostrarMensagem('Solicitação assumida.', 'sucesso')
+    msgAssumir.value = fb('Solicitação assumida.', 'sucesso')
     return
   }
 
@@ -269,47 +325,54 @@ function aplicarResultadoAssumir(resultado) {
   const texto = jaAssumida
     ? 'Esta solicitação já foi assumida ou não está mais em aberto.'
     : 'Solicitação indisponível.'
-  mostrarMensagem(texto, 'erro')
+  msgAssumir.value = fb(texto, 'erro')
 }
 
 async function salvarConclusao() {
-  mensagemAcao.value = ''
+  msgConclusao.value = null
   salvandoConclusao.value = true
   try {
     await responder(solicitacao.value, conclusao.value, estado.contexto.id_usuario)
-    mostrarMensagem('Conclusão salva.', 'sucesso')
+    msgConclusao.value = fb('Conclusão salva.', 'sucesso')
     await carregar()
   } catch (e) {
-    mostrarMensagem(e?.message || 'Não foi possível salvar a conclusão.', 'erro')
+    msgConclusao.value = fb(e?.message || 'Não foi possível salvar a conclusão.', 'erro')
   } finally {
     salvandoConclusao.value = false
   }
 }
 
 async function anexar() {
-  mensagemAcao.value = ''
+  msgAnexo.value = null
+  // Revalida antes de enviar; bloqueia com erro sem afetar o resto da tela.
+  const { ok, erro } = validarAnexoSolicitacao(arquivoSelecionado.value)
+  if (!ok) {
+    erroAnexo.value = erro
+    return
+  }
+  erroAnexo.value = ''
   anexando.value = true
   try {
     await anexarFinal(solicitacao.value, arquivoSelecionado.value, estado.contexto.id_usuario)
     arquivoSelecionado.value = null
-    mostrarMensagem('Anexo vinculado.', 'sucesso')
+    msgAnexo.value = fb('Anexo vinculado.', 'sucesso')
     await carregar()
   } catch (e) {
-    mostrarMensagem(e?.message || 'Não foi possível anexar.', 'erro')
+    msgAnexo.value = fb(e?.message || 'Não foi possível anexar.', 'erro')
   } finally {
     anexando.value = false
   }
 }
 
 async function concluir() {
-  mensagemAcao.value = ''
+  msgConcluir.value = null
   concluindo.value = true
   try {
     await concluirSolicitacao(solicitacao.value, estado.contexto.id_usuario)
-    mostrarMensagem('Solicitação concluída.', 'sucesso')
+    msgConcluir.value = fb('Solicitação concluída.', 'sucesso')
     await carregar()
   } catch (e) {
-    mostrarMensagem(e?.message || 'Não foi possível concluir.', 'erro')
+    msgConcluir.value = fb(e?.message || 'Não foi possível concluir.', 'erro')
   } finally {
     concluindo.value = false
   }
@@ -324,18 +387,14 @@ async function confirmarCancelar() {
   try {
     await cancelarSolicitacaoAdmin(solicitacao.value, estado.contexto.id_usuario)
     confirmarCancelamento.value = false
-    mostrarMensagem('Solicitação cancelada.', 'sucesso')
+    msgAssumir.value = fb('Solicitação cancelada.', 'sucesso')
     await carregar()
   } catch (e) {
     confirmarCancelamento.value = false
-    mostrarMensagem(e?.message || 'Não foi possível cancelar.', 'erro')
+    msgAssumir.value = fb(e?.message || 'Não foi possível cancelar.', 'erro')
   } finally {
     cancelando.value = false
   }
-}
-
-function voltar() {
-  router.push({ name: 'fila-solicitacoes' })
 }
 
 onMounted(carregar)
@@ -344,14 +403,25 @@ onMounted(carregar)
 <style scoped>
 .topo {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  align-items: center;
   gap: var(--espaco-sm);
   margin-bottom: var(--espaco-md);
   flex-wrap: wrap;
 }
+.topo__icone {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  color: var(--cor-primaria);
+}
+.secao__ajuda {
+  margin: 0 0 var(--espaco-md);
+  font-size: var(--fonte-tamanho-sm);
+  color: var(--cor-texto-suave);
+}
 .topo__tipo {
   margin: 0;
+  flex: 1;
   font-size: var(--fonte-tamanho-lg);
   word-break: break-word;
   overflow-wrap: anywhere;
@@ -371,12 +441,6 @@ onMounted(carregar)
   font-weight: 600;
   word-break: break-word;
   overflow-wrap: anywhere;
-}
-.acoes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--espaco-sm);
-  justify-content: flex-end;
 }
 .mensagem {
   padding: var(--espaco-sm) var(--espaco-md);
@@ -399,6 +463,8 @@ onMounted(carregar)
 }
 .secao__acoes {
   display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-sm);
   justify-content: flex-end;
   margin-top: var(--espaco-sm);
 }

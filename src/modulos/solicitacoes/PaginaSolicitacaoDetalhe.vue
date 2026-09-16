@@ -1,22 +1,54 @@
 <template>
   <ContainerPagina>
-    <CabecalhoPagina titulo="Solicitação">
-      <template #acoes>
-        <BaseBotao variante="secundario" @click="voltar">Voltar</BaseBotao>
-      </template>
-    </CabecalhoPagina>
+    <CabecalhoPagina titulo="Solicitação" />
 
     <EstadoCarregando v-if="carregando" texto="Carregando solicitação..." />
 
     <MensagemFeedback v-else-if="erro" tipo="erro">{{ erro }}</MensagemFeedback>
 
     <template v-else-if="solicitacao">
+      <!-- 1. Identificação da solicitação -->
       <BaseCard>
         <div class="topo">
+          <component :is="iconeTipoSolicitacao(solicitacao.tipo)" class="topo__icone" />
           <h2 class="topo__tipo">{{ rotuloTipo(solicitacao.tipo) }}</h2>
           <BadgeStatus :status="solicitacao.status" />
         </div>
 
+        <MensagemFeedback v-if="mensagemErroAcao" tipo="erro">{{
+          mensagemErroAcao
+        }}</MensagemFeedback>
+
+        <div class="acoes">
+          <BaseBotao v-if="emAberto" variante="secundario" @click="editar">
+            Editar solicitação
+          </BaseBotao>
+          <BaseBotao v-if="emAberto" variante="destrutivo" @click="pedirCancelamento">
+            Cancelar solicitação
+          </BaseBotao>
+        </div>
+      </BaseCard>
+
+      <!-- 2. Status atual e responsável -->
+      <BaseCard>
+        <dl class="dados">
+          <div>
+            <dt>Status</dt>
+            <dd><BadgeStatus :status="solicitacao.status" /></dd>
+          </div>
+          <div>
+            <dt>Responsável</dt>
+            <dd>{{ solicitacao.nome_responsavel || '—' }}</dd>
+          </div>
+          <div>
+            <dt>Última atualização</dt>
+            <dd>{{ formatarData(solicitacao.data_atualizacao) }}</dd>
+          </div>
+        </dl>
+      </BaseCard>
+
+      <!-- 3. Dados da solicitação -->
+      <BaseCard>
         <dl class="dados">
           <div>
             <dt>Pessoa afetada</dt>
@@ -34,44 +66,33 @@
             <dt>Aberta em</dt>
             <dd>{{ formatarData(solicitacao.data_solicitacao) }}</dd>
           </div>
-          <div>
-            <dt>Última atualização</dt>
-            <dd>{{ formatarData(solicitacao.data_atualizacao) }}</dd>
-          </div>
-          <div v-if="solicitacao.nome_responsavel">
-            <dt>Responsável</dt>
-            <dd>{{ solicitacao.nome_responsavel }}</dd>
-          </div>
         </dl>
-
-        <div class="conversa">
-          <div v-if="solicitacao.descricao" class="mensagem">
-            <span class="mensagem__autor">Solicitante</span>
-            <p class="mensagem__texto">{{ solicitacao.descricao }}</p>
-          </div>
-          <div v-if="mostrarConclusao" class="mensagem mensagem--responsavel">
-            <span class="mensagem__autor">Secretário</span>
-            <p class="mensagem__texto">{{ solicitacao.conclusao }}</p>
-          </div>
-        </div>
-
-        <MensagemFeedback v-if="mensagemErroAcao" tipo="erro">{{
-          mensagemErroAcao
-        }}</MensagemFeedback>
-
-        <div class="acoes">
-          <BaseBotao v-if="podeBaixar" :carregando="baixando" @click="baixar">
-            Baixar anexo final
-          </BaseBotao>
-          <BaseBotao v-if="emAberto" variante="secundario" @click="editar"> Editar </BaseBotao>
-          <BaseBotao v-if="emAberto" variante="destrutivo" @click="pedirCancelamento">
-            Cancelar solicitação
-          </BaseBotao>
+        <div v-if="solicitacao.descricao" class="mensagem">
+          <span class="mensagem__autor">Solicitante</span>
+          <p class="mensagem__texto">{{ solicitacao.descricao }}</p>
         </div>
       </BaseCard>
 
+      <!-- 4. Retorno/resposta da secretaria -->
+      <BaseCard v-if="mostrarConclusao">
+        <h3 class="secao__titulo">Resposta da secretaria</h3>
+        <div class="mensagem mensagem--responsavel">
+          <span class="mensagem__autor">Secretário</span>
+          <p class="mensagem__texto">{{ solicitacao.conclusao }}</p>
+        </div>
+      </BaseCard>
+
+      <!-- 5. Anexo final -->
+      <BaseCard v-if="podeBaixar">
+        <h3 class="secao__titulo">Anexo final</h3>
+        <div class="secao__acoes">
+          <BaseBotao :carregando="baixando" @click="baixar">Baixar anexo final</BaseBotao>
+        </div>
+      </BaseCard>
+
+      <!-- 6. Histórico -->
       <BaseCard>
-        <h3 class="historico__titulo">Histórico</h3>
+        <h3 class="secao__titulo">Histórico</h3>
         <EstadoVazio
           v-if="historico.length === 0"
           titulo="Sem histórico"
@@ -80,7 +101,7 @@
         <ul v-else class="historico">
           <li v-for="h in historico" :key="h.id" class="historico__item">
             <span class="historico__acao">{{ rotuloAcao(h) }}</span>
-            <span class="historico__data">{{ formatarData(h.data) }}</span>
+            <span class="historico__data">{{ formatarDataHora(h.data) }}</span>
           </li>
         </ul>
       </BaseCard>
@@ -89,7 +110,7 @@
     <ModalConfirmacao
       :aberto="confirmarCancelamento"
       titulo="Cancelar solicitação"
-      mensagem="Deseja cancelar esta solicitação? Esta ação não pode ser desfeita."
+      :mensagem="mensagemCancelamento"
       rotulo-confirmar="Cancelar solicitação"
       rotulo-cancelar="Voltar"
       destrutivo
@@ -122,8 +143,9 @@ import {
   cancelarSolicitacao,
   baixarAnexoFinal,
 } from '@/servicos/casos_de_uso/solicitacoes'
-import { formatarData } from '@/servicos/casos_de_uso/formato'
+import { formatarData, formatarDataHora } from '@/servicos/casos_de_uso/formato'
 import { baixarBlob } from '@/servicos/casos_de_uso/download'
+import { iconeTipoSolicitacao } from '@/modulos/solicitacoes/apresentacaoTipos'
 
 const route = useRoute()
 const router = useRouter()
@@ -145,6 +167,16 @@ const mostrarConclusao = computed(
 const podeBaixar = computed(
   () => solicitacao.value?.status === STATUS.CONCLUIDA && !!solicitacao.value?.id_nuvem,
 )
+
+// Mensagem de confirmação citando o item (tipo + pessoa afetada), para reduzir engano.
+const mensagemCancelamento = computed(() => {
+  const s = solicitacao.value
+  if (!s) {
+    return 'Esta ação não pode ser desfeita.'
+  }
+  const pessoa = s.nome_beneficiario ? ` de ${s.nome_beneficiario}` : ''
+  return `Cancelar a solicitação de ${rotuloTipo(s.tipo)}${pessoa}? Esta ação não pode ser desfeita.`
+})
 
 const rotulosAcao = {
   [ACAO_AUDITORIA.CRIADA]: 'Solicitação criada',
@@ -216,27 +248,39 @@ async function baixar() {
   }
 }
 
-function voltar() {
-  router.push({ name: 'minhas-solicitacoes' })
-}
-
 onMounted(carregar)
 </script>
 
 <style scoped>
 .topo {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  align-items: center;
   gap: var(--espaco-sm);
   margin-bottom: var(--espaco-md);
   flex-wrap: wrap;
 }
+.topo__icone {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  color: var(--cor-primaria);
+}
 .topo__tipo {
   margin: 0;
+  flex: 1;
   font-size: var(--fonte-tamanho-lg);
   word-break: break-word;
   overflow-wrap: anywhere;
+}
+.secao__titulo {
+  margin: 0 0 var(--espaco-md);
+  font-size: var(--fonte-tamanho-md);
+}
+.secao__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-sm);
+  justify-content: flex-end;
 }
 .dados {
   display: grid;
@@ -253,12 +297,6 @@ onMounted(carregar)
   font-weight: 600;
   word-break: break-word;
   overflow-wrap: anywhere;
-}
-.conversa {
-  display: flex;
-  flex-direction: column;
-  gap: var(--espaco-sm);
-  margin-bottom: var(--espaco-md);
 }
 .mensagem {
   padding: var(--espaco-sm) var(--espaco-md);
@@ -282,10 +320,6 @@ onMounted(carregar)
   flex-wrap: wrap;
   gap: var(--espaco-sm);
   justify-content: flex-end;
-}
-.historico__titulo {
-  margin: 0 0 var(--espaco-md);
-  font-size: var(--fonte-tamanho-md);
 }
 .historico {
   list-style: none;

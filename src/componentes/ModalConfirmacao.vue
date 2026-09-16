@@ -1,6 +1,6 @@
 <template>
   <div v-if="aberto" class="modal" role="dialog" aria-modal="true" @click.self="$emit('cancelar')">
-    <div class="modal__caixa">
+    <div ref="caixa" class="modal__caixa" tabindex="-1" :aria-label="titulo">
       <h2 class="modal__titulo">{{ titulo }}</h2>
       <p v-if="mensagem" class="modal__mensagem">{{ mensagem }}</p>
       <div class="modal__acoes">
@@ -20,9 +20,11 @@
 </template>
 
 <script setup>
+import { ref, toRef } from 'vue'
 import BaseBotao from './BaseBotao.vue'
+import { usarModalAcessivel } from '@/composables/usarModalAcessivel'
 
-defineProps({
+const props = defineProps({
   aberto: Boolean,
   titulo: { type: String, default: 'Confirmar ação' },
   mensagem: String,
@@ -31,7 +33,10 @@ defineProps({
   destrutivo: Boolean,
   carregando: Boolean,
 })
-defineEmits(['confirmar', 'cancelar'])
+const emit = defineEmits(['confirmar', 'cancelar'])
+
+const caixa = ref(null)
+usarModalAcessivel(toRef(props, 'aberto'), caixa, () => emit('cancelar'))
 </script>
 
 <style scoped>

@@ -8,4 +8,5 @@ import * as firebase from './firebase'
 // Reexporta o contrato estável.
 export const baixarArquivo = firebase.baixarArquivo
 export const enviarArquivo = firebase.enviarArquivo
+export const moverArquivo = firebase.moverArquivo
 export const removerArquivo = firebase.removerArquivo

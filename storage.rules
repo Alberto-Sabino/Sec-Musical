@@ -1,20 +1,12 @@
 rules_version = '2';
 
-// ATENÇÃO: regras de Storage NÃO VALIDADAS para produção nesta fase.
-// O Storage de produção está pendente de Billing/Blaze. Em desenvolvimento a
-// Biblioteca opera contra o Storage emulator local (modo `emulador`), onde
-// estas regras são aplicadas pelo emulador, mas ainda são um rascunho inicial
-// e NÃO devem ser consideradas concluídas para produção.
+// Regras de Storage do MVP. Validadas localmente (emulador + tests/regras/storage.test.js).
+// Storage de PRODUÇÃO segue pendente de Billing/Blaze.
 //
-// Limitação conhecida: regras de Storage não leem o Firestore, portanto o
-// isolamento real por setor/nível dependerá de custom claims ou verificação
-// adicional, a ser definida quando o Storage real for habilitado.
-//
-// Decisão atual (ver docs/specs/spec-11-melhoria-infraestrutura-local.md):
-// a escrita exige autenticado e valida tipo MIME e tamanho (Specs 14/15); a
-// autorização real "apenas admin envia" é imposta pelas regras do Firestore
-// (server-side) e pela UI. Restringir admin na própria regra de Storage
-// (custom claims / firestore.get) é pendência.
+// Limitação: regras de Storage não leem o Firestore, então o isolamento fino por
+// setor/perfil dependerá de custom claims quando o Storage real for habilitado.
+// A escrita exige autenticação e valida tipo MIME e tamanho (Specs 14/15); a
+// autorização "apenas admin envia" é imposta pelo Firestore e pela UI.
 service firebase.storage {
   match /b/{bucket}/o {
 
@@ -45,10 +37,13 @@ service firebase.storage {
       // "apenas admin envia" já é imposta na camada de casos de uso/UI e nas
       // regras do Firestore. PENDENTE de validação para produção.
       allow read: if request.auth != null;
-      // Aceita apenas PDF ou XLSX, dentro do teto de tamanho da Biblioteca.
-      allow write: if request.auth != null
+      // Criação/atualização aceitam apenas PDF ou XLSX, dentro do teto de tamanho.
+      // (create e update possuem request.resource; delete não — por isso é separado.)
+      allow create, update: if request.auth != null
         && (ehPdf() || ehXlsx())
         && dentroTetoBiblioteca();
+      // Remoção não possui request.resource (sem contentType/size): exige apenas auth.
+      allow delete: if request.auth != null;
     }
 
     // Caminho oficial do anexo final de solicitações:
@@ -59,9 +54,11 @@ service firebase.storage {
       // claims para produção. Fluxo já é imposto nos casos de uso.
       allow read: if request.auth != null;
       // Anexo final de Solicitações é PDF fixo, até 2 MB (Spec 15).
-      allow write: if request.auth != null
+      allow create, update: if request.auth != null
         && ehPdf()
         && request.resource.size <= 2 * 1024 * 1024;
+      // Remoção não possui request.resource: exige apenas auth.
+      allow delete: if request.auth != null;
     }
 
     // Negar todo o restante por padrão.

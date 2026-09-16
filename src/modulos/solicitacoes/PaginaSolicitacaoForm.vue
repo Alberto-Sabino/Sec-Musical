@@ -39,9 +39,9 @@
         }}</MensagemFeedback>
 
         <div class="form__acoes">
-          <BaseBotao variante="secundario" @click="voltar">Cancelar</BaseBotao>
+          <BaseBotao variante="secundario" @click="voltar">Voltar</BaseBotao>
           <BaseBotao type="submit" :carregando="salvando">
-            {{ ehEdicao ? 'Salvar' : 'Abrir solicitação' }}
+            {{ ehEdicao ? 'Salvar alterações' : 'Abrir solicitação' }}
           </BaseBotao>
         </div>
       </form>
@@ -62,6 +62,7 @@ import BaseBotao from '@/componentes/BaseBotao.vue'
 import EstadoCarregando from '@/componentes/EstadoCarregando.vue'
 import MensagemFeedback from '@/componentes/MensagemFeedback.vue'
 import { usarSessao } from '@/composables/usarSessao'
+import { registrarGuardaFormulario } from '@/composables/usarGuardaFormulario'
 import {
   TIPOS_SOLICITACAO,
   STATUS,
@@ -86,6 +87,22 @@ const solicitacaoAtual = ref(null)
 
 const form = reactive({ tipo: '', nomeBeneficiario: '', descricao: '' })
 const erros = reactive({})
+
+// Snapshot inicial para detectar alteração pendente (dirty-guard).
+const formInicial = ref({ tipo: '', nomeBeneficiario: '', descricao: '' })
+
+function estaSujo() {
+  if (salvando.value || mensagemSucesso.value) {
+    return false
+  }
+  return (
+    form.tipo !== formInicial.value.tipo ||
+    form.nomeBeneficiario !== formInicial.value.nomeBeneficiario ||
+    form.descricao !== formInicial.value.descricao
+  )
+}
+
+registrarGuardaFormulario(estaSujo)
 
 function validar() {
   Object.keys(erros).forEach((k) => delete erros[k])
@@ -170,6 +187,11 @@ onMounted(async () => {
     form.tipo = sol.tipo
     form.nomeBeneficiario = sol.nome_beneficiario || ''
     form.descricao = sol.descricao || ''
+    formInicial.value = {
+      tipo: form.tipo,
+      nomeBeneficiario: form.nomeBeneficiario,
+      descricao: form.descricao,
+    }
   } catch {
     mensagemErro.value = 'Não foi possível carregar a solicitação.'
   } finally {

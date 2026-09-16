@@ -65,15 +65,20 @@ defineProps({
   border-color: var(--cor-primaria);
 }
 .btn--destrutivo {
-  background: var(--cor-erro);
-  color: #fff;
+  background: var(--cor-erro-fundo);
+  color: var(--cor-erro);
+  border-color: transparent;
+}
+.btn--destrutivo:not(:disabled):hover {
+  border-color: var(--cor-erro);
 }
 .btn__spinner {
   width: 14px;
   height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.5);
-  border-top-color: #fff;
+  border: 2px solid transparent;
+  border-top-color: currentColor;
   border-radius: 50%;
+  opacity: 0.7;
   animation: btn-girar 0.6s linear infinite;
 }
 @keyframes btn-girar {

@@ -13,6 +13,7 @@
         {{ nomeArquivo || textoPadrao }}
       </span>
     </label>
+    <span v-if="hint" class="uploader__hint">{{ hint }}</span>
     <span v-if="erro" class="uploader__erro">{{ erro }}</span>
   </div>
 </template>
@@ -24,6 +25,7 @@ defineProps({
   rotulo: String,
   accept: { type: String, default: '.pdf' },
   textoPadrao: { type: String, default: 'Selecionar arquivo' },
+  hint: String,
   erro: String,
   disabled: Boolean,
 })
@@ -76,5 +78,9 @@ function aoSelecionar(evento) {
 .uploader__erro {
   font-size: var(--fonte-tamanho-sm);
   color: var(--cor-erro);
+}
+.uploader__hint {
+  font-size: var(--fonte-tamanho-sm);
+  color: var(--cor-texto-suave);
 }
 </style>

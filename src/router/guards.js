@@ -2,6 +2,7 @@
 // Usam o estado reativo da sessão e aguardam a inicialização do observador de auth.
 import { watch } from 'vue'
 import { usarSessao } from '@/composables/usarSessao'
+import { existeFormularioSujo, pedirConfirmacaoSaida } from '@/composables/usarGuardaFormulario'
 
 const { estado, iniciarObservadorSessao } = usarSessao()
 
@@ -26,7 +27,17 @@ function aguardarInicializacao() {
 
 // Registra as guardas globais no router.
 export function registrarGuards(router) {
-  router.beforeEach(async (para) => {
+  router.beforeEach(async (para, de) => {
+    // Proteção de saída: se a rota realmente muda e há formulário sujo, confirmar
+    // via modal customizada (não window.confirm).
+    const mudouRota = para.name !== de.name || para.fullPath !== de.fullPath
+    if (mudouRota && existeFormularioSujo()) {
+      const podeSair = await pedirConfirmacaoSaida()
+      if (!podeSair) {
+        return false
+      }
+    }
+
     await aguardarInicializacao()
 
     const requerAuth = para.meta?.requerAuth === true

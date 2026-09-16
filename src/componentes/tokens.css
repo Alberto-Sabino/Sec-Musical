@@ -67,3 +67,15 @@ body {
   color: var(--cor-texto);
   background: var(--cor-fundo);
 }
+
+/* Foco visível global (acessibilidade de teclado).
+   Aparece apenas na navegação por teclado (:focus-visible), não no clique. */
+:focus-visible {
+  outline: 2px solid var(--cor-primaria);
+  outline-offset: 2px;
+  border-radius: var(--raio-sm);
+}
+/* Remove o outline padrão quando o foco não é por teclado. */
+:focus:not(:focus-visible) {
+  outline: none;
+}

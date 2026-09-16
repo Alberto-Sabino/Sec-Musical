@@ -2,40 +2,59 @@
   <ContainerPagina>
     <CabecalhoPagina titulo="Minhas solicitações">
       <template #acoes>
-        <BaseBotao @click="irParaNova">Nova</BaseBotao>
-        <BaseBotao variante="secundario" @click="irParaInicio">Início</BaseBotao>
+        <BaseBotao @click="irParaNova">Nova solicitação</BaseBotao>
       </template>
     </CabecalhoPagina>
+
+    <FiltrosSolicitacoes v-model:status="lista.status.value" v-model:tipo="lista.tipo.value" />
 
     <EstadoCarregando v-if="carregando" texto="Carregando solicitações..." />
 
     <MensagemFeedback v-else-if="erro" tipo="erro">{{ erro }}</MensagemFeedback>
 
     <EstadoVazio
-      v-else-if="solicitacoes.length === 0"
-      titulo="Nenhuma solicitação"
-      descricao="Abra uma nova solicitação para começar."
+      v-else-if="lista.totalItens.value === 0"
+      :titulo="bruta.length === 0 ? 'Nenhuma solicitação' : 'Nenhum resultado'"
+      :descricao="
+        bruta.length === 0
+          ? 'Você ainda não abriu solicitações.'
+          : 'Nenhuma solicitação corresponde aos filtros atuais.'
+      "
     >
-      <template #acao>
+      <template #icone><IconeVazio /></template>
+      <template v-if="bruta.length === 0" #acao>
         <BaseBotao @click="irParaNova">Nova solicitação</BaseBotao>
       </template>
     </EstadoVazio>
 
-    <ul v-else class="lista">
-      <li v-for="sol in solicitacoes" :key="sol.id_solicitacao">
-        <BaseCard>
-          <button class="item" @click="abrir(sol)">
-            <div class="item__topo">
-              <span class="item__titulo">{{ rotuloTipo(sol.tipo) }}</span>
-              <BadgeStatus :status="sol.status" />
-            </div>
-            <div class="item__meta">
-              <span>Aberta em {{ formatarData(sol.data_solicitacao) }}</span>
-            </div>
-          </button>
-        </BaseCard>
-      </li>
-    </ul>
+    <template v-else>
+      <ul class="lista">
+        <li v-for="sol in lista.paginada.value" :key="sol.id_solicitacao">
+          <BaseCard>
+            <button
+              class="item"
+              :aria-label="`Abrir solicitação de ${rotuloTipo(sol.tipo)}`"
+              @click="abrir(sol)"
+            >
+              <span class="item__topo">
+                <component :is="iconeTipoSolicitacao(sol.tipo)" class="item__icone" />
+                <span class="item__titulo">{{ rotuloTipo(sol.tipo) }}</span>
+                <BadgeStatus :status="sol.status" />
+              </span>
+              <span class="item__meta">
+                <span>Aberta em {{ formatarData(sol.data_solicitacao) }}</span>
+              </span>
+            </button>
+          </BaseCard>
+        </li>
+      </ul>
+
+      <PaginacaoLista
+        v-model:pagina="lista.pagina.value"
+        :total-itens="lista.totalItens.value"
+        :por-pagina="lista.porPagina"
+      />
+    </template>
   </ContainerPagina>
 </template>
 
@@ -50,16 +69,23 @@ import BadgeStatus from '@/componentes/BadgeStatus.vue'
 import EstadoCarregando from '@/componentes/EstadoCarregando.vue'
 import EstadoVazio from '@/componentes/EstadoVazio.vue'
 import MensagemFeedback from '@/componentes/MensagemFeedback.vue'
+import FiltrosSolicitacoes from '@/componentes/FiltrosSolicitacoes.vue'
+import PaginacaoLista from '@/componentes/PaginacaoLista.vue'
+import IconeVazio from '@/componentes/icones/IconeVazio.vue'
 import { usarSessao } from '@/composables/usarSessao'
+import { usarListaSolicitacoes } from '@/composables/usarListaSolicitacoes'
 import { rotuloTipo, listarMinhasSolicitacoes } from '@/servicos/casos_de_uso/solicitacoes'
 import { formatarData } from '@/servicos/casos_de_uso/formato'
+import { iconeTipoSolicitacao } from '@/modulos/solicitacoes/apresentacaoTipos'
 
 const router = useRouter()
 const { estado } = usarSessao()
 
-const solicitacoes = ref([])
+const bruta = ref([])
 const carregando = ref(false)
 const erro = ref('')
+
+const lista = usarListaSolicitacoes(bruta)
 
 async function carregar() {
   if (!estado.contexto) {
@@ -68,7 +94,7 @@ async function carregar() {
   carregando.value = true
   erro.value = ''
   try {
-    solicitacoes.value = await listarMinhasSolicitacoes(estado.contexto.id_usuario)
+    bruta.value = await listarMinhasSolicitacoes(estado.contexto.id_usuario)
   } catch {
     erro.value = 'Não foi possível carregar suas solicitações.'
   } finally {
@@ -82,10 +108,6 @@ function abrir(sol) {
 
 function irParaNova() {
   router.push({ name: 'solicitacao-nova' })
-}
-
-function irParaInicio() {
-  router.push({ name: 'inicio' })
 }
 
 onMounted(carregar)
@@ -114,15 +136,22 @@ onMounted(carregar)
 .item__topo {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: var(--espaco-sm);
+}
+.item__icone {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  color: var(--cor-primaria);
 }
 .item__titulo {
   font-weight: 600;
   color: var(--cor-texto);
+  flex: 1;
 }
 .item__meta {
   font-size: var(--fonte-tamanho-sm);
   color: var(--cor-texto-suave);
+  padding-left: calc(20px + var(--espaco-sm));
 }
 </style>
