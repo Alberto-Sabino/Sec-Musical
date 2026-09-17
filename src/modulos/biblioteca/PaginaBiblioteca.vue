@@ -8,7 +8,7 @@
 
     <!-- Busca por nome (só na tela inicial) -->
     <form class="busca" @submit.prevent="buscar">
-      <BaseInput v-model="termo" rotulo="Buscar" placeholder="Buscar..." />
+      <BaseInput v-model="termo" rotulo="Buscar" placeholder="Buscar por nome do arquivo" />
       <BaseBotao type="submit" :disabled="!termo.trim()">Buscar</BaseBotao>
     </form>
 
@@ -16,7 +16,11 @@
     <ul class="tipos">
       <li v-for="t in tipos" :key="t.valor">
         <BaseCard class="tipo">
-          <button class="tipo__botao" :aria-label="`Abrir ${t.rotulo}`" @click="abrirTipo(t.valor)">
+          <button
+            class="tipo__botao"
+            :aria-label="`Abrir categoria ${t.rotulo}`"
+            @click="abrirTipo(t.valor)"
+          >
             <component :is="t.icone" class="tipo__icone" />
             <span class="tipo__texto">
               <span class="tipo__titulo">{{ t.rotulo }}</span>

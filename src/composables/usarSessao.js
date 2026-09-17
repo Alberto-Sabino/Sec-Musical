@@ -1,5 +1,7 @@
-// Composable de sessão: estado reativo único da autenticação e contexto.
-// Mantém usuário, contexto operacional, setor ativo e estados de carregamento.
+// Estado de sessão do app, num único lugar. Guarda o usuário autenticado, o
+// contexto operacional resolvido (perfil, setores, comum congregação), o setor
+// ativo e os estados de carregamento. As telas leem daqui em vez de falar com o
+// Auth direto. É um reactive compartilhado no módulo — o app tem uma sessão só.
 import { reactive, computed, readonly } from 'vue'
 import { observarSessao } from '@/servicos/repositorios/repositorioAutenticacao'
 import {

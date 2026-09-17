@@ -8,8 +8,8 @@
 
     <EstadoVazio
       v-else-if="arquivos.length === 0"
-      titulo="Nenhum resultado"
-      descricao="Tente outro termo similar."
+      titulo="Nenhum arquivo encontrado"
+      descricao="Tente buscar por outro nome ou termo semelhante."
     />
 
     <ul v-else class="lista">
@@ -17,7 +17,7 @@
         <BaseCard>
           <button
             class="item"
-            :aria-label="`Abrir arquivo ${arquivo.titulo}`"
+            :aria-label="`Abrir arquivo ${arquivo.titulo} - ${rotuloTipoArquivo(arquivo.tipo)}`"
             @click="abrir(arquivo)"
           >
             <span class="item__topo">
@@ -78,7 +78,7 @@ const erro = ref('')
 const arquivoSelecionado = ref(null)
 
 const termo = computed(() => String(route.query.q || '').trim())
-const subtitulo = computed(() => (termo.value ? `“${termo.value}”` : ''))
+const subtitulo = computed(() => (termo.value ? `Resultados para “${termo.value}”` : ''))
 
 function ehRestrito(arquivo) {
   return arquivo.nivel_acesso === NIVEL_ARQUIVO.RESTRITO
@@ -89,8 +89,10 @@ async function carregar() {
     arquivos.value = []
     return
   }
+
   carregando.value = true
   erro.value = ''
+
   try {
     arquivos.value = await buscarBibliotecaPorNome({
       nivelAcesso: estado.contexto.nivel_acesso,

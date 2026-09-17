@@ -11,16 +11,20 @@
       aria-modal="true"
       @click.self="responder(false)"
     >
-      <div ref="caixaSaida" class="saida__caixa" tabindex="-1" aria-label="Sair sem salvar?">
-        <!-- TODO: revisar mensagem -->
-        <h2 class="saida__titulo">Sair sem salvar?</h2>
-        <!-- TODO: revisar mensagem -->
+      <div
+        ref="caixaSaida"
+        class="saida__caixa"
+        tabindex="-1"
+        aria-label="Deseja mesmo sair dessa tela?"
+      >
+        <h2 class="saida__titulo">Deseja sair dessa tela?</h2>
         <p class="saida__mensagem">
-          Há alterações não salvas nesta tela. Se sair agora, elas serão descartadas.
+          Existem alterações não salvas nesse formulário. Se você sair agora, elas serão
+          descartadas.
         </p>
-        <div class="saida__acoes">
+        <div class="saida__acoes acoes-responsivas">
           <BaseBotao variante="secundario" @click="responder(false)">Continuar aqui</BaseBotao>
-          <BaseBotao variante="destrutivo" @click="responder(true)">Sair</BaseBotao>
+          <BaseBotao variante="destrutivo" @click="responder(true)">Sair mesmo assim</BaseBotao>
         </div>
       </div>
     </div>
@@ -92,10 +96,5 @@ usarModalAcessivel(
   color: var(--cor-texto-suave);
   font-size: var(--fonte-tamanho-md);
 }
-/* Padrão do sistema: ação de dispensar (secundária, esquerda) e ação destrutiva à direita. */
-.saida__acoes {
-  display: flex;
-  gap: var(--espaco-sm);
-  justify-content: flex-end;
-}
+/* Ordem: dispensar (secundária) à esquerda; destrutiva à direita. Layout responsivo via .acoes-responsivas. */
 </style>

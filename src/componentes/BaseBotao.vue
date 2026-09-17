@@ -13,7 +13,7 @@
 defineProps({
   variante: {
     type: String,
-    default: 'primario', // primario | secundario | destrutivo
+    default: 'primario', // primario | secundario | destrutivo | destrutivo-sutil
   },
   type: {
     type: String,
@@ -71,6 +71,16 @@ defineProps({
 }
 .btn--destrutivo:not(:disabled):hover {
   border-color: var(--cor-erro);
+}
+/* Destrutivo sutil (ghost): menos domínio visual em listas (item por item),
+   preservando o significado destrutivo pela cor do texto. */
+.btn--destrutivo-sutil {
+  background: none;
+  color: var(--cor-erro);
+  border-color: transparent;
+}
+.btn--destrutivo-sutil:not(:disabled):hover {
+  background: var(--cor-erro-fundo);
 }
 .btn__spinner {
   width: 14px;

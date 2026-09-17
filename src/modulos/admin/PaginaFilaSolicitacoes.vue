@@ -4,17 +4,17 @@
 
     <FiltrosSolicitacoes v-model:status="lista.status.value" v-model:tipo="lista.tipo.value" />
 
-    <EstadoCarregando v-if="carregando" texto="Carregando fila..." />
+    <EstadoCarregando v-if="carregandoInicial" texto="Carregando fila..." />
 
     <MensagemFeedback v-else-if="erro" tipo="erro">{{ erro }}</MensagemFeedback>
 
     <EstadoVazio
       v-else-if="lista.totalItens.value === 0"
-      :titulo="bruta.length === 0 ? 'Nenhuma solicitação' : 'Nenhum resultado'"
+      titulo="Nenhuma solicitação encontrada"
       :descricao="
         bruta.length === 0
           ? 'Não há solicitações neste setor.'
-          : 'Nenhuma solicitação corresponde aos filtros atuais.'
+          : 'Não há solicitações para os filtros selecionados.'
       "
     >
       <template #icone><IconeVazio /></template>
@@ -26,18 +26,20 @@
           <BaseCard>
             <button
               class="item"
-              :aria-label="`Abrir solicitação de ${rotuloTipo(sol.tipo)}`"
+              :aria-label="`Abrir solicitação ${rotuloTipo(sol.tipo)} — ${STATUS_ROTULOS[sol.status]}`"
               @click="abrir(sol)"
             >
-              <span class="item__topo">
-                <component :is="iconeTipoSolicitacao(sol.tipo)" class="item__icone" />
-                <span class="item__titulo">{{ rotuloTipo(sol.tipo) }}</span>
-                <BadgeStatus :status="sol.status" />
-              </span>
-              <span class="item__meta">
-                <span v-if="sol.comum_congregacao">{{ sol.comum_congregacao }}</span>
-                <span>Atualizada em {{ formatarData(sol.data_atualizacao) }}</span>
-                <span v-if="sol.id_responsavel">Responsável definido</span>
+              <component :is="iconeTipoSolicitacao(sol.tipo)" class="item__icone" />
+              <span class="item__conteudo">
+                <span class="item__topo">
+                  <span class="item__titulo">{{ rotuloTipo(sol.tipo) }}</span>
+                  <BadgeStatus :status="sol.status" />
+                </span>
+                <span class="item__meta">
+                  <span v-if="sol.comum_congregacao">{{ sol.comum_congregacao }}</span>
+                  <span>Atualizada em {{ formatarData(sol.data_atualizacao) }}</span>
+                  <span v-if="sol.id_responsavel">Responsável definido</span>
+                </span>
               </span>
             </button>
           </BaseCard>
@@ -68,7 +70,7 @@ import PaginacaoLista from '@/componentes/PaginacaoLista.vue'
 import IconeVazio from '@/componentes/icones/IconeVazio.vue'
 import { usarSessao } from '@/composables/usarSessao'
 import { usarListaSolicitacoes } from '@/composables/usarListaSolicitacoes'
-import { rotuloTipo } from '@/servicos/casos_de_uso/solicitacoes'
+import { rotuloTipo, STATUS_ROTULOS } from '@/servicos/casos_de_uso/solicitacoes'
 import { listarFila } from '@/servicos/casos_de_uso/solicitacoesAdmin'
 import { formatarData } from '@/servicos/casos_de_uso/formato'
 import { iconeTipoSolicitacao } from '@/modulos/solicitacoes/apresentacaoTipos'
@@ -77,7 +79,7 @@ const router = useRouter()
 const { estado, nomeSetorAtivo } = usarSessao()
 
 const bruta = ref([])
-const carregando = ref(false)
+const carregandoInicial = ref(true)
 const erro = ref('')
 
 // Filtro/ordenação/paginação em memória (mesma lógica das duas listagens).
@@ -87,15 +89,16 @@ async function carregar() {
   if (!estado.setorAtivo) {
     return
   }
-  carregando.value = true
+
   erro.value = ''
+
   try {
-    // Carrega o escopo completo do setor; filtros são aplicados em memória.
+    // O escopo completo do setor é carregado uma vez; filtros são aplicados em memória.
     bruta.value = await listarFila(estado.setorAtivo, null)
   } catch {
     erro.value = 'Não foi possível carregar a fila.'
   } finally {
-    carregando.value = false
+    carregandoInicial.value = false
   }
 }
 
@@ -123,11 +126,6 @@ onMounted(carregar)
   padding: 0;
   cursor: pointer;
   display: flex;
-  flex-direction: column;
-  gap: var(--espaco-xs);
-}
-.item__topo {
-  display: flex;
   align-items: center;
   gap: var(--espaco-sm);
 }
@@ -136,6 +134,18 @@ onMounted(carregar)
   width: 20px;
   height: 20px;
   color: var(--cor-primaria);
+}
+.item__conteudo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-xs);
+}
+.item__topo {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-sm);
 }
 .item__titulo {
   font-weight: 600;
@@ -148,6 +158,5 @@ onMounted(carregar)
   gap: var(--espaco-md);
   font-size: var(--fonte-tamanho-sm);
   color: var(--cor-texto-suave);
-  padding-left: calc(20px + var(--espaco-sm));
 }
 </style>

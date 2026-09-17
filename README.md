@@ -8,6 +8,10 @@ Implementação orientada por IA com **Kiro**, usando **Vue + Firebase**, com ex
 
 Construir o **Portal Musical MVP** com execução disciplinada por IA, sem expansão indevida de escopo, sem backend tradicional e com segurança tratada desde o início.
 
+> Para manutenção e evolução do código (convenções, arquitetura em camadas,
+> fontes únicas de verdade e pontos de atenção do Firebase), ver
+> [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
 ---
 
 ## Fonte de verdade

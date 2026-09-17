@@ -89,23 +89,23 @@ const saudacao = computed(() => {
 
 const rotuloPerfil = computed(() => (ehAdmin.value ? 'Secretário Musical' : 'Encarregado Local'))
 
-// Cards de módulos da home. Descrições provisórias, funcionais e revisáveis.
-const modulos = [
+// Cards de módulos da home. Descrições curtas e funcionais.
+const modulos = computed(() => [
   {
     modulo: MODULO.BIBLIOTECA,
     titulo: 'Biblioteca',
-    // TODO: revisar mensagem
-    descricao: 'Documentos e materiais do setor por tipo.',
+    descricao: 'Consulte documentos e materiais do setor por tipo.',
     icone: IconeBiblioteca,
   },
   {
     modulo: MODULO.SOLICITACOES,
     titulo: 'Solicitações',
-    // TODO: revisar mensagem
-    descricao: 'Acompanhe e trate solicitações do setor.',
+    descricao: ehAdmin.value
+      ? 'Acompanhe e trate solicitações do setor.'
+      : 'Abra e acompanhe solicitações do seu setor.',
     icone: IconeSolicitacoes,
   },
-]
+])
 
 // Mantém o select em sincronia com o setor ativo resolvido na sessão.
 watch(

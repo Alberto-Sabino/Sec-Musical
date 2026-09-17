@@ -1,5 +1,7 @@
-// Guards de rota: autenticação e papel.
-// Usam o estado reativo da sessão e aguardam a inicialização do observador de auth.
+// Guardas de rota do app. Cuidam de três coisas antes de cada navegação:
+// (1) se há formulário com alteração pendente, pede confirmação para sair;
+// (2) espera a sessão terminar de inicializar (o observador do Auth);
+// (3) barra acesso a rotas que exigem login ou papel de admin.
 import { watch } from 'vue'
 import { usarSessao } from '@/composables/usarSessao'
 import { existeFormularioSujo, pedirConfirmacaoSaida } from '@/composables/usarGuardaFormulario'

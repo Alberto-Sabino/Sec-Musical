@@ -2,14 +2,14 @@
   <ContainerPagina>
     <CabecalhoPagina titulo="Biblioteca" :subtitulo="subtitulo" />
 
-    <EstadoCarregando v-if="carregando" texto="Carregando arquivos..." />
+    <EstadoCarregando v-if="carregandoInicial" texto="Carregando arquivos..." />
 
     <MensagemFeedback v-else-if="erro" tipo="erro">{{ erro }}</MensagemFeedback>
 
     <EstadoVazio
       v-else-if="arquivos.length === 0"
-      titulo="Nenhum arquivo"
-      descricao="Não há arquivos deste tipo no setor atual."
+      titulo="Nenhum arquivo disponível"
+      descricao="Ainda não há arquivos nesta categoria para o setor ativo."
     />
 
     <ul v-else class="lista">
@@ -39,7 +39,9 @@
 
           <div v-if="ehAdmin" class="item__acoes">
             <BaseBotao variante="secundario" @click="irParaEdicao(arquivo)">Editar</BaseBotao>
-            <BaseBotao variante="destrutivo" @click="pedirRemocao(arquivo)">Remover</BaseBotao>
+            <BaseBotao variante="destrutivo-sutil" @click="pedirRemocao(arquivo)">
+              Remover
+            </BaseBotao>
           </div>
         </BaseCard>
       </li>
@@ -54,7 +56,7 @@
     <ModalConfirmacao
       :aberto="!!arquivoParaRemover"
       titulo="Remover arquivo"
-      :mensagem="`Remover \u201c${arquivoParaRemover?.titulo}\u201d? Esta ação não pode ser desfeita.`"
+      :mensagem="`Remover o arquivo \u201c${arquivoParaRemover?.titulo}\u201d? Esta ação não poderá ser desfeita.`"
       rotulo-confirmar="Remover arquivo"
       destrutivo
       :carregando="removendo"
@@ -93,7 +95,7 @@ const router = useRouter()
 const { estado, ehAdmin, nomeSetorAtivo } = usarSessao()
 
 const arquivos = ref([])
-const carregando = ref(false)
+const carregandoInicial = ref(true)
 const erro = ref('')
 const arquivoSelecionado = ref(null)
 const arquivoParaRemover = ref(null)
@@ -102,23 +104,25 @@ const removendo = ref(false)
 const tipo = computed(() => String(route.params.tipo || ''))
 const tipoValido = computed(() => TIPOS_ARQUIVO.some((t) => t.valor === tipo.value))
 const iconeTipo = computed(() => iconeTipoArquivo(tipo.value))
-const subtitulo = computed(() => `${nomeSetorAtivo.value} · ${rotuloTipoArquivo(tipo.value)}`)
+const subtitulo = computed(() => `${nomeSetorAtivo.value} · Tipo: ${rotuloTipoArquivo(tipo.value)}`)
 
 function ehRestrito(arquivo) {
   return arquivo.nivel_acesso === NIVEL_ARQUIVO.RESTRITO
 }
 
 async function carregar() {
-  // Tipo inválido: não renderizar tela inconsistente; volta para a Biblioteca.
+  // Tipo inválido não deve renderizar tela inconsistente; volta para a Biblioteca.
   if (!tipoValido.value) {
     router.replace({ name: 'biblioteca' })
     return
   }
+
   if (!estado.contexto || !estado.setorAtivo) {
     return
   }
-  carregando.value = true
+
   erro.value = ''
+
   try {
     arquivos.value = await listarBibliotecaPorTipo({
       nivelAcesso: estado.contexto.nivel_acesso,
@@ -128,7 +132,7 @@ async function carregar() {
   } catch {
     erro.value = 'Não foi possível carregar os arquivos.'
   } finally {
-    carregando.value = false
+    carregandoInicial.value = false
   }
 }
 
@@ -148,7 +152,9 @@ async function confirmarRemocao() {
   if (!arquivoParaRemover.value) {
     return
   }
+
   removendo.value = true
+
   try {
     await excluirArquivo(arquivoParaRemover.value, estado.contexto.id_usuario)
     arquivoParaRemover.value = null
@@ -160,7 +166,7 @@ async function confirmarRemocao() {
   }
 }
 
-// Recarrega ao trocar de tipo (navegação entre listagens) e ao trocar de setor.
+// Recarrega ao trocar de tipo ou de setor.
 watch(() => [tipo.value, estado.setorAtivo], carregar)
 
 onMounted(carregar)

@@ -3,7 +3,7 @@
     <div ref="caixa" class="modal__caixa" tabindex="-1" :aria-label="titulo">
       <h2 class="modal__titulo">{{ titulo }}</h2>
       <p v-if="mensagem" class="modal__mensagem">{{ mensagem }}</p>
-      <div class="modal__acoes">
+      <div class="modal__acoes acoes-responsivas">
         <BaseBotao variante="secundario" @click="$emit('cancelar')">
           {{ rotuloCancelar }}
         </BaseBotao>
@@ -65,11 +65,6 @@ usarModalAcessivel(toRef(props, 'aberto'), caixa, () => emit('cancelar'))
   margin: 0 0 var(--espaco-lg);
   color: var(--cor-texto-suave);
   font-size: var(--fonte-tamanho-md);
-}
-.modal__acoes {
-  display: flex;
-  gap: var(--espaco-sm);
-  justify-content: flex-end;
 }
 @media (min-width: 600px) {
   .modal {

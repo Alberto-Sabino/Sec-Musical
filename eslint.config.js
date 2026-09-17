@@ -1,3 +1,6 @@
+// Configuração do ESLint (flat config): regras recomendadas do JS + Vue, com o
+// Prettier desligando o que conflita com formatação. `npm run lint` aplica os
+// fixes automáticos.
 import js from '@eslint/js'
 import pluginVue from 'eslint-plugin-vue'
 import configPrettier from 'eslint-config-prettier'

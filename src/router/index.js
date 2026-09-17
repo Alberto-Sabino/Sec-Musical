@@ -1,3 +1,7 @@
+// Mapa de rotas do app. Cada rota tem um `name` estável — é por esse nome que a
+// navegação e o mapa de módulo ativo (usarNavegacaoModulos) se orientam, então
+// evite renomear sem necessidade. `meta.requerAuth`/`requerAdmin` são lidos pelas
+// guardas em guards.js.
 import { createRouter, createWebHistory } from 'vue-router'
 import { registrarGuards } from './guards'
 

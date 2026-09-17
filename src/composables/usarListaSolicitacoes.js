@@ -1,61 +1,65 @@
-// Filtro + ordenação + paginação em memória para listagens de Solicitações (Spec 15).
-// Mesma lógica reutilizada pelas visões do encarregado e do secretário.
+// Concentra a lógica de listagem das solicitações: filtrar por status e tipo,
+// ordenar da mais recente para a mais antiga e paginar — tudo em memória, sobre
+// a lista que a tela já carregou. As duas visões (encarregado e secretário) usam
+// isto para se comportarem igual. Optamos por filtrar/paginar no cliente porque
+// o volume por setor é pequeno; evita um monte de query combinada no Firestore.
 import { ref, computed, watch } from 'vue'
 import { STATUS } from '@/servicos/casos_de_uso/solicitacoes'
 
 const POR_PAGINA = 15
 
-// Converte data (Timestamp/Date/número/string) em milissegundos para ordenação desc.
-function ms(valor) {
+function emMilissegundos(valor) {
   if (!valor) {
     return 0
   }
+
   if (typeof valor.toDate === 'function') {
     return valor.toDate().getTime()
   }
+
   if (valor instanceof Date) {
     return valor.getTime()
   }
-  const d = new Date(valor)
-  return Number.isNaN(d.getTime()) ? 0 : d.getTime()
+
+  const data = new Date(valor)
+
+  return Number.isNaN(data.getTime()) ? 0 : data.getTime()
 }
 
 // listaBruta: Ref<array de solicitações do escopo visível do usuário>.
 export function usarListaSolicitacoes(listaBruta) {
-  // Estado inicial de status: Em aberto + Em andamento (Spec 15).
   const status = ref([STATUS.EM_ABERTO, STATUS.EM_ANDAMENTO])
-  const tipo = ref('') // '' = todos os tipos
+  const tipo = ref('')
   const pagina = ref(1)
 
-  // Ordena por data_atualizacao desc (fallback data_solicitacao).
   const ordenada = computed(() =>
     [...(listaBruta.value || [])].sort(
       (a, b) =>
-        ms(b.data_atualizacao || b.data_solicitacao) - ms(a.data_atualizacao || a.data_solicitacao),
+        emMilissegundos(b.data_atualizacao || b.data_solicitacao) -
+        emMilissegundos(a.data_atualizacao || a.data_solicitacao),
     ),
   )
 
-  // Aplica filtros de status (multiseleção) e tipo (único).
   const filtrada = computed(() =>
-    ordenada.value.filter((s) => {
-      const okStatus = status.value.includes(s.status)
-      const okTipo = !tipo.value || s.tipo === tipo.value
-      return okStatus && okTipo
+    ordenada.value.filter((solicitacao) => {
+      const statusOk = status.value.includes(solicitacao.status)
+      const tipoOk = !tipo.value || solicitacao.tipo === tipo.value
+
+      return statusOk && tipoOk
     }),
   )
 
   const totalItens = computed(() => filtrada.value.length)
   const totalPaginas = computed(() => Math.max(1, Math.ceil(totalItens.value / POR_PAGINA)))
-
-  // Página nunca aponta para inexistente.
   const paginaSegura = computed(() => Math.min(pagina.value, totalPaginas.value))
 
   const paginada = computed(() => {
     const inicio = (paginaSegura.value - 1) * POR_PAGINA
+
     return filtrada.value.slice(inicio, inicio + POR_PAGINA)
   })
 
-  // Ao mudar qualquer filtro, volta para a página 1.
+  // Qualquer mudança de filtro reinicia a paginação.
   watch([status, tipo], () => {
     pagina.value = 1
   })

@@ -1,7 +1,6 @@
-// Acessibilidade de modais/diálogos (Bloco 1).
-// - prende o foco dentro do diálogo enquanto aberto (focus trap);
-// - fecha no Esc;
-// - devolve o foco ao elemento que abriu ao fechar.
+// Deixa as modais utilizáveis por teclado e leitor de tela, sem precisar repetir
+// a mesma lógica em cada uma. Faz três coisas: prende o foco dentro do diálogo
+// enquanto ele está aberto, fecha no Esc e devolve o foco ao elemento que abriu.
 //
 // Uso:
 //   const caixa = ref(null)
@@ -19,36 +18,44 @@ const SELETOR_FOCAVEIS = [
 ].join(',')
 
 export function usarModalAcessivel(estaAberto, refCaixa, aoFechar) {
-  let gatilho = null // elemento que tinha o foco antes de abrir
+  let gatilhoAnterior = null
 
-  function focaveis() {
+  function elementosFocaveis() {
     const caixa = refCaixa.value
+
     if (!caixa) {
       return []
     }
+
     return Array.from(caixa.querySelectorAll(SELETOR_FOCAVEIS)).filter(
-      (el) => el.offsetParent !== null || el === document.activeElement,
+      (elemento) => elemento.offsetParent !== null || elemento === document.activeElement,
     )
   }
 
   function aoTeclar(evento) {
     if (evento.key === 'Escape') {
       evento.preventDefault()
+
       if (typeof aoFechar === 'function') {
         aoFechar()
       }
+
       return
     }
+
     if (evento.key !== 'Tab') {
       return
     }
-    // Focus trap: mantém o Tab circulando dentro do diálogo.
-    const itens = focaveis()
+
+    const itens = elementosFocaveis()
+
     if (itens.length === 0) {
       return
     }
+
     const primeiro = itens[0]
     const ultimo = itens[itens.length - 1]
+
     if (evento.shiftKey && document.activeElement === primeiro) {
       evento.preventDefault()
       ultimo.focus()
@@ -59,10 +66,13 @@ export function usarModalAcessivel(estaAberto, refCaixa, aoFechar) {
   }
 
   async function ativar() {
-    gatilho = document.activeElement
+    gatilhoAnterior = document.activeElement
     document.addEventListener('keydown', aoTeclar, true)
+
     await nextTick()
-    const itens = focaveis()
+
+    const itens = elementosFocaveis()
+
     if (itens.length > 0) {
       itens[0].focus()
     } else if (refCaixa.value) {
@@ -72,11 +82,12 @@ export function usarModalAcessivel(estaAberto, refCaixa, aoFechar) {
 
   function desativar() {
     document.removeEventListener('keydown', aoTeclar, true)
-    // Devolve o foco ao elemento que abriu o diálogo.
-    if (gatilho && typeof gatilho.focus === 'function') {
-      gatilho.focus()
+
+    if (gatilhoAnterior && typeof gatilhoAnterior.focus === 'function') {
+      gatilhoAnterior.focus()
     }
-    gatilho = null
+
+    gatilhoAnterior = null
   }
 
   watch(

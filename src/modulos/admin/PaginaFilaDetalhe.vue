@@ -2,7 +2,7 @@
   <ContainerPagina>
     <CabecalhoPagina titulo="Detalhe administrativo" />
 
-    <EstadoCarregando v-if="carregando" texto="Carregando solicitação..." />
+    <EstadoCarregando v-if="carregandoInicial" texto="Carregando solicitação..." />
 
     <MensagemFeedback v-else-if="erro" tipo="erro">{{ erro }}</MensagemFeedback>
 
@@ -51,12 +51,14 @@
       <!-- 2. Assumir solicitação pendente -->
       <BaseCard>
         <h3 class="secao__titulo">Assumir solicitação</h3>
-        <!-- TODO: revisar mensagem -->
-        <p class="secao__ajuda">Assuma a solicitação para tratá-la.</p>
+        <p class="secao__ajuda">
+          A solicitação ficará sob sua responsabilidade, nenhum outro secretário poderá modificá-la
+          depois disso.
+        </p>
         <MensagemFeedback v-if="msgAssumir" :tipo="msgAssumir.tipo">{{
           msgAssumir.texto
         }}</MensagemFeedback>
-        <div class="secao__acoes">
+        <div class="secao__acoes acoes-responsivas">
           <BaseBotao :disabled="!emAberto" :carregando="assumindo" @click="assumir">
             Assumir solicitação
           </BaseBotao>
@@ -73,10 +75,9 @@
       <!-- 3. Anexar um arquivo -->
       <BaseCard>
         <h3 class="secao__titulo">Anexar um arquivo</h3>
-        <p v-if="solicitacao.id_nuvem" class="anexo__atual">Anexo já vinculado.</p>
         <UploaderArquivo
           rotulo="Arquivo de resposta"
-          :texto-padrao="solicitacao.id_nuvem ? 'Substituir anexo' : 'Selecionar arquivo'"
+          :texto-padrao="temAnexo ? 'Substituir anexo' : 'Selecionar arquivo'"
           :accept="acceptAnexo"
           :hint="hintAnexo"
           :erro="erroAnexo"
@@ -86,8 +87,18 @@
         <MensagemFeedback v-if="msgAnexo" :tipo="msgAnexo.tipo">{{
           msgAnexo.texto
         }}</MensagemFeedback>
-        <div class="secao__acoes">
+        <div class="secao__acoes acoes-responsivas">
           <BaseBotao
+            v-if="temAnexo"
+            variante="secundario"
+            :disabled="!podeTratar || !arquivoSelecionado || !!erroAnexo"
+            :carregando="anexando"
+            @click="anexar"
+          >
+            Substituir anexo
+          </BaseBotao>
+          <BaseBotao
+            v-else
             :disabled="!podeTratar || !arquivoSelecionado || !!erroAnexo"
             :carregando="anexando"
             @click="anexar"
@@ -97,25 +108,26 @@
         </div>
       </BaseCard>
 
-      <!-- 4. Adicionar uma conclusão -->
+      <!-- 4. Adicionar um comentário -->
       <BaseCard>
-        <h3 class="secao__titulo">Adicionar uma conclusão</h3>
+        <h3 class="secao__titulo">Adicionar um comentário</h3>
         <BaseTextarea
-          v-model="conclusao"
+          v-model="comentario"
           placeholder="Resposta visível ao solicitante quando a solicitação for concluída"
           :rows="4"
           :disabled="!podeTratar"
         />
-        <MensagemFeedback v-if="msgConclusao" :tipo="msgConclusao.tipo">{{
-          msgConclusao.texto
+        <MensagemFeedback v-if="msgComentario" :tipo="msgComentario.tipo">{{
+          msgComentario.texto
         }}</MensagemFeedback>
-        <div class="secao__acoes">
+        <div class="secao__acoes acoes-responsivas">
           <BaseBotao
+            :variante="temComentario ? 'secundario' : 'primario'"
             :disabled="!podeTratar"
-            :carregando="salvandoConclusao"
-            @click="salvarConclusao"
+            :carregando="salvandoComentario"
+            @click="salvarComentario"
           >
-            Salvar conclusão
+            Salvar comentário
           </BaseBotao>
         </div>
       </BaseCard>
@@ -123,12 +135,14 @@
       <!-- 5. Concluir -->
       <BaseCard>
         <h3 class="secao__titulo">Concluir</h3>
-        <!-- TODO: revisar mensagem -->
-        <p class="secao__ajuda">Conclua a solicitação após tratá-la.</p>
+        <p class="secao__ajuda">
+          Antes de concluir, confira se a solicitação foi realmente resolvida tendo os comentários e
+          anexos necessários.
+        </p>
         <MensagemFeedback v-if="msgConcluir" :tipo="msgConcluir.tipo">{{
           msgConcluir.texto
         }}</MensagemFeedback>
-        <div class="secao__acoes">
+        <div class="secao__acoes acoes-responsivas">
           <BaseBotao :disabled="!emAndamento" :carregando="concluindo" @click="concluir">
             Concluir solicitação
           </BaseBotao>
@@ -204,10 +218,10 @@ const { estado } = usarSessao()
 
 const solicitacao = ref(null)
 const historico = ref([])
-const carregando = ref(false)
+const carregandoInicial = ref(true)
 const erro = ref('')
 
-const conclusao = ref('')
+const comentario = ref('')
 const arquivoSelecionado = ref(null)
 const erroAnexo = ref('')
 
@@ -216,7 +230,7 @@ const acceptAnexo = acceptSolicitacoes()
 const hintAnexo = hintSolicitacoes()
 
 const assumindo = ref(false)
-const salvandoConclusao = ref(false)
+const salvandoComentario = ref(false)
 const anexando = ref(false)
 const concluindo = ref(false)
 const cancelando = ref(false)
@@ -225,7 +239,7 @@ const confirmarCancelamento = ref(false)
 // Mensagens por seção (cada card exibe o próprio feedback).
 const msgAssumir = ref(null) // { texto, tipo }
 const msgAnexo = ref(null)
-const msgConclusao = ref(null)
+const msgComentario = ref(null)
 const msgConcluir = ref(null)
 
 function fb(texto, tipo) {
@@ -234,8 +248,12 @@ function fb(texto, tipo) {
 
 const emAberto = computed(() => solicitacao.value?.status === STATUS.EM_ABERTO)
 const emAndamento = computed(() => solicitacao.value?.status === STATUS.EM_ANDAMENTO)
-// Tratamento (conclusão/anexo) só faz sentido enquanto em andamento.
+// Tratamento (comentário/anexo) só faz sentido enquanto em andamento.
 const podeTratar = computed(() => emAndamento.value)
+
+// Estado dos dados (base para a variante dos botões).
+const temAnexo = computed(() => !!solicitacao.value?.id_nuvem)
+const temComentario = computed(() => !!solicitacao.value?.conclusao)
 
 // Mensagem de confirmação citando o item (tipo + pessoa afetada).
 const mensagemCancelamento = computed(() => {
@@ -261,37 +279,40 @@ function rotuloAcao(h) {
 }
 
 async function carregar() {
-  carregando.value = true
   erro.value = ''
+
   try {
     const sol = await obterSolicitacao(route.params.id)
+
     if (!sol) {
       erro.value = 'Solicitação não encontrada.'
       return
     }
-    // Isolamento por setor ativo do admin.
+
     if (sol.id_setor !== estado.setorAtivo) {
       erro.value = 'Esta solicitação não pertence ao seu setor ativo.'
       return
     }
+
     solicitacao.value = sol
-    conclusao.value = sol.conclusao || ''
+    // `conclusao` é o campo persistido; "Comentário" é só o rótulo de UI.
+    comentario.value = sol.conclusao || ''
     historico.value = await listarHistorico(sol.id_solicitacao)
   } catch {
     erro.value = 'Não foi possível carregar a solicitação.'
   } finally {
-    carregando.value = false
+    carregandoInicial.value = false
   }
 }
 
 function aoSelecionarArquivo(file) {
   arquivoSelecionado.value = file
-  // Valida formato/limite do anexo (PDF, 2 MB). Anexo continua opcional:
-  // um erro só bloqueia a ação de anexar, sem afetar o resto da tela.
+
   if (!file) {
     erroAnexo.value = ''
     return
   }
+
   const { ok, erro } = validarAnexoSolicitacao(file)
   erroAnexo.value = ok ? '' : erro
 }
@@ -299,6 +320,7 @@ function aoSelecionarArquivo(file) {
 async function assumir() {
   msgAssumir.value = null
   assumindo.value = true
+
   try {
     const resultado = await assumirSolicitacao(
       solicitacao.value,
@@ -314,7 +336,6 @@ async function assumir() {
   }
 }
 
-// Traduz o resultado da transação de "assumir" em mensagem para o usuário.
 function aplicarResultadoAssumir(resultado) {
   if (resultado.ok) {
     msgAssumir.value = fb('Solicitação assumida.', 'sucesso')
@@ -325,33 +346,38 @@ function aplicarResultadoAssumir(resultado) {
   const texto = jaAssumida
     ? 'Esta solicitação já foi assumida ou não está mais em aberto.'
     : 'Solicitação indisponível.'
+
   msgAssumir.value = fb(texto, 'erro')
 }
 
-async function salvarConclusao() {
-  msgConclusao.value = null
-  salvandoConclusao.value = true
+async function salvarComentario() {
+  msgComentario.value = null
+  salvandoComentario.value = true
+
   try {
-    await responder(solicitacao.value, conclusao.value, estado.contexto.id_usuario)
-    msgConclusao.value = fb('Conclusão salva.', 'sucesso')
+    await responder(solicitacao.value, comentario.value, estado.contexto.id_usuario)
+    msgComentario.value = fb('Comentário salvo.', 'sucesso')
     await carregar()
   } catch (e) {
-    msgConclusao.value = fb(e?.message || 'Não foi possível salvar a conclusão.', 'erro')
+    msgComentario.value = fb(e?.message || 'Não foi possível salvar o comentário.', 'erro')
   } finally {
-    salvandoConclusao.value = false
+    salvandoComentario.value = false
   }
 }
 
 async function anexar() {
   msgAnexo.value = null
-  // Revalida antes de enviar; bloqueia com erro sem afetar o resto da tela.
+
   const { ok, erro } = validarAnexoSolicitacao(arquivoSelecionado.value)
+
   if (!ok) {
     erroAnexo.value = erro
     return
   }
+
   erroAnexo.value = ''
   anexando.value = true
+
   try {
     await anexarFinal(solicitacao.value, arquivoSelecionado.value, estado.contexto.id_usuario)
     arquivoSelecionado.value = null
@@ -367,6 +393,7 @@ async function anexar() {
 async function concluir() {
   msgConcluir.value = null
   concluindo.value = true
+
   try {
     await concluirSolicitacao(solicitacao.value, estado.contexto.id_usuario)
     msgConcluir.value = fb('Solicitação concluída.', 'sucesso')
@@ -384,6 +411,7 @@ function pedirCancelamento() {
 
 async function confirmarCancelar() {
   cancelando.value = true
+
   try {
     await cancelarSolicitacaoAdmin(solicitacao.value, estado.contexto.id_usuario)
     confirmarCancelamento.value = false
@@ -462,16 +490,7 @@ onMounted(carregar)
   font-size: var(--fonte-tamanho-md);
 }
 .secao__acoes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--espaco-sm);
-  justify-content: flex-end;
   margin-top: var(--espaco-sm);
-}
-.anexo__atual {
-  margin: 0 0 var(--espaco-sm);
-  font-size: var(--fonte-tamanho-sm);
-  color: var(--cor-texto-suave);
 }
 .historico {
   list-style: none;

@@ -9,7 +9,7 @@
         :disabled="disabled"
         @change="aoSelecionar"
       />
-      <span class="uploader__texto">
+      <span class="uploader__texto" :class="{ 'uploader__texto--arquivo': nomeArquivo }">
         {{ nomeArquivo || textoPadrao }}
       </span>
     </label>
@@ -74,6 +74,14 @@ function aoSelecionar(evento) {
 .uploader__texto {
   font-size: var(--fonte-tamanho-md);
   color: var(--cor-texto-suave);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Quando há arquivo selecionado, o nome ganha ênfase (não parece placeholder). */
+.uploader__texto--arquivo {
+  color: var(--cor-texto);
+  font-weight: 600;
 }
 .uploader__erro {
   font-size: var(--fonte-tamanho-sm);

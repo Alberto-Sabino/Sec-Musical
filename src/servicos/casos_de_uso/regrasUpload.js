@@ -101,16 +101,14 @@ export function validarAnexoSolicitacao(arquivo) {
   return { ok: true, erro: '' }
 }
 
-// Texto de hint da Biblioteca conforme o tipo selecionado (provisório, revisável).
+// Texto de hint da Biblioteca conforme o tipo selecionado.
 export function hintBiblioteca(tipo) {
   const limite = limiteBibliotecaBytes(tipo)
-  // TODO: revisar mensagem
   return `PDF ou XLSX · Max: ${limite / MB} MB`
 }
 
-// Texto de hint do anexo de Solicitações (provisório, revisável).
+// Texto de hint do anexo de Solicitações.
 export function hintSolicitacoes() {
   const limite = limiteSolicitacoesBytes()
-  // TODO: revisar mensagem
   return `PDF · Max: ${limite / MB} MB`
 }

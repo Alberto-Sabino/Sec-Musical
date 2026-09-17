@@ -38,8 +38,7 @@
           mensagemSucesso
         }}</MensagemFeedback>
 
-        <div class="form__acoes">
-          <BaseBotao variante="secundario" @click="voltar">Voltar</BaseBotao>
+        <div class="form__acoes acoes-responsivas">
           <BaseBotao type="submit" :carregando="salvando">
             {{ ehEdicao ? 'Salvar alterações' : 'Abrir solicitação' }}
           </BaseBotao>
@@ -95,6 +94,7 @@ function estaSujo() {
   if (salvando.value || mensagemSucesso.value) {
     return false
   }
+
   return (
     form.tipo !== formInicial.value.tipo ||
     form.nomeBeneficiario !== formInicial.value.nomeBeneficiario ||
@@ -105,28 +105,34 @@ function estaSujo() {
 registrarGuardaFormulario(estaSujo)
 
 function validar() {
-  Object.keys(erros).forEach((k) => delete erros[k])
+  Object.keys(erros).forEach((campo) => delete erros[campo])
+
   if (!form.tipo) {
     erros.tipo = 'Selecione o tipo.'
   }
+
   // nome_beneficiario é imutável na edição; só validamos na criação.
   if (!ehEdicao.value && !form.nomeBeneficiario.trim()) {
     erros.nomeBeneficiario = 'Informe a pessoa afetada.'
   }
+
   if (!form.descricao.trim()) {
     erros.descricao = 'Informe a descrição.'
   }
+
   return Object.keys(erros).length === 0
 }
 
 async function salvar() {
   mensagemErro.value = ''
   mensagemSucesso.value = ''
+
   if (!validar()) {
     return
   }
 
   salvando.value = true
+
   try {
     mensagemSucesso.value = await persistirSolicitacao()
     setTimeout(() => router.push({ name: 'minhas-solicitacoes' }), 600)
@@ -137,7 +143,6 @@ async function salvar() {
   }
 }
 
-// Persiste (cria ou edita) e devolve a mensagem de sucesso correspondente.
 async function persistirSolicitacao() {
   if (ehEdicao.value) {
     await editarSolicitacao(
@@ -160,29 +165,31 @@ async function persistirSolicitacao() {
   return 'Solicitação aberta.'
 }
 
-function voltar() {
-  router.push({ name: 'minhas-solicitacoes' })
-}
-
 onMounted(async () => {
   if (!ehEdicao.value) {
     return
   }
+
   carregandoInicial.value = true
+
   try {
     const sol = await obterSolicitacao(route.params.id)
+
     if (!sol) {
       mensagemErro.value = 'Solicitação não encontrada.'
       return
     }
+
     if (sol.id_solicitante !== estado.contexto.id_usuario) {
       mensagemErro.value = 'Você não tem acesso a esta solicitação.'
       return
     }
+
     if (sol.status !== STATUS.EM_ABERTO) {
       mensagemErro.value = 'Só é possível editar enquanto estiver em aberto.'
       return
     }
+
     solicitacaoAtual.value = sol
     form.tipo = sol.tipo
     form.nomeBeneficiario = sol.nome_beneficiario || ''
@@ -207,8 +214,6 @@ onMounted(async () => {
   gap: var(--espaco-md);
 }
 .form__acoes {
-  display: flex;
-  gap: var(--espaco-sm);
-  justify-content: flex-end;
+  margin-top: var(--espaco-sm);
 }
 </style>

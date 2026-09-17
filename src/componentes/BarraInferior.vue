@@ -102,6 +102,10 @@ function navegar(modulo) {
 .barra__item--ativo {
   color: var(--cor-primaria);
 }
+/* Reforço do ativo além da cor: rótulo em peso maior. */
+.barra__item--ativo .barra__rotulo {
+  font-weight: 700;
+}
 /* Respeita usuários que preferem menos movimento. */
 @media (prefers-reduced-motion: reduce) {
   .barra__indicador {
@@ -114,6 +118,6 @@ function navegar(modulo) {
 }
 .barra__rotulo {
   font-size: var(--fonte-tamanho-sm);
-  font-weight: 600;
+  font-weight: 500;
 }
 </style>

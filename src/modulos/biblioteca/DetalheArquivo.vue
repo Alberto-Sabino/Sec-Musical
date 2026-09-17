@@ -31,7 +31,7 @@
         {{ erroDownload }}
       </MensagemFeedback>
 
-      <div class="detalhe__acoes">
+      <div class="detalhe__acoes acoes-responsivas">
         <BaseBotao variante="secundario" @click="$emit('fechar')">Fechar</BaseBotao>
         <BaseBotao :carregando="baixando" @click="baixar">Baixar arquivo</BaseBotao>
       </div>
@@ -144,11 +144,6 @@ async function baixar() {
 .detalhe__dados dd {
   margin: var(--espaco-xs) 0 0;
   font-weight: 600;
-}
-.detalhe__acoes {
-  display: flex;
-  gap: var(--espaco-sm);
-  justify-content: flex-end;
 }
 @media (min-width: 600px) {
   .detalhe {

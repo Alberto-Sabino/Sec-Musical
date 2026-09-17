@@ -2,7 +2,7 @@
   <ContainerPagina>
     <CabecalhoPagina titulo="Solicitação" />
 
-    <EstadoCarregando v-if="carregando" texto="Carregando solicitação..." />
+    <EstadoCarregando v-if="carregandoInicial" texto="Carregando solicitação..." />
 
     <MensagemFeedback v-else-if="erro" tipo="erro">{{ erro }}</MensagemFeedback>
 
@@ -19,7 +19,7 @@
           mensagemErroAcao
         }}</MensagemFeedback>
 
-        <div class="acoes">
+        <div class="acoes acoes-responsivas">
           <BaseBotao v-if="emAberto" variante="secundario" @click="editar">
             Editar solicitação
           </BaseBotao>
@@ -153,7 +153,7 @@ const { estado } = usarSessao()
 
 const solicitacao = ref(null)
 const historico = ref([])
-const carregando = ref(false)
+const carregandoInicial = ref(true)
 const erro = ref('')
 const mensagemErroAcao = ref('')
 const baixando = ref(false)
@@ -192,24 +192,27 @@ function rotuloAcao(h) {
 }
 
 async function carregar() {
-  carregando.value = true
   erro.value = ''
+
   try {
     const sol = await obterSolicitacao(route.params.id)
+
     if (!sol) {
       erro.value = 'Solicitação não encontrada.'
       return
     }
+
     if (sol.id_solicitante !== estado.contexto.id_usuario) {
       erro.value = 'Você não tem acesso a esta solicitação.'
       return
     }
+
     solicitacao.value = sol
     historico.value = await listarHistorico(sol.id_solicitacao)
   } catch {
     erro.value = 'Não foi possível carregar a solicitação.'
   } finally {
-    carregando.value = false
+    carregandoInicial.value = false
   }
 }
 
@@ -224,6 +227,7 @@ function pedirCancelamento() {
 async function confirmar() {
   mensagemErroAcao.value = ''
   cancelando.value = true
+
   try {
     await cancelarSolicitacao(solicitacao.value, estado.contexto.id_usuario)
     confirmarCancelamento.value = false
@@ -238,6 +242,7 @@ async function confirmar() {
 async function baixar() {
   mensagemErroAcao.value = ''
   baixando.value = true
+
   try {
     const { nome, blob } = await baixarAnexoFinal(solicitacao.value)
     baixarBlob(nome, blob)
@@ -316,10 +321,7 @@ onMounted(carregar)
   white-space: pre-wrap;
 }
 .acoes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--espaco-sm);
-  justify-content: flex-end;
+  margin-top: var(--espaco-md);
 }
 .historico {
   list-style: none;

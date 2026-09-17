@@ -45,8 +45,7 @@
           mensagemSucesso
         }}</MensagemFeedback>
 
-        <div class="form__acoes">
-          <BaseBotao variante="secundario" @click="voltar">Voltar</BaseBotao>
+        <div class="form__acoes acoes-responsivas">
           <BaseBotao type="submit" :carregando="salvando" :disabled="!!erros.arquivo">
             {{ ehEdicao ? 'Salvar alterações' : 'Cadastrar arquivo' }}
           </BaseBotao>
@@ -120,9 +119,11 @@ function estaSujo() {
   if (salvando.value || mensagemSucesso.value) {
     return false
   }
+
   if (arquivoSelecionado.value) {
     return true
   }
+
   return (
     form.titulo !== formInicial.value.titulo ||
     form.tipo !== formInicial.value.tipo ||
@@ -137,14 +138,14 @@ function aoSelecionarArquivo(file) {
   validarArquivoSelecionado()
 }
 
-// Valida o arquivo selecionado contra as regras da Biblioteca (formato + limite por tipo).
-// Mantém o restante do formulário; só marca/limpa erros.arquivo.
 function validarArquivoSelecionado() {
   if (!arquivoSelecionado.value) {
     delete erros.arquivo
     return
   }
+
   const { ok, erro } = validarArquivoBiblioteca(arquivoSelecionado.value, form.tipo)
+
   if (ok) {
     delete erros.arquivo
   } else {
@@ -152,7 +153,7 @@ function validarArquivoSelecionado() {
   }
 }
 
-// Ao trocar o tipo, o limite pode mudar (ex.: metodos 50MB) — revalida o arquivo atual.
+// O limite depende do tipo (metodos vai a 50 MB), então revalida ao trocar o tipo.
 watch(
   () => form.tipo,
   () => validarArquivoSelecionado(),
@@ -161,37 +162,45 @@ watch(
 const NIVEIS_VALIDOS = [NIVEL_ARQUIVO.PUBLICO, NIVEL_ARQUIVO.RESTRITO]
 
 function validar() {
-  Object.keys(erros).forEach((k) => delete erros[k])
+  Object.keys(erros).forEach((campo) => delete erros[campo])
+
   if (!form.titulo.trim()) {
     erros.titulo = 'Informe o título.'
   }
+
   if (!form.tipo) {
     erros.tipo = 'Selecione o tipo.'
   }
+
   if (!NIVEIS_VALIDOS.includes(Number(form.nivel_acesso))) {
     erros.nivel_acesso = 'Selecione o nível.'
   }
+
   if (!ehEdicao.value && !arquivoSelecionado.value) {
     erros.arquivo = 'Selecione um arquivo.'
   }
-  // Se há arquivo selecionado, ele precisa passar nas regras (formato + limite por tipo).
+
   if (arquivoSelecionado.value) {
     const { ok, erro } = validarArquivoBiblioteca(arquivoSelecionado.value, form.tipo)
+
     if (!ok) {
       erros.arquivo = erro
     }
   }
+
   return Object.keys(erros).length === 0
 }
 
 async function salvar() {
   mensagemErro.value = ''
   mensagemSucesso.value = ''
+
   if (!validar()) {
     return
   }
 
   salvando.value = true
+
   try {
     const dados = {
       id_setor: estado.setorAtivo,
@@ -210,7 +219,6 @@ async function salvar() {
   }
 }
 
-// Persiste (cria ou atualiza) e devolve a mensagem de sucesso correspondente.
 async function persistirArquivo(dados) {
   if (ehEdicao.value) {
     await atualizarArquivoExistente(arquivoAtual.value, dados, arquivoSelecionado.value)
@@ -221,21 +229,21 @@ async function persistirArquivo(dados) {
   return 'Arquivo cadastrado.'
 }
 
-function voltar() {
-  router.push({ name: 'biblioteca' })
-}
-
 onMounted(async () => {
   if (!ehEdicao.value) {
     return
   }
+
   carregandoInicial.value = true
+
   try {
     const doc = await obterArquivo(route.params.id)
+
     if (!doc) {
       mensagemErro.value = 'Arquivo não encontrado.'
       return
     }
+
     arquivoAtual.value = doc
     form.titulo = doc.titulo || ''
     form.tipo = doc.tipo || ''
@@ -260,8 +268,6 @@ onMounted(async () => {
   gap: var(--espaco-md);
 }
 .form__acoes {
-  display: flex;
-  gap: var(--espaco-sm);
-  justify-content: flex-end;
+  margin-top: var(--espaco-sm);
 }
 </style>

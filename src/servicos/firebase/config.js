@@ -1,5 +1,7 @@
-// Configuração do Firebase lida de variáveis de ambiente (Vite).
-// Ver .env.example para as chaves esperadas.
+// Configuração do Firebase e o "modo" do app, lidos das variáveis de ambiente.
+// As chaves vêm do .env (ver .env.example). O modo (emulador vs produção) é
+// derivado de uma única variável, VITE_APP_MODE, para o resto do código não
+// precisar checar ambiente em vários lugares.
 export const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,

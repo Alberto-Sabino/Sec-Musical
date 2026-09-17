@@ -79,3 +79,24 @@ body {
 :focus:not(:focus-visible) {
   outline: none;
 }
+
+/* Utilitário: linha de ações responsiva.
+   Mobile: empilhado em largura total (melhor toque).
+   Desktop (>=600px): lado a lado, alinhado à direita (ação destrutiva/primária à direita). */
+.acoes-responsivas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-sm);
+}
+.acoes-responsivas > * {
+  width: 100%;
+}
+@media (min-width: 600px) {
+  .acoes-responsivas {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+  .acoes-responsivas > * {
+    width: auto;
+  }
+}

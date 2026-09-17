@@ -9,21 +9,16 @@ import IconeTipoProvas from '@/componentes/icones/IconeTipoProvas.vue'
 import IconeTipoModelos from '@/componentes/icones/IconeTipoModelos.vue'
 import IconeTipoOutros from '@/componentes/icones/IconeTipoOutros.vue'
 
-// Descrições provisórias, funcionais e revisáveis.
 const APRESENTACAO = {
-  // TODO: revisar mensagem
-  circulares: { icone: IconeTipoCirculares, descricao: 'Comunicados e avisos oficiais.' },
-  // TODO: revisar mensagem
-  topicos: { icone: IconeTipoTopicos, descricao: 'Tópicos e orientações de estudo.' },
-  // TODO: revisar mensagem
-  metodos: { icone: IconeTipoMetodos, descricao: 'Métodos e materiais de ensino.' },
-  // TODO: revisar mensagem
-  planos_aula: { icone: IconeTipoPlanosAula, descricao: 'Planos e roteiros de aula.' },
-  // TODO: revisar mensagem
-  provas: { icone: IconeTipoProvas, descricao: 'Provas e avaliações.' },
-  // TODO: revisar mensagem
-  modelos: { icone: IconeTipoModelos, descricao: 'Modelos e formulários.' },
-  // TODO: revisar mensagem
+  circulares: {
+    icone: IconeTipoCirculares,
+    descricao: 'Circulares relevantes sobre a parte musical.',
+  },
+  topicos: { icone: IconeTipoTopicos, descricao: 'Tópicos de ensinamento das reuniões musicais.' },
+  metodos: { icone: IconeTipoMetodos, descricao: 'Métodos e materiais de ensino em geral.' },
+  planos_aula: { icone: IconeTipoPlanosAula, descricao: 'Planos de aula oficiais do MSA.' },
+  provas: { icone: IconeTipoProvas, descricao: 'Provas e avaliações teóricas de oficialização.' },
+  modelos: { icone: IconeTipoModelos, descricao: 'Modelos e formulários em geral.' },
   outros: { icone: IconeTipoOutros, descricao: 'Outros documentos do setor.' },
 }
 

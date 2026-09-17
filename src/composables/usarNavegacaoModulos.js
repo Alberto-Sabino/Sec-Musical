@@ -1,6 +1,9 @@
-// Navegação por módulos da área autenticada (Spec 13).
-// Fonte única do destino de cada módulo e do mapeamento rota -> módulo ativo.
-// Reutilizado pela home (cards de módulos) e pela barra inferior persistente.
+// Ponto único de decisão sobre a navegação por módulos da área logada.
+// Tanto os cards da home quanto a barra inferior perguntam aqui "para onde vai
+// cada módulo" e "qual módulo está ativo agora". Mantendo isso num lugar só, não
+// corremos o risco de a home e a barra apontarem para destinos diferentes.
+// O destino de Solicitações depende do perfil (secretário cai na fila,
+// encarregado nas próprias solicitações).
 
 // Identificadores estáveis dos módulos.
 export const MODULO = {
@@ -34,24 +37,23 @@ const ROTAS_INICIAIS_DE_MODULO = new Set([
   'fila-solicitacoes',
 ])
 
-// Retorna o módulo ativo a partir do nome da rota atual.
 export function moduloDaRota(nomeRota) {
   return ROTA_PARA_MODULO[nomeRota] || null
 }
 
-// Indica se a rota é tela inicial de módulo (sem "← Voltar").
 export function ehRotaInicialDeModulo(nomeRota) {
   return ROTAS_INICIAIS_DE_MODULO.has(nomeRota)
 }
 
-// Destino (route location) da página inicial de cada módulo.
-// Solicitações depende do perfil: admin -> fila; encarregado -> minhas-solicitacoes.
+// Solicitações depende do perfil: admin cai na fila; encarregado, nas próprias.
 export function destinoDoModulo(modulo, ehAdmin) {
   if (modulo === MODULO.BIBLIOTECA) {
     return { name: 'biblioteca' }
   }
+
   if (modulo === MODULO.SOLICITACOES) {
     return { name: ehAdmin ? 'fila-solicitacoes' : 'minhas-solicitacoes' }
   }
+
   return { name: 'inicio' }
 }

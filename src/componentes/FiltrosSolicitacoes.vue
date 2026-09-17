@@ -77,8 +77,8 @@ function aoMudarTipo(valor) {
   background: var(--cor-superficie);
   border: 1px solid var(--cor-borda);
   border-radius: 999px;
-  padding: var(--espaco-xs) var(--espaco-md);
-  font-size: var(--fonte-tamanho-sm);
+  padding: var(--espaco-sm) var(--espaco-md);
+  font-size: var(--fonte-tamanho-md);
   font-weight: 600;
   color: var(--cor-texto-suave);
   cursor: pointer;
