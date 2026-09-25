@@ -133,6 +133,59 @@ Cobrirá:
 - segurança final, validação crítica e piloto;
 - gate final de MVP pronto para operação controlada.
 
+### Spec 11
+**Melhoria de infraestrutura local**
+
+Cobrirá:
+- ambiente local por emuladores (Docker);
+- flag única de modo (`VITE_APP_MODE`);
+- infra de arquivos real via Storage emulator (sem Billing).
+
+### Spec 12
+**Ajustes de tipos e campo `comum_congregacao`**
+
+Cobrirá:
+- revisão dos tipos de arquivo e de solicitação;
+- campo `comum_congregacao` (obrigatório, denormalizado, imutável);
+- regra de segurança e atualização do seed.
+
+### Spec 13
+**Shell autenticado e orientação global**
+
+Cobrirá:
+- shell da área logada;
+- barra inferior e módulo ativo;
+- `← Voltar`;
+- proteção de troca de rota em formulários.
+
+### Spec 14
+**Biblioteca — nova descoberta, busca e metadados**
+
+Cobrirá:
+- descoberta e busca na Biblioteca;
+- metadados e ícones de tipo;
+- evolução de estados vazios.
+
+### Spec 15
+**Solicitações — filtros, listagem, paginação e linearidade**
+
+Cobrirá:
+- filtros sempre visíveis e ordenação estável;
+- paginação simples;
+- detalhes lineares e histórico com data/hora;
+- validação do anexo final.
+
+### Spec 16
+**Autenticação — senha e perfil do usuário**
+
+Cobrirá:
+- fluxo "Esqueci minha senha" (rota pública);
+- tela "Redefinir senha" na aplicação, via link do e-mail (rota pública);
+- fluxo "Alterar senha" (rota autenticada);
+- tela "Minhas informações" (perfil) com dados cadastrais e ações da conta;
+- validação de e-mail e senha, mensagens genéricas e anti-enumeração;
+- pendência de produção: envio real de e-mail (Cloud Billing).
+
 ---
 
 ## Regra de manutenção

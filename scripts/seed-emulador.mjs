@@ -19,7 +19,9 @@ const EMU_HOST = process.env.EMULATOR_HOST || '127.0.0.1'
 // Setores do piloto.
 const SETORES = [
   { id: 'cachoeira', nome: 'Cachoeira Paulista - SP' },
+  { id: 'cruzeiro', nome: 'Cruzeiro - SP' },
   { id: 'queluz', nome: 'Queluz - SP' },
+  { id: 'sjbarreiro', nome: 'São José do Barreiro - SP' },
 ]
 
 // Usuários: senha padrão para todos no ambiente local.
@@ -27,45 +29,85 @@ const SENHA = 'senha123'
 
 const USUARIOS = [
   {
-    email: 'albertosabino.as@gmail.com',
+    email: 'alberto@exemplo.com',
     nome: 'Alberto Sabino da Silva',
-    celular: '12 992575921',
+    celular: '12992575921',
     comum: 'Quilombo',
     nivel: 2,
-    setores: ['cachoeira'],
+    setores: ['cachoeira', 'cruzeiro', 'queluz', 'sjbarreiro'],
+  },
+  {
+    email: 'alexandre@exemplo.com',
+    nome: 'Alexandre dos Santos Freitas',
+    celular: '12912345678',
+    comum: 'São João',
+    nivel: 2,
+    setores: ['cachoeira', 'cruzeiro', 'queluz', 'sjbarreiro'],
+  },
+  {
+    email: 'gleizer@exemplo.com',
+    nome: 'Gleizer Figueiredo dos Santos',
+    celular: '12923456789',
+    comum: 'Vl. Canevari',
+    nivel: 2,
+    setores: ['cruzeiro', 'cachoeira', 'queluz', 'sjbarreiro'],
   },
   {
     email: 'daniel@exemplo.com',
     nome: 'Daniel Gomes de Araújo',
-    celular: '12 971831367',
+    celular: '12934567890',
     comum: 'Bairro União',
     nivel: 2,
-    setores: ['cachoeira', 'queluz'],
+    setores: ['queluz', 'cachoeira', 'cruzeiro', 'sjbarreiro'],
+  },
+  {
+    email: 'ronaldo@exemplo.com',
+    nome: 'Ronaldo Paiva Pereira Bueno',
+    celular: '12945678901',
+    comum: 'Centro - São José do Barreiro',
+    nivel: 2,
+    setores: ['sjbarreiro', 'cachoeira', 'cruzeiro', 'queluz'],
   },
   // Usuários genéricos (nivel_acesso 1)
   {
-    email: 'usuario.central@exemplo.com',
-    nome: 'Usuário Central',
-    celular: '',
-    comum: 'Central',
+    email: 'embauzinho@exemplo.com',
+    nome: 'Denis Salvador',
+    celular: '12900000001',
+    comum: 'Embauzinho',
     nivel: 1,
     setores: ['cachoeira'],
   },
   {
-    email: 'usuario.embau@exemplo.com',
-    nome: 'Usuário Embaú',
-    celular: '',
-    comum: 'Embaú',
+    email: 'cruzeiro@exemplo.com',
+    nome: 'José Silvano dos Santos',
+    celular: '12900000002',
+    comum: 'Washington Beleza',
+    nivel: 1,
+    setores: ['cruzeiro'],
+  },
+  {
+    email: 'cachoeira@exemplo.com',
+    nome: 'Jamílton Luis da Silva',
+    celular: '12900000003',
+    comum: 'Jd. Trabalhista (Central)',
     nivel: 1,
     setores: ['cachoeira'],
   },
   {
-    email: 'usuario.figueira@exemplo.com',
-    nome: 'Usuário Bairro da Figueira',
-    celular: '',
-    comum: 'Bairro da Figueira',
+    email: 'queluz@exemplo.com',
+    nome: 'Rubens Henrique da Silva',
+    celular: '12900000004',
+    comum: 'Centro - Queluz',
     nivel: 1,
     setores: ['queluz'],
+  },
+  {
+    email: 'barreiro@exemplo.com',
+    nome: 'Alessandro Vaz Brito',
+    celular: '12900000005',
+    comum: 'Centro - São José do Barreiro', 
+    nivel: 1,
+    setores: ['sjbarreiro'],
   },
 ]
 
@@ -126,7 +168,6 @@ async function main() {
   await testEnv.cleanup()
 
   console.log('Seed do emulador concluído.')
-  console.log('Setores: Cachoeira Paulista - SP (cachoeira), Queluz - SP (queluz)')
   console.log('Usuários (nome - email - senha - nível):')
   const larguraNome = Math.max(...USUARIOS.map((u) => u.nome.length))
   const larguraEmail = Math.max(...USUARIOS.map((u) => u.email.length))

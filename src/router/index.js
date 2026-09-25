@@ -12,6 +12,28 @@ const routes = [
     component: () => import('@/modulos/autenticacao/PaginaLogin.vue'),
   },
   {
+    path: '/esqueci-senha',
+    name: 'esqueci-senha',
+    component: () => import('@/modulos/autenticacao/PaginaEsqueciSenha.vue'),
+  },
+  {
+    path: '/redefinir-senha',
+    name: 'redefinir-senha',
+    component: () => import('@/modulos/autenticacao/PaginaRedefinirSenha.vue'),
+  },
+  {
+    path: '/alterar-senha',
+    name: 'alterar-senha',
+    component: () => import('@/modulos/autenticacao/PaginaAlterarSenha.vue'),
+    meta: { requerAuth: true },
+  },
+  {
+    path: '/perfil',
+    name: 'perfil',
+    component: () => import('@/modulos/autenticacao/PaginaPerfil.vue'),
+    meta: { requerAuth: true },
+  },
+  {
     path: '/',
     name: 'inicio',
     component: () => import('@/app/PaginaInicial.vue'),

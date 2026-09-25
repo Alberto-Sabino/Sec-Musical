@@ -13,9 +13,16 @@ Não registrar intenção como se fosse entrega concluída.
 - Fase ativa: Sprint 2
 - Spec ativa: `docs/specs/spec-10-execucao-operacional-sprint-2.md`
 - Lote atual: Lote 9 (preparado; publicação manual pelo responsável)
-- Atividade recente: Spec 12 — Ajuste de tipos e campo `comum_congregacao` (contrato + regra de segurança + seed)
+- Atividade recente: Spec 16 — Autenticação: recuperação e alteração de senha (fluxos, validação, UX/CTA; pendência: e-mail real em produção/Billing)
 - Status geral: em andamento
 - Nota: Spec 09 fechada em modo parcial-operacional (pendência conhecida e aceita: Storage/Billing, restrita a arquivos)
+
+### Spec 16 — Autenticação: senha e perfil do usuário
+- Status: aplicado
+- Resultado: fluxos "Esqueci minha senha" (rota pública), "Redefinir senha" via link do e-mail (rota pública, `verifyPasswordResetCode` + `confirmPasswordReset`) e "Alterar senha" (rota autenticada, `reauthenticateWithCredential` + `updatePassword`); tela de perfil "Minhas informações" (rota `perfil`) com dados cadastrais + ações Alterar senha/Sair, acessível por ícone de conta na Início; `sendPasswordResetEmail` com `actionCodeSettings.url` retornando à aplicação; `celular` exposto no contexto; regras/mensagens de senha centralizadas em `src/servicos/casos_de_uso/senha.js`; prop opcional `voltar` no `CabecalhoPagina`
+- Segurança: campos `type="password"`; mensagens genéricas; resposta anti-enumeração no envio de redefinição; `alterar-senha` exige sessão + reautenticação
+- Validação: `npm run lint` OK; `npm run test:unit` OK (regras puras de senha); `npm run build` OK
+- Pendências: **envio real de e-mail de redefinição só validável em produção (Cloud Billing/Blaze)** com template de e-mail do Firebase configurado; em `emulador` o Auth emulator não envia e-mail (testar via log do container ou `oobCodes`); ver `docs/specs/spec-16-autenticacao-senha.md`
 
 ### Mudança pós-Sprint — Infra de arquivos
 - Status: aplicado
@@ -27,7 +34,7 @@ Não registrar intenção como se fosse entrega concluída.
 ---
 
 ## Última atualização
-- Data: 2026-09-08
+- Data: 2026-09-25
 - Responsável: Kiro
 - Status: concluído
 

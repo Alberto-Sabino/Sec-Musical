@@ -14,6 +14,11 @@ Esta spec cobre apenas o que é transversal e global:
 
 Esta spec não cobre a nova Biblioteca nem as novas listagens de Solicitações em profundidade. Esses temas ficam nas specs seguintes.
 
+> Evolução posterior (Spec 16): o cabeçalho da home deixou de exibir os botões
+> "Sair" e "Alterar senha"; no lugar há um ícone de conta que abre a tela de
+> perfil ("Minhas informações"), onde ficam os dados cadastrais e essas ações.
+> Ver `docs/specs/spec-16-autenticacao-senha.md`.
+
 ## Resultado esperado
 Ao final desta spec, o projeto deve ter:
 - uma barra inferior persistente na área autenticada;

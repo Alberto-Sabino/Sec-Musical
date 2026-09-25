@@ -35,6 +35,11 @@ aqui explicamos as escolhas.
 - **Modal de saída**: "Continuar aqui" (secundário) à esquerda e "Sair"
   (destrutivo) à direita, seguindo o padrão do resto do sistema (destrutivo
   sempre à direita).
+- **Ações da conta no perfil** (Spec 16): o cabeçalho da home usa um ícone de
+  conta (em vez de botões "Sair"/"Alterar senha"), abrindo a tela "Minhas
+  informações". As ações da conta ficam agrupadas lá, mantendo o topo da home
+  enxuto. Telas de conta ficam fora do conceito de módulo (sem barra inferior) e
+  usam o `← Voltar` do cabeçalho via a prop `voltar` do `CabecalhoPagina`.
 
 ## Estados de carregamento
 

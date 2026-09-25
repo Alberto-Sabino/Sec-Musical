@@ -2,10 +2,14 @@
   <ContainerPagina>
     <CabecalhoPagina titulo="Início" :subtitulo="saudacao">
       <template #acoes>
-        <BaseBotao variante="secundario" :carregando="saindo" @click="sair">
-          <IconeSair class="botao-icone" />
-          Sair
-        </BaseBotao>
+        <button
+          type="button"
+          class="conta"
+          aria-label="Abrir minhas informações"
+          @click="irPerfil"
+        >
+          <IconeConta class="conta__icone" />
+        </button>
       </template>
     </CabecalhoPagina>
 
@@ -68,18 +72,16 @@ import { useRouter } from 'vue-router'
 import ContainerPagina from '@/componentes/ContainerPagina.vue'
 import CabecalhoPagina from '@/componentes/CabecalhoPagina.vue'
 import BaseCard from '@/componentes/BaseCard.vue'
-import BaseBotao from '@/componentes/BaseBotao.vue'
 import BaseSelect from '@/componentes/BaseSelect.vue'
-import IconeSair from '@/componentes/icones/IconeSair.vue'
+import IconeConta from '@/componentes/icones/IconeConta.vue'
 import IconeBiblioteca from '@/componentes/icones/IconeBiblioteca.vue'
 import IconeSolicitacoes from '@/componentes/icones/IconeSolicitacoes.vue'
 import { usarSessao } from '@/composables/usarSessao'
 import { MODULO, destinoDoModulo } from '@/composables/usarNavegacaoModulos'
 
 const router = useRouter()
-const { estado, ehAdmin, opcoesSetor, nomeSetorAtivo, logout, definirSetorAtivo } = usarSessao()
+const { estado, ehAdmin, opcoesSetor, nomeSetorAtivo, definirSetorAtivo } = usarSessao()
 
-const saindo = ref(false)
 const setorSelecionado = ref(estado.setorAtivo)
 
 const saudacao = computed(() => {
@@ -124,10 +126,8 @@ function abrirModulo(modulo) {
   router.push(destinoDoModulo(modulo, ehAdmin.value))
 }
 
-async function sair() {
-  saindo.value = true
-  await logout()
-  router.replace({ name: 'login' })
+function irPerfil() {
+  router.push({ name: 'perfil' })
 }
 </script>
 
@@ -189,11 +189,19 @@ async function sair() {
   font-size: var(--fonte-tamanho-sm);
   color: var(--cor-texto-suave);
 }
-.botao-icone {
-  width: 16px;
-  height: 16px;
-  vertical-align: middle;
-  margin-right: var(--espaco-xs);
+.conta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--espaco-xs);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--cor-texto);
+}
+.conta__icone {
+  width: 26px;
+  height: 26px;
 }
 @media (min-width: 600px) {
   .contexto {

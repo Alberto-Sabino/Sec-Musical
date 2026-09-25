@@ -12,6 +12,10 @@
         </MensagemFeedback>
 
         <BaseBotao type="submit" bloco :carregando="enviando"> Entrar </BaseBotao>
+
+        <button type="button" class="login__esqueci" @click="irEsqueciSenha">
+          Esqueci minha senha
+        </button>
       </form>
     </BaseCard>
   </ContainerPagina>
@@ -54,6 +58,10 @@ async function enviar() {
   }
 }
 
+function irEsqueciSenha() {
+  router.push({ name: 'esqueci-senha' })
+}
+
 // Reage ao resultado do carregamento de contexto disparado pelo observador.
 watch(
   () => [estado.autenticado, estado.erroContexto, estado.carregandoContexto],
@@ -76,5 +84,17 @@ watch(
   display: flex;
   flex-direction: column;
   gap: var(--espaco-md);
+}
+.login__esqueci {
+  align-self: center;
+  background: none;
+  border: none;
+  padding: var(--espaco-xs);
+  cursor: pointer;
+  font-size: var(--fonte-tamanho-sm);
+  color: var(--cor-primaria);
+}
+.login__esqueci:hover {
+  text-decoration: underline;
 }
 </style>

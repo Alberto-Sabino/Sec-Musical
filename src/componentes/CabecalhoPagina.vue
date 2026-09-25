@@ -6,7 +6,7 @@
         type="button"
         class="cabecalho__voltar"
         aria-label="Voltar"
-        @click="voltar"
+        @click="aoClicarVoltar"
       >
         <IconeVoltar class="cabecalho__voltar-icone" />
       </button>
@@ -27,22 +27,30 @@ import { useRoute, useRouter } from 'vue-router'
 import IconeVoltar from '@/componentes/icones/IconeVoltar.vue'
 import { ehRotaInicialDeModulo, moduloDaRota } from '@/composables/usarNavegacaoModulos'
 
-defineProps({
+const props = defineProps({
   titulo: { type: String, required: true },
   subtitulo: String,
+  // Controle explícito do "← Voltar":
+  //   null (default) — decide pelo módulo (telas internas de módulo mostram);
+  //   true/false — força a exibição, para telas fora do conceito de módulo
+  //   (ex.: autenticação), que não têm barra inferior nem entram no mapa.
+  voltar: { type: Boolean, default: null },
 })
 
 const route = useRoute()
 const router = useRouter()
 
-// "← Voltar" aparece apenas em telas internas de módulo (não nas telas iniciais)
-// e usa exatamente o histórico real da navegação, sem fallback customizado.
+// "← Voltar" aparece em telas internas de módulo (não nas iniciais) e usa o
+// histórico real da navegação. Telas fora de módulo podem forçar via prop `voltar`.
 const mostrarVoltar = computed(() => {
+  if (props.voltar !== null) {
+    return props.voltar
+  }
   const modulo = moduloDaRota(route.name)
   return modulo !== null && !ehRotaInicialDeModulo(route.name)
 })
 
-function voltar() {
+function aoClicarVoltar() {
   router.back()
 }
 </script>
