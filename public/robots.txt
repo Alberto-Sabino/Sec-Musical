@@ -1,0 +1,4 @@
+# Portal interno de acesso autenticado (piloto controlado).
+# Não deve ser indexado por buscadores.
+User-agent: *
+Disallow: /

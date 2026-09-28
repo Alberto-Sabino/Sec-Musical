@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "sec-musical-mvp"
-  }
+    "default": "sec-musical-mvp",
+    "production": "sec-musical-mvp"
+  },
+  "targets": {},
+  "etags": {}
 }

@@ -15,4 +15,17 @@ export default defineConfig({
     host: true,
     port: 5173,
   },
+  build: {
+    // Separa dependências grandes em chunks próprios. Como os nomes dos
+    // arquivos levam hash, o navegador reaproveita o cache do vendor entre
+    // deploys em que só o código de app muda.
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vue: ['vue', 'vue-router'],
+          firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage'],
+        },
+      },
+    },
+  },
 })
