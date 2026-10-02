@@ -3,7 +3,7 @@
 // ativo e os estados de carregamento. As telas leem daqui em vez de falar com o
 // Auth direto. É um reactive compartilhado no módulo — o app tem uma sessão só.
 import { reactive, computed, readonly } from 'vue'
-import { observarSessao } from '@/servicos/repositorios/repositorioAutenticacao'
+import { observarTokenId, obterClaims } from '@/servicos/repositorios/repositorioAutenticacao'
 import {
   fazerLogin,
   fazerLogout,
@@ -21,6 +21,7 @@ const estado = reactive({
   // dados
   usuarioAuth: null, // usuário do Firebase Auth
   contexto: null, // contexto operacional resolvido (ou null)
+  claims: {}, // custom claims do ID token (Spec 17): nivel_acesso, ids_setor, ativo
   setorAtivo: null,
   nomesSetores: {}, // mapa { id_setor: nome } dos setores do usuário
   // erros de sessão
@@ -68,6 +69,7 @@ function limparSessao() {
   estado.autenticado = false
   estado.usuarioAuth = null
   estado.contexto = null
+  estado.claims = {}
   estado.setorAtivo = null
   estado.nomesSetores = {}
   estado.erroContexto = null
@@ -83,6 +85,14 @@ async function aplicarUsuarioAuth(usuario) {
   estado.usuarioAuth = usuario
   estado.carregandoContexto = true
   estado.erroContexto = null
+
+  // Lê os custom claims do ID token (Spec 17). Não bloqueia a sessão se falhar;
+  // o contexto do Firestore continua sendo a fonte do fluxo operacional.
+  try {
+    estado.claims = await obterClaims(usuario)
+  } catch {
+    estado.claims = {}
+  }
 
   const resultado = await carregarContextoUsuario(usuario.uid)
 
@@ -114,12 +124,14 @@ async function aplicarUsuarioAuth(usuario) {
 }
 
 // Inicia o observador de sessão uma única vez (chamado no bootstrap do app).
+// Usa onIdTokenChanged (Spec 17): reage a sign-in/out E a refresh de token/claims,
+// mantendo `estado.claims` em dia quando os custom claims mudam.
 function iniciarObservadorSessao() {
   if (observadorIniciado) {
     return
   }
   observadorIniciado = true
-  observarSessao(async (usuario) => {
+  observarTokenId(async (usuario) => {
     await aplicarUsuarioAuth(usuario)
     estado.inicializando = false
   })
@@ -154,9 +166,14 @@ export function usarSessao() {
 
   return {
     estado: readonly(estado),
-    // derivados
+    // derivados (contexto do Firestore — fonte do fluxo operacional)
     ehAdmin: computed(() => estado.contexto?.ehAdmin === true),
     setoresDisponiveis: computed(() => estado.contexto?.ids_setor || []),
+    // derivados dos custom claims (Spec 17) — fonte usada pelas Storage Rules
+    claims: computed(() => estado.claims || {}),
+    ehAdminClaim: computed(() => estado.claims?.nivel_acesso === 2),
+    idsSetorClaim: computed(() => estado.claims?.ids_setor || []),
+    ativoClaim: computed(() => estado.claims?.ativo === true),
     // opções { valor, rotulo } para selects de setor (rótulo = nome do setor)
     opcoesSetor: computed(() =>
       (estado.contexto?.ids_setor || []).map((id) => ({

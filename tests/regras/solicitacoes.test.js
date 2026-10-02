@@ -14,6 +14,9 @@ const PROJETO = 'sec-musical-mvp'
 const UID_USUARIO = 'user_comum'
 const UID_OUTRO = 'user_outro'
 const UID_ADMIN = 'admin_1'
+// Segundo admin do MESMO setor A, usado para validar a decisão (Spec 17 §2.1):
+// uma solicitação já assumida só pode ser alterada pelo responsável que assumiu.
+const UID_ADMIN2 = 'admin_2'
 const SETOR_A = 'setorA'
 const SETOR_B = 'setorB'
 
@@ -78,6 +81,13 @@ beforeEach(async () => {
       nome_completo: 'Secretário Um',
       comum_congregacao: 'Sede',
     })
+    await setDoc(doc(db, 'usuarios', UID_ADMIN2), {
+      nivel_acesso: 2,
+      ativo: true,
+      ids_setor: [SETOR_A],
+      nome_completo: 'Secretário Dois',
+      comum_congregacao: 'Sede',
+    })
     // Solicitação em aberto do usuário comum no setor A.
     await setDoc(doc(db, 'solicitacoes', 'sol1'), solEmAberto())
     // Solicitação em andamento no setor A (para transições admin).
@@ -97,6 +107,9 @@ function cOutro() {
 }
 function cAdmin() {
   return testEnv.authenticatedContext(UID_ADMIN).firestore()
+}
+function cAdmin2() {
+  return testEnv.authenticatedContext(UID_ADMIN2).firestore()
 }
 
 // ---- leitura ----
@@ -304,6 +317,52 @@ test('solicitacoes: admin NÃO altera conclusao ao concluir (bloqueado)', async 
 
 test('solicitacoes: exclusão sempre bloqueada', async () => {
   await assertFails(deleteDoc(doc(cAdmin(), 'solicitacoes', 'sol1')))
+})
+
+// ---- assumida só pelo responsável (Spec 17 §2.1) ----
+// sol_andamento foi assumida por UID_ADMIN (id_responsavel = admin_1).
+// admin_2 pertence ao mesmo setor, mas NÃO é o responsável.
+test('solicitacoes: outro admin do setor NÃO responde solicitação assumida por outro (bloqueado)', async () => {
+  await assertFails(
+    updateDoc(doc(cAdmin2(), 'solicitacoes', 'sol_andamento'), {
+      conclusao: 'Resposta de quem não assumiu',
+    }),
+  )
+})
+
+test('solicitacoes: outro admin do setor NÃO anexa em solicitação assumida por outro (bloqueado)', async () => {
+  await assertFails(
+    updateDoc(doc(cAdmin2(), 'solicitacoes', 'sol_andamento'), {
+      id_nuvem: `solicitacoes/${SETOR_A}/${UID_USUARIO}/sol_andamento/resposta.pdf`,
+    }),
+  )
+})
+
+test('solicitacoes: outro admin do setor NÃO conclui solicitação assumida por outro (bloqueado)', async () => {
+  await assertFails(
+    updateDoc(doc(cAdmin2(), 'solicitacoes', 'sol_andamento'), { status: 'concluida' }),
+  )
+})
+
+test('solicitacoes: outro admin do setor NÃO cancela solicitação assumida por outro (bloqueado)', async () => {
+  await assertFails(
+    updateDoc(doc(cAdmin2(), 'solicitacoes', 'sol_andamento'), { status: 'cancelada' }),
+  )
+})
+
+test('solicitacoes: responsável que assumiu responde a própria em andamento (permitido)', async () => {
+  await assertSucceeds(
+    updateDoc(doc(cAdmin(), 'solicitacoes', 'sol_andamento'), {
+      conclusao: 'Resposta do responsável',
+    }),
+  )
+})
+
+// Admin do setor ainda pode cancelar uma solicitação AINDA em_aberto (sem responsável).
+test('solicitacoes: admin do setor cancela em_aberto sem ser responsável (permitido)', async () => {
+  await assertSucceeds(
+    updateDoc(doc(cAdmin2(), 'solicitacoes', 'sol1'), { status: 'cancelada' }),
+  )
 })
 
 // ---- auditoria ----

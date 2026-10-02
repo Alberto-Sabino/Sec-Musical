@@ -5,6 +5,8 @@ import {
   signInWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
+  onIdTokenChanged,
+  getIdTokenResult,
   sendPasswordResetEmail,
   verifyPasswordResetCode,
   confirmPasswordReset,
@@ -13,7 +15,8 @@ import {
   EmailAuthProvider,
 } from 'firebase/auth'
 import { doc, getDoc } from 'firebase/firestore'
-import { auth, db } from '@/servicos/firebase'
+import { httpsCallable } from 'firebase/functions'
+import { auth, db, functions } from '@/servicos/firebase'
 
 export function autenticar(email, senha) {
   return signInWithEmailAndPassword(auth, email, senha)
@@ -67,6 +70,43 @@ export async function atualizarSenhaUsuario(senhaAtual, novaSenha) {
 // Retorna a função de unsubscribe.
 export function observarSessao(callback) {
   return onAuthStateChanged(auth, callback)
+}
+
+// Observa mudanças do ID token (login/logout/refresh de token/claims).
+// Útil para reagir quando os custom claims mudam após sincronização (Spec 17).
+// Retorna a função de unsubscribe.
+export function observarTokenId(callback) {
+  return onIdTokenChanged(auth, callback)
+}
+
+// Lê os custom claims do ID token do usuário informado.
+// Se `forcarRefresh` for true, obtém um token novo do servidor (reflete claims
+// recém-sincronizados). Retorna o objeto de claims (ou {} se não houver usuário).
+export async function obterClaims(usuario, forcarRefresh = false) {
+  if (!usuario) {
+    return {}
+  }
+  const resultado = await getIdTokenResult(usuario, forcarRefresh)
+  return resultado.claims || {}
+}
+
+// Força a renovação do ID token do usuário atual, trazendo claims atualizados.
+// Chamar após sincronizar claims (syncClaimsFromUsuario) para refletir no cliente.
+export async function forcarAtualizacaoToken() {
+  const usuario = auth.currentUser
+  if (!usuario) {
+    return {}
+  }
+  return obterClaims(usuario, true)
+}
+
+// Invoca a Cloud Function callable que sincroniza os custom claims a partir de
+// usuarios/{uid} (Spec 17). Apenas admins ativos conseguem executar (imposto na
+// própria Function). Retorna { ok: true } em caso de sucesso.
+export async function sincronizarClaimsUsuario(uid) {
+  const chamar = httpsCallable(functions, 'syncClaimsFromUsuario')
+  const resposta = await chamar({ uid })
+  return resposta.data
 }
 
 // Lê apenas o próprio documento em `usuarios` (regra de segurança oficial).

@@ -10,14 +10,14 @@ Não registrar intenção como se fosse entrega concluída.
 ---
 
 ## Estado atual
-- Fase ativa: **Sprint 3 concluída** (Specs 13, 14, 15 e 16 aplicadas) + Analytics GA4
-- Ambiente de produção: **funcional** — Hosting, Firestore, Authentication configurados e operando em produção
+- Fase ativa: **Sprint 3 concluída** (Specs 13, 14, 15 e 16 aplicadas) + Analytics GA4 + **Spec 17 aplicada** (Custom Claims + hardening de rules + Cloud Functions)
+- Ambiente de produção: **funcional** — Hosting, Firestore (regras + índices), Authentication e **regras de Storage** publicados e operando; Hosting será republicado com Analytics para o piloto
 - Sprints anteriores: Sprint 1 (Spec 09) e Sprint 2 (Spec 10) concluídas; ajustes Spec 11 e Spec 12 aplicados
 - Status geral: MVP funcional em produção
-- **Única pendência aberta:** configuração do **Cloud Storage em produção**, que depende da ativação da **Conta Billing (plano Blaze)**. Enquanto isso, operações de arquivo (upload/download/remoção) rodam contra o **Storage emulator** local em modo `emulador`.
+- **Pendência aberta (Billing/Blaze):** ativar a Conta Billing para habilitar o **Cloud Storage real** (bucket) e o **deploy das Cloud Functions** (`syncClaimsFromUsuario`). Enquanto isso, operações de arquivo rodam contra o **Storage emulator** local (modo `emulador`) e os claims são injetados pelo seeder.
 
-### Pendência única (aberta)
-- **Cloud Storage em produção (Billing/Blaze):** habilitar Billing, publicar `storage.rules` em produção e validar upload/download reais. Inclui a validação do **envio real de e-mail de redefinição de senha** (depende do mesmo ambiente de produção com template do Firebase Auth). Tudo mais já está funcional em produção.
+### Pendência aberta (Billing/Blaze)
+- **Cloud Storage real + Cloud Functions:** ativar Billing e seguir o runbook de deploy restante em `docs/guia-publicacao-piloto.md` (§B: regras de Storage, deploy de `functions`, sincronização de claims, CORS do bucket; §C: validações manuais). As `storage.rules` (endurecidas na Spec 17) já estão publicadas, mas só vigoram de fato com o bucket real + claims sincronizados. Inclui a validação do **envio real de e-mail de redefinição de senha** (template do Firebase Auth). Tudo mais já está funcional em produção.
 
 ### Spec 13 — Shell autenticado, navegação global e orientação inicial
 - Status: aplicado (produção)
@@ -50,6 +50,20 @@ Não registrar intenção como se fosse entrega concluída.
 - Segurança: campos `type="password"`; mensagens genéricas; resposta anti-enumeração no envio de redefinição; `alterar-senha` exige sessão + reautenticação
 - Validação: `npm run lint` OK; `npm run test:unit` OK (regras puras de senha); `npm run build` OK
 - Pendências: validação do envio real de e-mail de redefinição consolidada junto à pendência única (produção com Billing e template de e-mail do Firebase); ver `docs/specs/spec-16-autenticacao-senha.md`
+
+### Spec 17 — Custom Claims + hardening de Rules (Firestore/Storage) + sync via Cloud Functions
+- Status: aplicado localmente (emulador); deploy de produção pendente de Billing
+- Resultado:
+  - **Firestore hardening:** solicitação já assumida só pode ser alterada pelo responsável que assumiu (Spec 17 §2.1); novos testes em `tests/regras/solicitacoes.test.js`.
+  - **Storage hardening com claims:** `storage.rules` passam a exigir custom claims (`ativo`, `nivel_acesso`, `ids_setor`); Biblioteca por setor/perfil (nível 2 só admin); resposta final de Solicitações legível **somente pelo solicitante** (Spec 17 §2.2) e gravável só por admin do setor; validação MIME/tamanho mantida.
+  - **Cloud Function:** `functions/syncClaimsFromUsuario` (callable) espelha `usuarios/{uid}` → claims; autoriza qualquer admin ativo (política A).
+  - **Frontend/sessão:** `onIdTokenChanged` + leitura de claims (`getIdTokenResult`) + utilitário de refresh e wrapper da callable (`repositorioAutenticacao.js`, `usarSessao.js`).
+  - **Seeder:** `scripts/seed-emulador.mjs` injeta os claims no Auth emulator (REST `accounts:update`), para o dev rodar com as MESMAS rules de produção.
+  - **Testes:** `tests/regras/storage.test.js` reescrito simulando claims (admin/comum/solicitante/inativo e setores).
+  - **Docs:** `docs/claims-e-sincronizacao.md` (claims, sync, refresh, debug, melhoria futura).
+- Decisões humanas: D1 implementar Functions (Billing em breve); D2 qualquer admin sincroniza qualquer uid (melhoria futura registrada); D3 rules endurecidas únicas (prod=dev) + seeder injeta claims (dados locais podem ser recriados).
+- Validação: `npm run test:unit` OK; testes de regras (Docker) OK; `npm run build` OK.
+- Pendências: deploy de `functions` e publicação das `storage.rules` em produção seguem na pendência única (Billing/Blaze); melhoria futura: restringir sync por setor do admin executor.
 
 ### Mudança pós-Sprint — Infra de arquivos
 - Status: aplicado

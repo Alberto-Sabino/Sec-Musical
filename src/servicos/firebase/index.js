@@ -3,6 +3,7 @@ import { initializeApp } from 'firebase/app'
 import { getAuth, connectAuthEmulator } from 'firebase/auth'
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore'
 import { getStorage, connectStorageEmulator } from 'firebase/storage'
+import { getFunctions, connectFunctionsEmulator } from 'firebase/functions'
 import { firebaseConfig, usarEmuladores, MODO_APP } from './config'
 
 const app = initializeApp(firebaseConfig)
@@ -10,6 +11,7 @@ const app = initializeApp(firebaseConfig)
 export const auth = getAuth(app)
 export const db = getFirestore(app)
 export const storage = getStorage(app)
+export const functions = getFunctions(app)
 
 if (usarEmuladores) {
   // Usa o mesmo host pelo qual a página foi aberta (localhost no PC,
@@ -20,6 +22,7 @@ if (usarEmuladores) {
   connectAuthEmulator(auth, `http://${hostEmulador}:9099`, { disableWarnings: true })
   connectFirestoreEmulator(db, hostEmulador, 8080)
   connectStorageEmulator(storage, hostEmulador, 9199)
+  connectFunctionsEmulator(functions, hostEmulador, 5001)
 }
 
 // Aviso claro do modo ativo na inicialização, tornando explícito o destino

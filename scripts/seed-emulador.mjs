@@ -120,6 +120,32 @@ async function criarUsuarioAuth(email) {
   return cred.user.uid
 }
 
+// Injeta custom claims no usuário do Auth emulator (Spec 17), espelhando o
+// cadastro: { ativo, nivel_acesso, ids_setor }. Usa o endpoint REST
+// `accounts:update` do emulador (o mesmo que o Admin SDK usa internamente),
+// autenticado com o bearer "owner" aceito pelos emuladores — sem Admin SDK e
+// sem dependências novas. Assim o ambiente local roda com as MESMAS Storage
+// Rules de produção (que exigem claims).
+async function definirClaimsEmulador(uid, claims) {
+  const url =
+    `http://${EMU_HOST}:9099/identitytoolkit.googleapis.com/v1/projects/${PROJETO}/accounts:update`
+  const resposta = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer owner',
+    },
+    body: JSON.stringify({
+      localId: uid,
+      customAttributes: JSON.stringify(claims),
+    }),
+  })
+  if (!resposta.ok) {
+    const texto = await resposta.text()
+    throw new Error(`Falha ao definir claims de ${uid}: ${resposta.status} ${texto}`)
+  }
+}
+
 async function main() {
   // Cria as contas no Auth e guarda os UIDs.
   const comUid = []
@@ -166,6 +192,16 @@ async function main() {
   })
 
   await testEnv.cleanup()
+
+  // Injeta os custom claims espelhando o cadastro (Spec 17). Feito após gravar
+  // os documentos para refletir exatamente ativo/nivel_acesso/ids_setor.
+  for (const u of comUid) {
+    await definirClaimsEmulador(u.uid, {
+      ativo: true,
+      nivel_acesso: u.nivel,
+      ids_setor: u.setores,
+    })
+  }
 
   console.log('Seed do emulador concluído.')
   console.log('Usuários (nome - email - senha - nível):')

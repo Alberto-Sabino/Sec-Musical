@@ -1,16 +1,36 @@
 rules_version = '2';
 
-// Regras de Storage do MVP. Validadas localmente (emulador + tests/regras/storage.test.js).
-// Storage de PRODUÇÃO segue pendente de Billing/Blaze.
+// Regras de Storage do MVP — endurecidas com Custom Claims (Spec 17).
 //
-// Limitação: regras de Storage não leem o Firestore, então o isolamento fino por
-// setor/perfil dependerá de custom claims quando o Storage real for habilitado.
-// A escrita exige autenticação e valida tipo MIME e tamanho (Specs 14/15); a
-// autorização "apenas admin envia" é imposta pelo Firestore e pela UI.
+// Fonte de autorização: custom claims no ID token (request.auth.token):
+//   - ativo:        boolean  (se false, nega tudo)
+//   - nivel_acesso: number   (1 = usuário comum, 2 = admin)
+//   - ids_setor:    array<string> (setores aos quais o usuário pertence)
+//
+// Os claims são provisionados pela Cloud Function `syncClaimsFromUsuario`, que
+// espelha `usuarios/{uid}` (ver docs/claims-e-sincronizacao.md). Em ambiente
+// local, o seeder injeta os mesmos claims — assim dev e produção usam UMA única
+// versão de regra.
+//
+// Produção: pendente de publicação até ativação de Billing/Blaze (Storage real).
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // Tipos MIME aceitos na Biblioteca: PDF e XLSX (Spec 14).
+    // ---- Helpers de claims ----
+    function autenticado() {
+      return request.auth != null;
+    }
+    function ativo() {
+      return autenticado() && request.auth.token.ativo == true;
+    }
+    function ehAdmin() {
+      return ativo() && request.auth.token.nivel_acesso == 2;
+    }
+    function pertenceAoSetor(idSetor) {
+      return ativo() && idSetor in request.auth.token.ids_setor;
+    }
+
+    // ---- Helpers de MIME/tamanho (Specs 14/15) ----
     function ehPdf() {
       return request.resource.contentType == 'application/pdf';
     }
@@ -18,12 +38,8 @@ service firebase.storage {
       return request.resource.contentType ==
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
     }
-
-    // Teto de tamanho no caminho da Biblioteca. As rules de Storage não leem o
-    // Firestore, portanto não conseguem aplicar o limite por tipo (2 MB padrão
-    // vs. 50 MB para `metodos`). Aqui aplica-se o TETO máximo permitido (50 MB,
-    // exceção `metodos`); o limite fino por tipo é imposto na camada de casos de
-    // uso/UI (ver src/servicos/casos_de_uso/regrasUpload.js).
+    // Teto máximo da Biblioteca (50 MB; o limite fino por tipo é imposto na
+    // camada de casos de uso/UI — src/servicos/casos_de_uso/regrasUpload.js).
     function dentroTetoBiblioteca() {
       return request.resource.size <= 50 * 1024 * 1024;
     }
@@ -31,34 +47,35 @@ service firebase.storage {
     // Caminho oficial da Biblioteca:
     // biblioteca/{id_setor}/nivel_1|nivel_2/{id_arquivo}.{pdf|xlsx}
     match /biblioteca/{idSetor}/{nivel}/{arquivo} {
-      // Exige autenticação. Isolamento fino por setor/perfil (só admin do setor
-      // envia) NÃO é verificável apenas nas rules de Storage (elas não leem o
-      // Firestore); em produção dependerá de custom claims. A restrição
-      // "apenas admin envia" já é imposta na camada de casos de uso/UI e nas
-      // regras do Firestore. PENDENTE de validação para produção.
-      allow read: if request.auth != null;
-      // Criação/atualização aceitam apenas PDF ou XLSX, dentro do teto de tamanho.
-      // (create e update possuem request.resource; delete não — por isso é separado.)
-      allow create, update: if request.auth != null
+      // Leitura: usuário ativo do setor. Nível 2 (restrito) exige admin.
+      allow read: if pertenceAoSetor(idSetor)
+        && (nivel == 'nivel_1' || (nivel == 'nivel_2' && ehAdmin()));
+
+      // Escrita (create/update): somente admin do setor; valida MIME e teto.
+      allow create, update: if ehAdmin()
+        && pertenceAoSetor(idSetor)
         && (ehPdf() || ehXlsx())
         && dentroTetoBiblioteca();
-      // Remoção não possui request.resource (sem contentType/size): exige apenas auth.
-      allow delete: if request.auth != null;
+
+      // Remoção: somente admin do setor (delete não possui request.resource).
+      allow delete: if ehAdmin() && pertenceAoSetor(idSetor);
     }
 
     // Caminho oficial do anexo final de solicitações:
     // solicitacoes/{id_setor}/{id_solicitante}/{id_solicitacao}/resposta.pdf
     match /solicitacoes/{idSetor}/{idSolicitante}/{idSolicitacao}/{arquivo} {
-      // Exige autenticação. Isolamento real (dono baixa só concluída; admin do
-      // setor envia) não é verificável apenas nas rules; PENDENTE de custom
-      // claims para produção. Fluxo já é imposto nos casos de uso.
-      allow read: if request.auth != null;
-      // Anexo final de Solicitações é PDF fixo, até 2 MB (Spec 15).
-      allow create, update: if request.auth != null
+      // Leitura: SOMENTE o solicitante que criou a solicitação (Spec 17 §2.2),
+      // independentemente de perfil. Admin NÃO lê a resposta final.
+      allow read: if ativo() && request.auth.uid == idSolicitante;
+
+      // Escrita (create/update): somente admin do setor; PDF até 2 MB (Spec 15).
+      allow create, update: if ehAdmin()
+        && pertenceAoSetor(idSetor)
         && ehPdf()
         && request.resource.size <= 2 * 1024 * 1024;
-      // Remoção não possui request.resource: exige apenas auth.
-      allow delete: if request.auth != null;
+
+      // Remoção: somente admin do setor (delete não possui request.resource).
+      allow delete: if ehAdmin() && pertenceAoSetor(idSetor);
     }
 
     // Negar todo o restante por padrão.

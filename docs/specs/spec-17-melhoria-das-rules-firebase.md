@@ -1,10 +1,10 @@
-# Spec técnica (orientada a agentes de IA) — Custom Claims + Hardening de Rules (Firestore/Storage)
+# Spec técnica (orientada a agentes de IA) — Custom Claims + Hardening de Rules (Firestore/Storage) + Sync via Cloud Functions
 
 **Projeto:** Portal Musical MVP (Vue/Vite + Firebase)  
 **Data:** 2026-10-02  
-**Escopo desta spec:** orientar um agente de IA a implementar **Custom Claims** e **endurecer** (hardening) as regras de **Firestore** e **Cloud Storage**, mantendo o projeto **frontend puro + Firebase** (sem servidor próprio).  
+**Escopo desta spec:** orientar um agente de IA a implementar **Custom Claims** e **endurecer** (hardening) as regras de **Firestore** e **Cloud Storage**, mantendo o projeto **frontend puro + Firebase** (sem servidor próprio), usando **Cloud Functions (callable)** apenas para **provisionar/sincronizar claims**.
 
-> Esta spec é **orientada a execução** (o agente deve produzir commits), mas **não substitui** revisão humana, especialmente em segurança.
+> Esta spec é orientada a execução, mas não substitui revisão humana, especialmente em segurança.
 
 ---
 
@@ -13,9 +13,9 @@
 1) O projeto roda **Auth + Firestore + Storage** em emuladores via Docker, montando `firestore.rules`, `firestore.indexes.json` e `storage.rules` como volumes para iterar sem rebuild.  
 2) Existe pipeline local/CI para rules: `npm run test:rules` executa `firebase emulators:exec --only firestore,storage "node --test ... tests/regras"`.  
 3) O Storage de **produção** está pendente de Billing/Blaze; o modo padrão de desenvolvimento é `VITE_APP_MODE=emulador` (arquivos reais via Storage emulator).  
-4) O contrato de caminhos (`id_nuvem`) é **fonte única** para localizar binários no Storage:
-   - Biblioteca: `biblioteca/{id_setor}/nivel_1|nivel_2/{id_arquivo}.{ext}`  
-   - Solicitações (resposta final): `solicitacoes/{id_setor}/{id_solicitante}/{id_solicitacao}/resposta.pdf`
+4) O contrato de caminhos (`id_nuvem`) é fonte única para localizar binários no Storage:
+- Biblioteca: `biblioteca/{id_setor}/nivel_1|nivel_2/{id_arquivo}.{ext}`  
+- Solicitações (resposta final): `solicitacoes/{id_setor}/{id_solicitante}/{id_solicitacao}/resposta.pdf`
 
 ---
 
@@ -26,7 +26,7 @@
 3) **Não expandir escopo**: não criar novos módulos, coleções, campos, status, rotas ou fluxos sem referência explícita no projeto.  
 4) **Não inventar contrato de dados**: campos e status devem ser os já existentes no código/rules/specs.  
 5) **Mudanças devem ser testáveis**: toda alteração relevante em rules deve vir acompanhada de atualização/adição de testes em `tests/regras/*`.  
-6) **Sem backend próprio**: permitido usar **Firebase gerenciado** (ex.: Cloud Functions) *apenas* para provisionar Custom Claims; não criar servidor/infra própria.
+6) **Sem backend próprio**: permitido usar **Firebase gerenciado** (Cloud Functions) apenas para provisionar Custom Claims; não criar servidor/infra própria.
 
 ---
 
@@ -38,7 +38,7 @@ Depois que uma solicitação é assumida, **somente o responsável que assumiu**
 ### 2.2 Download da resposta final
 Somente o **solicitante** que criou a solicitação pode **baixar a resposta final** (arquivo `resposta.pdf` no Storage).
 
-> Se qualquer regra existente conflitar com estas decisões, o agente deve **parar** e pedir confirmação humana antes de alterar o contrato.
+> Se qualquer regra existente conflitar com estas decisões, o agente deve parar e pedir confirmação humana antes de alterar o contrato.
 
 ---
 
@@ -48,28 +48,35 @@ Somente o **solicitante** que criou a solicitação pode **baixar a resposta fin
 Definir e documentar um conjunto mínimo de claims para suportar:
 - **perfil** (admin vs usuário comum)
 - **setores permitidos** (lista de `id_setor`)
-- opcional: **ativo** (para negar tudo rapidamente sem depender do Firestore)
+- **ativo** (para negar tudo rapidamente sem depender do Firestore em Storage Rules)
 
-### 3.2 Integrar claims ao frontend (Vue)
+### 3.2 Implementar Cloud Function callable para sincronizar claims (Opção B)
+Criar uma Function callable que:
+- recebe `{ uid }`
+- lê `usuarios/{uid}` no Firestore
+- espelha os campos relevantes para custom claims (`ativo`, `nivel_acesso`, `ids_setor`)
+- só pode ser executada por **qualquer admin** (não por usuário comum)
+
+### 3.3 Integrar claims ao frontend (Vue)
 Atualizar o fluxo de sessão para:
 - observar mudanças de token (`onIdTokenChanged`)
 - ler claims (`getIdTokenResult`)
 - forçar refresh quando necessário (`getIdTokenResult(user, true)` ou `user.getIdToken(true)`)
 
-### 3.3 Atualizar Firestore Rules (hardening)
+### 3.4 Atualizar Firestore Rules (hardening)
 Manter o modelo atual (coleções `usuarios`, `setores`, `arquivos`, `solicitacoes`) e reforçar:
 - validação de schema (tipos, campos obrigatórios, campos imutáveis)
 - transições de status (especialmente em `solicitacoes`)
 - isolamento por setor e perfil
 - regra “assumida só pelo responsável”
 
-### 3.4 Atualizar Storage Rules (hardening com claims)
+### 3.5 Atualizar Storage Rules (hardening com claims)
 - Biblioteca: restringir leitura/escrita por **setor** e **perfil** usando claims.
 - Solicitações (resposta final): aplicar decisão confirmada:
-  - **somente o solicitante lê** `resposta.pdf`.
+- **somente o solicitante lê** `resposta.pdf`.
 - Validar MIME e tamanho conforme regras atuais, sem inventar novos limites.
 
-### 3.5 Atualizar testes de rules
+### 3.6 Atualizar testes de rules
 Ajustar `tests/regras/storage.test.js`, `tests/regras/arquivos.test.js`, `tests/regras/solicitacoes.test.js` para:
 - simular usuários com claims (admin vs comum; setores diferentes)
 - cobrir casos de acesso negado/permitido por setor/perfil
@@ -92,7 +99,7 @@ Ajustar `tests/regras/storage.test.js`, `tests/regras/arquivos.test.js`, `tests/
 
 ## 5) Fonte de verdade: o que consultar no projeto ANTES de codar
 
-O agente deve consultar **sempre** os arquivos abaixo antes de propor mudanças.
+O agente deve consultar sempre os arquivos abaixo antes de propor mudanças.
 
 ### 5.1 Regras e config Firebase
 - `firestore.rules` (estado atual)
@@ -125,56 +132,76 @@ O agente deve consultar **sempre** os arquivos abaixo antes de propor mudanças.
 - `docs/status-execucao.md` (pendência única: Storage em produção)
 - `docs/piloto-seed-dados.md` (estrutura exata dos documentos)
 
-**Regra anti-alucinação:** se o agente não conseguir localizar um campo/status no código acima, ele deve **parar** e pedir confirmação humana.
+**Regra anti-alucinação:** se o agente não conseguir localizar um campo/status no código acima, ele deve parar e pedir confirmação humana.
 
 ---
 
 ## 6) Modelo de Custom Claims (contrato mínimo)
 
-### 6.1 Claims propostas (mínimo)
+### 6.1 Claims mínimas
 - `nivel_acesso`: number  
-  - `1` = usuário comum  
-  - `2` = admin
+- `1` = usuário comum  
+- `2` = admin
 - `ids_setor`: array<string>  
-  - lista de setores aos quais o usuário pertence
+- lista de setores aos quais o usuário pertence
 - `ativo`: boolean  
-  - se `false`, negar tudo (útil para Storage Rules e para “revogar” acesso rapidamente)
-
-> Observação: hoje o Firestore Rules lê `usuarios/{uid}` para `ativo`, `nivel_acesso`, `ids_setor`. Com claims, o Storage pode parar de depender do Firestore para autorização.
+- se `false`, negar tudo (útil para Storage Rules e para “revogar” acesso rapidamente)
 
 ### 6.2 Regras de consistência
-- Claims devem refletir o documento `usuarios/{uid}` (fonte de cadastro), mas **a segurança do Storage** deve preferir claims.
+- Claims devem refletir o documento `usuarios/{uid}` (fonte de cadastro), mas a segurança do Storage deve preferir claims.
 - O agente não deve duplicar lógica de autorização em múltiplos lugares sem necessidade; preferir helpers.
 
-### 6.3 Estratégia de rollout (evitar quebra)
-O agente deve implementar rollout em 2 fases (se aprovado):
-1) **Fase 1 (compatibilidade):** Storage Rules aceitam **claims OU fallback** para o modelo atual (somente auth) em ambiente de emulador, para não quebrar dev imediatamente.
-2) **Fase 2 (produção):** Storage Rules exigem claims (sem fallback), e o processo de provisionamento de claims deve estar pronto.
-
-> Se o usuário pedir “sem fallback”, o agente deve remover a fase 1.
+### 6.3 Limites e cuidados
+- Custom claims têm limite de tamanho (payload serializado). Não colocar dados grandes.
+- Não usar nomes reservados de OIDC (ex.: `sub`, `iat`, `iss`, etc.).
 
 ---
 
-## 7) Provisionamento de claims (sem backend próprio)
+## 7) Cloud Functions — Sync de claims (Opção B)
 
-### 7.1 Opções permitidas
-O agente deve implementar **uma** das opções abaixo (decisão humana final):
+### 7.1 Estratégia escolhida
+**Callable function manual** (não-trigger) para sincronizar claims sob demanda.
 
-**Opção A — Cloud Functions (recomendado):**
-- Uma função callable/HTTP protegida para setar claims.
-- Deve existir uma política clara de quem pode chamar (ex.: somente um “super-admin” definido por configuração).
+Motivo:
+- reduz risco de loops/cascata
+- reduz invocações desnecessárias
+- facilita auditoria operacional (“quem chamou e quando”)
 
-**Opção B — Script Node local (manual):**
-- Script em `scripts/` usando Firebase Admin SDK para setar claims.
-- Executado manualmente por quem administra o projeto.
+### 7.2 Nome e contrato da Function
+- Nome sugerido: `syncClaimsFromUsuario`
+- Tipo: `https.onCall`
+- Entrada: `{ uid: string }`
+- Saída: `{ ok: true }` ou erro padronizado
 
-### 7.2 Restrições
-- Não expor endpoint público sem autenticação forte.
-- Não permitir que o cliente (browser) defina claims.
-- Não armazenar credenciais no repositório.
-- Não criar escrita em `usuarios` pelo cliente para “auto-provisionar” claims.
+### 7.3 Autorização (requisito do usuário)
+**Qualquer admin** pode executar.
 
-**Anti-alucinação:** se o agente não tiver confirmação de qual opção usar, ele deve preparar ambas como proposta, mas **não commitar** as duas sem aprovação.
+Regra:
+- `request.auth` deve existir
+- `request.auth.token.nivel_acesso === 2`
+- `request.auth.token.ativo === true`
+- (recomendado) o admin só pode sincronizar usuários de setores que ele administra:
+- ler `usuarios/{request.auth.uid}` (ou usar claims `ids_setor`) e exigir interseção com `usuarios/{uid}.ids_setor`
+- se isso ficar complexo, começar com “admin pode sync qualquer uid” e registrar como risco/pendência (exige aprovação humana)
+
+> Anti-alucinação: o agente deve implementar a política exata acima e não “inventar” um super-admin oculto.
+
+### 7.4 Fonte de verdade para claims
+A Function deve ler `usuarios/{uid}` e extrair:
+- `ativo`
+- `nivel_acesso`
+- `ids_setor`
+
+Se algum campo estiver ausente ou inválido:
+- lançar erro `invalid-argument` (ou equivalente) e não setar claims parciais.
+
+### 7.5 Observabilidade mínima
+- Logar (info) `uid alvo`, `uid executor`, e um hash/versão do payload (sem dados sensíveis).
+- Não logar e-mails/senhas/tokens.
+
+### 7.6 Segurança adicional (opcional, mas recomendada)
+- Considerar `enforceAppCheck: true` na callable (se App Check estiver configurado no projeto).
+- Se App Check não estiver configurado, não ativar enforcement sem aprovação (pode quebrar o app).
 
 ---
 
@@ -191,11 +218,11 @@ O estado de sessão deve carregar:
 ### 8.2 Observação de token
 - Usar `onIdTokenChanged` para reagir a sign-in/out e refresh.
 - Usar `getIdTokenResult(user)` para ler claims.
-- Ter função utilitária para **forçar refresh** após mudança de claims.
+- Ter função utilitária para forçar refresh após mudança de claims.
 
 ### 8.3 Padrão de implementação do projeto
 - Não acessar Firebase SDK diretamente nas telas; seguir padrão: tela -> caso de uso -> repositório.
-- Sessão centralizada em `src/composables/usarSessao.js` (ou equivalente já existente).
+- Sessão centralizada em `src/composables/usarSessao.js`.
 - Não instalar bibliotecas novas.
 
 ---
@@ -206,16 +233,16 @@ O estado de sessão deve carregar:
 - `usuarios`: somente leitura do próprio usuário; sem write.
 - `setores`: somente leitura para usuário ativo que pertence ao setor.
 - `arquivos`:
-  - leitura: por setor + nível de acesso do arquivo + perfil do usuário
-  - escrita: somente admin do setor
-  - validar campos obrigatórios e tipos (não aceitar campos extras inesperados, se possível)
+- leitura: por setor + nível de acesso do arquivo + perfil do usuário
+- escrita: somente admin do setor
+- validar campos obrigatórios e tipos (não aceitar campos extras inesperados, se possível)
 - `solicitacoes`:
-  - leitura: solicitante ou admin do setor
-  - create: somente solicitante, no próprio setor, com estado inicial correto
-  - update:
-    - solicitante só enquanto `em_aberto` (e apenas campos permitidos)
-    - admin do setor respeitando transições e decisão confirmada:
-      - após “assumida”, somente o responsável pode alterar
+- leitura: solicitante ou admin do setor
+- create: somente solicitante, no próprio setor, com estado inicial correto
+- update:
+- solicitante só enquanto `em_aberto` (e apenas campos permitidos)
+- admin do setor respeitando transições e decisão confirmada:
+- após “assumida”, somente o responsável pode alterar
 
 ### 9.2 Anti-alucinação em rules
 - Não criar novos status.
@@ -231,21 +258,21 @@ Path: `biblioteca/{id_setor}/nivel_1|nivel_2/{id_arquivo}.{ext}`
 
 Regras desejadas:
 - `read`:
-  - usuário autenticado
-  - `request.auth.token.ativo == true`
-  - `id_setor` ∈ `request.auth.token.ids_setor`
-  - se `nivel_2`, exigir `request.auth.token.nivel_acesso == 2`
+- usuário autenticado
+- `request.auth.token.ativo == true`
+- `id_setor` ∈ `request.auth.token.ids_setor`
+- se `nivel_2`, exigir `request.auth.token.nivel_acesso == 2`
 - `create/update/delete`:
-  - exigir admin (`nivel_acesso == 2`)
-  - exigir setor permitido
-  - validar MIME e tamanho (como já existe)
+- exigir admin (`nivel_acesso == 2`)
+- exigir setor permitido
+- validar MIME e tamanho (como já existe)
 
 ### 10.2 Solicitações (resposta final)
 Path: `solicitacoes/{id_setor}/{id_solicitante}/{id_solicitacao}/resposta.pdf`
 
 Regras desejadas:
 - `read`: somente se `request.auth.uid == id_solicitante`
-- `create/update/delete`: somente admin do setor (via claims) **e** setor permitido
+- `create/update/delete`: somente admin do setor (via claims) e setor permitido
 
 > Observação: mesmo que o admin possa escrever, a leitura deve permanecer “somente solicitante” por decisão confirmada.
 
@@ -264,15 +291,15 @@ Cobrir:
 ### 11.2 Storage tests
 Cobrir:
 - Biblioteca:
-  - usuário comum lê `nivel_1` do próprio setor
-  - usuário comum não lê `nivel_2`
-  - usuário não lê setor fora da claim
-  - admin lê `nivel_2` do próprio setor
-  - admin não escreve fora do setor
+- usuário comum lê `nivel_1` do próprio setor
+- usuário comum não lê `nivel_2`
+- usuário não lê setor fora da claim
+- admin lê `nivel_2` do próprio setor
+- admin não escreve fora do setor
 - Solicitações:
-  - solicitante lê `resposta.pdf`
-  - outro usuário autenticado não lê
-  - admin não lê (mesmo sendo admin), se a decisão for “somente solicitante”
+- solicitante lê `resposta.pdf`
+- outro usuário autenticado não lê
+- admin não lê (mesmo sendo admin), pois a decisão é “somente solicitante”
 
 ### 11.3 Anti-alucinação em testes
 - Não criar fixtures com campos inexistentes.
@@ -287,29 +314,30 @@ Cobrir:
 2) Nenhuma rule ficou “auth-only” onde deveria ser setor/perfil.
 3) Nenhuma mudança alterou contrato de dados (campos/status).
 4) UI continua funcionando com claims ausentes? (definir fallback: negar ou tratar como “sem permissão”)
-5) Documentar no README/nota técnica como provisionar claims.
+5) Documentar como provisionar/sincronizar claims (passo a passo).
 6) Não declarar Storage de produção como validado sem Billing.
 
 ---
 
 ## 13) Técnicas anti-alucinação (obrigatórias para o agente)
 
-### 13.1 “Stop conditions” (quando parar e pedir confirmação)
+### 13.1 Stop conditions (quando parar e pedir confirmação)
 O agente deve parar e pedir confirmação humana se:
 - não encontrar no código o campo que pretende validar em rules;
 - não encontrar o status que pretende permitir/bloquear;
 - precisar alterar path de Storage (`id_nuvem`) para viabilizar segurança;
 - precisar criar nova coleção/subcoleção;
 - precisar permitir escrita em `usuarios`;
-- precisar mudar o fluxo de “modo emulador vs produção” (`VITE_APP_MODE`).
+- precisar mudar o fluxo de “modo emulador vs produção” (`VITE_APP_MODE`);
+- precisar ativar App Check enforcement sem confirmação.
 
-### 13.2 “Citações internas” (rastreabilidade)
+### 13.2 Rastreabilidade obrigatória
 Para cada mudança proposta, o agente deve apontar:
 - arquivo alterado
 - trecho do código/rule atual que motivou a mudança
 - teste que cobre a mudança
 
-### 13.3 “Não inventar”
+### 13.3 Não inventar
 - Não inventar endpoints, painéis, ou fluxos de provisionamento sem aprovação.
 - Não inventar claims além das mínimas sem justificativa.
 - Não instalar libs novas.
@@ -321,11 +349,15 @@ Para cada mudança proposta, o agente deve apontar:
 1) `firestore.rules` atualizado (hardening)
 2) `storage.rules` atualizado (claims + isolamento)
 3) `tests/regras/*.test.js` atualizados
-4) Documento curto (markdown) explicando:
-   - quais claims existem
-   - como provisionar
-   - como forçar refresh no cliente
-   - como depurar (ver claims no token)
+4) Implementação de Cloud Functions:
+- pasta `functions/` (ou estrutura equivalente aprovada)
+- callable `syncClaimsFromUsuario`
+- documentação de deploy e uso
+5) Documento curto (markdown) explicando:
+- quais claims existem
+- como sincronizar claims (passo a passo)
+- como forçar refresh no cliente
+- como depurar (ver claims no token)
 
 ---
 
@@ -334,3 +366,4 @@ Para cada mudança proposta, o agente deve apontar:
 - **Claim:** campo no JWT do Firebase Auth acessível em `request.auth.token`.
 - **ID token:** token JWT usado para autenticar chamadas a Firebase; contém claims.
 - **Hardening:** tornar regras mais estritas, validando schema e reduzindo permissões.
+- **Callable Function:** função `https.onCall` invocada pelo SDK Firebase, com auth verificada.

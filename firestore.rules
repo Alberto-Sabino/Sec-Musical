@@ -137,6 +137,10 @@ service cloud.firestore {
       // em_andamento -> em_andamento (responder/anexar)
       // Imutáveis para o admin: nome_solicitante, nome_beneficiario e descricao.
       // A conclusao só pode ser gravada/alterada na transição em_andamento -> em_andamento.
+      //
+      // Decisão de segurança (Spec 17 §2.1): uma vez ASSUMIDA (status em_andamento),
+      // somente o responsável que assumiu pode alterá-la. Por isso toda transição
+      // cuja ORIGEM é em_andamento exige request.auth.uid == id_responsavel.
       allow update: if ehAdmin()
         && pertenceAoSetor(resource.data.id_setor)
         && request.resource.data.id_setor == resource.data.id_setor
@@ -152,12 +156,18 @@ service cloud.firestore {
             && request.resource.data.nome_responsavel == docUsuario().nome_completo
             && request.resource.data.conclusao == resource.data.conclusao)
           || (resource.data.status == 'em_andamento'
-            && request.resource.data.status == 'em_andamento')
+            && request.resource.data.status == 'em_andamento'
+            && resource.data.id_responsavel == request.auth.uid)
           || (resource.data.status == 'em_andamento'
             && request.resource.data.status == 'concluida'
+            && resource.data.id_responsavel == request.auth.uid
             && request.resource.data.conclusao == resource.data.conclusao)
-          || (resource.data.status in ['em_aberto', 'em_andamento']
+          || (resource.data.status == 'em_aberto'
             && request.resource.data.status == 'cancelada'
+            && request.resource.data.conclusao == resource.data.conclusao)
+          || (resource.data.status == 'em_andamento'
+            && request.resource.data.status == 'cancelada'
+            && resource.data.id_responsavel == request.auth.uid
             && request.resource.data.conclusao == resource.data.conclusao)
         );
 
