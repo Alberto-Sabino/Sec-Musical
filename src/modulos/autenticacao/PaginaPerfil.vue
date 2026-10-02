@@ -54,6 +54,8 @@ import BaseBotao from '@/componentes/BaseBotao.vue'
 import IconeSenha from '@/componentes/icones/IconeSenha.vue'
 import IconeSair from '@/componentes/icones/IconeSair.vue'
 import { usarSessao } from '@/composables/usarSessao'
+import { dispararEvento } from '@/servicos/firebase/analytics'
+import { ACOES, PARAMS_PERFIL_ACAO } from '@/enums/eventosAnalytics'
 
 const router = useRouter()
 const { estado, ehAdmin, logout } = usarSessao()
@@ -63,10 +65,12 @@ const saindo = ref(false)
 const rotuloPerfil = computed(() => (ehAdmin.value ? 'Secretário Musical' : 'Encarregado Local'))
 
 function irAlterarSenha() {
+  dispararEvento(ACOES.PERFIL_ACAO, { acao: PARAMS_PERFIL_ACAO.ALTERAR_SENHA })
   router.push({ name: 'alterar-senha' })
 }
 
 async function sair() {
+  dispararEvento(ACOES.PERFIL_ACAO, { acao: PARAMS_PERFIL_ACAO.SAIR })
   saindo.value = true
   await logout()
   router.replace({ name: 'login' })

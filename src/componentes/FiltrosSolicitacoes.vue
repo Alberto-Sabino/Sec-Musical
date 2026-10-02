@@ -32,6 +32,8 @@
 <script setup>
 import BaseSelect from '@/componentes/BaseSelect.vue'
 import { STATUS_OPCOES, TIPOS_SOLICITACAO } from '@/servicos/casos_de_uso/solicitacoes'
+import { dispararEvento } from '@/servicos/firebase/analytics'
+import { ACOES, PARAMS_SOLICITACOES_FILTRO } from '@/enums/eventosAnalytics'
 
 // Filtros controlados: status é array (multiseleção); tipo é string única ('' = todos).
 const props = defineProps({
@@ -44,12 +46,17 @@ const opcoesStatus = STATUS_OPCOES
 const opcoesTipo = TIPOS_SOLICITACAO
 
 function alternarStatus(valor) {
+  dispararEvento(ACOES.SOLICITACOES_FILTRAR, { filtro: PARAMS_SOLICITACOES_FILTRO.STATUS, valor })
   const atual = props.status
   const novo = atual.includes(valor) ? atual.filter((s) => s !== valor) : [...atual, valor]
   emit('update:status', novo)
 }
 
 function aoMudarTipo(valor) {
+  dispararEvento(ACOES.SOLICITACOES_FILTRAR, {
+    filtro: PARAMS_SOLICITACOES_FILTRO.TIPO,
+    valor: valor || 'todos',
+  })
   emit('update:tipo', valor || '')
 }
 </script>

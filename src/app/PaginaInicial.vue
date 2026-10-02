@@ -78,6 +78,8 @@ import IconeBiblioteca from '@/componentes/icones/IconeBiblioteca.vue'
 import IconeSolicitacoes from '@/componentes/icones/IconeSolicitacoes.vue'
 import { usarSessao } from '@/composables/usarSessao'
 import { MODULO, destinoDoModulo } from '@/composables/usarNavegacaoModulos'
+import { dispararEvento } from '@/servicos/firebase/analytics'
+import { ACOES } from '@/enums/eventosAnalytics'
 
 const router = useRouter()
 const { estado, ehAdmin, opcoesSetor, nomeSetorAtivo, definirSetorAtivo } = usarSessao()
@@ -123,10 +125,16 @@ function trocarSetor(idSetor) {
 
 // Home e barra compartilham o mesmo destino por módulo (respeitando o perfil).
 function abrirModulo(modulo) {
+  const evento =
+    modulo === MODULO.BIBLIOTECA
+      ? ACOES.INICIO_ABRIR_BIBLIOTECA
+      : ACOES.INICIO_ABRIR_SOLICITACOES
+  dispararEvento(evento)
   router.push(destinoDoModulo(modulo, ehAdmin.value))
 }
 
 function irPerfil() {
+  dispararEvento(ACOES.INICIO_ABRIR_PERFIL)
   router.push({ name: 'perfil' })
 }
 </script>

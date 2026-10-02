@@ -212,6 +212,8 @@ import {
   validarAnexoSolicitacao,
 } from '@/servicos/casos_de_uso/regrasUpload'
 import { iconeTipoSolicitacao } from '@/modulos/solicitacoes/apresentacaoTipos'
+import { dispararEvento } from '@/servicos/firebase/analytics'
+import { ACOES, ERROS, PARAMS_ERRO_FORMULARIO } from '@/enums/eventosAnalytics'
 
 const route = useRoute()
 const { estado } = usarSessao()
@@ -313,6 +315,7 @@ function aoSelecionarArquivo(file) {
     return
   }
 
+  dispararEvento(ACOES.SOLICITACOES_SELECIONAR_ANEXO)
   const { ok, erro } = validarAnexoSolicitacao(file)
   erroAnexo.value = ok ? '' : erro
 }
@@ -320,6 +323,7 @@ function aoSelecionarArquivo(file) {
 async function assumir() {
   msgAssumir.value = null
   assumindo.value = true
+  dispararEvento(ACOES.SOLICITACOES_ASSUMIR, { tipo: solicitacao.value?.tipo })
 
   try {
     const resultado = await assumirSolicitacao(
@@ -353,12 +357,14 @@ function aplicarResultadoAssumir(resultado) {
 async function salvarComentario() {
   msgComentario.value = null
   salvandoComentario.value = true
+  dispararEvento(ACOES.SOLICITACOES_SALVAR_COMENTARIO)
 
   try {
     await responder(solicitacao.value, comentario.value, estado.contexto.id_usuario)
     msgComentario.value = fb('Comentário salvo.', 'sucesso')
     await carregar()
   } catch (e) {
+    dispararEvento(ERROS.ERRO_INTEGRACAO_FIREBASE, { operacao: 'salvar_comentario' })
     msgComentario.value = fb(e?.message || 'Não foi possível salvar o comentário.', 'erro')
   } finally {
     salvandoComentario.value = false
@@ -377,6 +383,7 @@ async function anexar() {
 
   erroAnexo.value = ''
   anexando.value = true
+  dispararEvento(ACOES.SOLICITACOES_ANEXAR_ARQUIVO)
 
   try {
     await anexarFinal(solicitacao.value, arquivoSelecionado.value, estado.contexto.id_usuario)
@@ -384,6 +391,7 @@ async function anexar() {
     msgAnexo.value = fb('Anexo vinculado.', 'sucesso')
     await carregar()
   } catch (e) {
+    dispararEvento(ERROS.ERRO_INTEGRACAO_FIREBASE, { operacao: 'anexar_final' })
     msgAnexo.value = fb(e?.message || 'Não foi possível anexar.', 'erro')
   } finally {
     anexando.value = false
@@ -393,12 +401,14 @@ async function anexar() {
 async function concluir() {
   msgConcluir.value = null
   concluindo.value = true
+  dispararEvento(ACOES.SOLICITACOES_CONCLUIR, { tipo: solicitacao.value?.tipo })
 
   try {
     await concluirSolicitacao(solicitacao.value, estado.contexto.id_usuario)
     msgConcluir.value = fb('Solicitação concluída.', 'sucesso')
     await carregar()
   } catch (e) {
+    dispararEvento(ERROS.ERRO_FORMULARIO, { formulario: PARAMS_ERRO_FORMULARIO.SOLICITACAO_CONCLUIR })
     msgConcluir.value = fb(e?.message || 'Não foi possível concluir.', 'erro')
   } finally {
     concluindo.value = false
@@ -406,11 +416,13 @@ async function concluir() {
 }
 
 function pedirCancelamento() {
+  dispararEvento(ACOES.SOLICITACOES_CANCELAR, { tipo: solicitacao.value?.tipo })
   confirmarCancelamento.value = true
 }
 
 async function confirmarCancelar() {
   cancelando.value = true
+  dispararEvento(ACOES.SOLICITACOES_CONFIRMAR_CANCELAR, { tipo: solicitacao.value?.tipo })
 
   try {
     await cancelarSolicitacaoAdmin(solicitacao.value, estado.contexto.id_usuario)

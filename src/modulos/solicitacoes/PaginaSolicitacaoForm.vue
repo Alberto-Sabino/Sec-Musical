@@ -69,6 +69,8 @@ import {
   editarSolicitacao,
   obterSolicitacao,
 } from '@/servicos/casos_de_uso/solicitacoes'
+import { dispararEvento } from '@/servicos/firebase/analytics'
+import { ACOES, ERROS, PARAMS_ERRO_FORMULARIO } from '@/enums/eventosAnalytics'
 
 const route = useRoute()
 const router = useRouter()
@@ -127,8 +129,17 @@ async function salvar() {
   mensagemErro.value = ''
   mensagemSucesso.value = ''
 
+  const formulario = ehEdicao.value
+    ? PARAMS_ERRO_FORMULARIO.SOLICITACAO_EDITAR
+    : PARAMS_ERRO_FORMULARIO.SOLICITACAO_NOVA
+
   if (!validar()) {
+    dispararEvento(ERROS.ERRO_FORMULARIO, { formulario, motivo: 'validacao' })
     return
+  }
+
+  if (ehEdicao.value) {
+    dispararEvento(ACOES.SOLICITACOES_SALVAR_EDICAO, { tipo: form.tipo })
   }
 
   salvando.value = true
@@ -137,6 +148,7 @@ async function salvar() {
     mensagemSucesso.value = await persistirSolicitacao()
     setTimeout(() => router.push({ name: 'minhas-solicitacoes' }), 600)
   } catch (e) {
+    dispararEvento(ERROS.ERRO_FORMULARIO, { formulario, motivo: 'integracao' })
     mensagemErro.value = e?.message || 'Não foi possível salvar a solicitação.'
   } finally {
     salvando.value = false

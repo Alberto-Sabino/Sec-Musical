@@ -32,6 +32,8 @@ import IconeBiblioteca from '@/componentes/icones/IconeBiblioteca.vue'
 import IconeSolicitacoes from '@/componentes/icones/IconeSolicitacoes.vue'
 import { usarSessao } from '@/composables/usarSessao'
 import { MODULO, moduloDaRota, destinoDoModulo } from '@/composables/usarNavegacaoModulos'
+import { dispararEvento } from '@/servicos/firebase/analytics'
+import { ACOES } from '@/enums/eventosAnalytics'
 
 const route = useRoute()
 const router = useRouter()
@@ -47,6 +49,7 @@ const moduloAtivo = computed(() => moduloDaRota(route.name))
 const indiceAtivo = computed(() => itens.findIndex((i) => i.modulo === moduloAtivo.value))
 
 function navegar(modulo) {
+  dispararEvento(ACOES.NAVEGACAO_MENU, { alvo: modulo })
   const destino = destinoDoModulo(modulo, ehAdmin.value)
   // Evita navegação redundante para a própria rota inicial do módulo.
   if (destino.name !== route.name) {

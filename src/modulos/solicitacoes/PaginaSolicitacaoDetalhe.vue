@@ -146,6 +146,8 @@ import {
 import { formatarData, formatarDataHora } from '@/servicos/casos_de_uso/formato'
 import { baixarBlob } from '@/servicos/casos_de_uso/download'
 import { iconeTipoSolicitacao } from '@/modulos/solicitacoes/apresentacaoTipos'
+import { dispararEvento } from '@/servicos/firebase/analytics'
+import { ACOES, ERROS } from '@/enums/eventosAnalytics'
 
 const route = useRoute()
 const router = useRouter()
@@ -217,16 +219,19 @@ async function carregar() {
 }
 
 function editar() {
+  dispararEvento(ACOES.SOLICITACOES_EDITAR, { tipo: solicitacao.value?.tipo })
   router.push({ name: 'solicitacao-editar', params: { id: solicitacao.value.id_solicitacao } })
 }
 
 function pedirCancelamento() {
+  dispararEvento(ACOES.SOLICITACOES_CANCELAR, { tipo: solicitacao.value?.tipo })
   confirmarCancelamento.value = true
 }
 
 async function confirmar() {
   mensagemErroAcao.value = ''
   cancelando.value = true
+  dispararEvento(ACOES.SOLICITACOES_CONFIRMAR_CANCELAR, { tipo: solicitacao.value?.tipo })
 
   try {
     await cancelarSolicitacao(solicitacao.value, estado.contexto.id_usuario)
@@ -242,11 +247,13 @@ async function confirmar() {
 async function baixar() {
   mensagemErroAcao.value = ''
   baixando.value = true
+  dispararEvento(ACOES.SOLICITACOES_BAIXAR_ANEXO, { tipo: solicitacao.value?.tipo })
 
   try {
     const { nome, blob } = await baixarAnexoFinal(solicitacao.value)
     baixarBlob(nome, blob)
   } catch (e) {
+    dispararEvento(ERROS.ERRO_INTEGRACAO_FIREBASE, { operacao: 'download_anexo_solicitacao' })
     mensagemErroAcao.value = e?.message || 'Não foi possível baixar o anexo.'
   } finally {
     baixando.value = false

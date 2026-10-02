@@ -89,6 +89,8 @@ import {
 import { excluirArquivo } from '@/servicos/casos_de_uso/bibliotecaAdmin'
 import { formatarData, formatarTamanho } from '@/servicos/casos_de_uso/formato'
 import { iconeTipoArquivo } from './apresentacaoTipos'
+import { dispararEvento } from '@/servicos/firebase/analytics'
+import { ACOES } from '@/enums/eventosAnalytics'
 
 const route = useRoute()
 const router = useRouter()
@@ -137,6 +139,7 @@ async function carregar() {
 }
 
 function abrir(arquivo) {
+  dispararEvento(ACOES.BIBLIOTECA_ABRIR_ARQUIVO, { tipo: arquivo.tipo })
   arquivoSelecionado.value = arquivo
 }
 

@@ -152,3 +152,8 @@ Coisas que você vai encontrar e é bom seguir para manter a consistência:
 - Textos de interface: curtos e claros (mobile-first). Marcações
   `// TODO: revisar mensagem` sinalizam copy provisória — sinta-se livre para
   fechar o texto e remover a marcação.
+
+## Histórico de versões:
+- Master: manter o código em produção - iniciou somente com as funcionalidades base mas sem aprimoramento de UI.
+- feature/v0.1.0: CTA, UX, aprimoramento visual (ícones, navigation, reset/update de senha) + rules, indexes e hosting.
+- feature/v0.2.0: Google Analytics, eventos de negócio.

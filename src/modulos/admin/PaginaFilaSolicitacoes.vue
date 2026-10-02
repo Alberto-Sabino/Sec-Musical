@@ -74,6 +74,8 @@ import { rotuloTipo, STATUS_ROTULOS } from '@/servicos/casos_de_uso/solicitacoes
 import { listarFila } from '@/servicos/casos_de_uso/solicitacoesAdmin'
 import { formatarData } from '@/servicos/casos_de_uso/formato'
 import { iconeTipoSolicitacao } from '@/modulos/solicitacoes/apresentacaoTipos'
+import { dispararEvento } from '@/servicos/firebase/analytics'
+import { ACOES } from '@/enums/eventosAnalytics'
 
 const router = useRouter()
 const { estado, nomeSetorAtivo } = usarSessao()
@@ -103,6 +105,7 @@ async function carregar() {
 }
 
 function abrir(sol) {
+  dispararEvento(ACOES.SOLICITACOES_ABRIR_DETALHE, { tipo: sol.tipo, status: sol.status })
   router.push({ name: 'fila-detalhe', params: { id: sol.id_solicitacao } })
 }
 

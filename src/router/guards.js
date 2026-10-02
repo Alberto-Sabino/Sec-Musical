@@ -5,6 +5,9 @@
 import { watch } from 'vue'
 import { usarSessao } from '@/composables/usarSessao'
 import { existeFormularioSujo, pedirConfirmacaoSaida } from '@/composables/usarGuardaFormulario'
+import { dispararEvento } from '@/servicos/firebase/analytics'
+import { EVENTO_ACESSO_TELA } from '@/enums/eventosAnalytics'
+import { parametrosEventoTela } from '@/servicos/casos_de_uso/analyticsNavegacao'
 
 const { estado, iniciarObservadorSessao } = usarSessao()
 
@@ -60,5 +63,16 @@ export function registrarGuards(router) {
     }
 
     return true
+  })
+
+  // Analytics: após cada navegação, dispara EVENTO_ACESSO_TELA com { tela,
+  // origem, destino }. Não bloqueia a navegação.
+  router.afterEach((para, de) => {
+    const tela = para.meta?.tela
+    if (!tela) {
+      return
+    }
+
+    dispararEvento(EVENTO_ACESSO_TELA, parametrosEventoTela(tela, para, de))
   })
 }

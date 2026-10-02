@@ -83,6 +83,8 @@ import {
 } from '@/servicos/casos_de_uso/solicitacoes'
 import { formatarData } from '@/servicos/casos_de_uso/formato'
 import { iconeTipoSolicitacao } from '@/modulos/solicitacoes/apresentacaoTipos'
+import { dispararEvento } from '@/servicos/firebase/analytics'
+import { ACOES } from '@/enums/eventosAnalytics'
 
 const router = useRouter()
 const { estado } = usarSessao()
@@ -110,10 +112,12 @@ async function carregar() {
 }
 
 function abrir(sol) {
+  dispararEvento(ACOES.SOLICITACOES_ABRIR, { tipo: sol.tipo, status: sol.status })
   router.push({ name: 'solicitacao-detalhe', params: { id: sol.id_solicitacao } })
 }
 
 function irParaNova() {
+  dispararEvento(ACOES.SOLICITACOES_NOVA)
   router.push({ name: 'solicitacao-nova' })
 }
 

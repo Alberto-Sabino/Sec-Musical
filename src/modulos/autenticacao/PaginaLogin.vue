@@ -31,6 +31,8 @@ import BaseInput from '@/componentes/BaseInput.vue'
 import BaseBotao from '@/componentes/BaseBotao.vue'
 import MensagemFeedback from '@/componentes/MensagemFeedback.vue'
 import { usarSessao } from '@/composables/usarSessao'
+import { dispararEvento } from '@/servicos/firebase/analytics'
+import { ERROS, PARAMS_ERRO_FORMULARIO } from '@/enums/eventosAnalytics'
 
 const router = useRouter()
 const { estado, login } = usarSessao()
@@ -53,6 +55,10 @@ async function enviar() {
     await login(email.value.trim(), senha.value)
     // O redirecionamento efetivo depende do resultado do contexto (watch abaixo).
   } catch {
+    dispararEvento(ERROS.ERRO_FORMULARIO, {
+      formulario: PARAMS_ERRO_FORMULARIO.LOGIN,
+      motivo: 'credenciais',
+    })
     mensagemErro.value = 'E-mail ou senha inválidos.'
     enviando.value = false
   }
@@ -73,6 +79,10 @@ watch(
     }
     if (!carregando && erro) {
       enviando.value = false
+      dispararEvento(ERROS.ERRO_FORMULARIO, {
+        formulario: PARAMS_ERRO_FORMULARIO.LOGIN,
+        motivo: erro,
+      })
       mensagemErro.value = motivos[erro] || 'Não foi possível iniciar a sessão.'
     }
   },

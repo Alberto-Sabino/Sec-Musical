@@ -53,6 +53,8 @@ import { formatarData } from '@/servicos/casos_de_uso/formato'
 import { formatarTamanho } from '@/servicos/casos_de_uso/formato'
 import { baixarBlob } from '@/servicos/casos_de_uso/download'
 import { usarModalAcessivel } from '@/composables/usarModalAcessivel'
+import { dispararEvento } from '@/servicos/firebase/analytics'
+import { ACOES, ERROS } from '@/enums/eventosAnalytics'
 
 const props = defineProps({
   arquivo: { type: Object, default: null },
@@ -77,10 +79,12 @@ const tamanhoFormatado = computed(() => formatarTamanho(props.arquivo?.tamanho_b
 async function baixar() {
   erroDownload.value = ''
   baixando.value = true
+  dispararEvento(ACOES.BIBLIOTECA_DOWNLOAD, { tipo: props.arquivo?.tipo })
   try {
     const { nome, blob } = await baixarArquivoBiblioteca(props.arquivo.id_nuvem)
     baixarBlob(nome, blob)
   } catch (e) {
+    dispararEvento(ERROS.ERRO_INTEGRACAO_FIREBASE, { operacao: 'download_biblioteca' })
     erroDownload.value = e?.message || 'Não foi possível baixar o arquivo.'
   } finally {
     baixando.value = false

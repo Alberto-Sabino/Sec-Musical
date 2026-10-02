@@ -68,6 +68,8 @@ import {
 } from '@/servicos/casos_de_uso/biblioteca'
 import { formatarData, formatarTamanho } from '@/servicos/casos_de_uso/formato'
 import { iconeTipoArquivo } from './apresentacaoTipos'
+import { dispararEvento } from '@/servicos/firebase/analytics'
+import { ACOES } from '@/enums/eventosAnalytics'
 
 const route = useRoute()
 const { estado, ehAdmin } = usarSessao()
@@ -107,6 +109,7 @@ async function carregar() {
 }
 
 function abrir(arquivo) {
+  dispararEvento(ACOES.BIBLIOTECA_ABRIR_RESULTADO_BUSCA, { tipo: arquivo.tipo })
   arquivoSelecionado.value = arquivo
 }
 

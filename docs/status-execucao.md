@@ -10,19 +10,46 @@ Não registrar intenção como se fosse entrega concluída.
 ---
 
 ## Estado atual
-- Fase ativa: Sprint 2
-- Spec ativa: `docs/specs/spec-10-execucao-operacional-sprint-2.md`
-- Lote atual: Lote 9 (preparado; publicação manual pelo responsável)
-- Atividade recente: Spec 16 — Autenticação: recuperação e alteração de senha (fluxos, validação, UX/CTA; pendência: e-mail real em produção/Billing)
-- Status geral: em andamento
-- Nota: Spec 09 fechada em modo parcial-operacional (pendência conhecida e aceita: Storage/Billing, restrita a arquivos)
+- Fase ativa: **Sprint 3 concluída** (Specs 13, 14, 15 e 16 aplicadas) + Analytics GA4
+- Ambiente de produção: **funcional** — Hosting, Firestore, Authentication configurados e operando em produção
+- Sprints anteriores: Sprint 1 (Spec 09) e Sprint 2 (Spec 10) concluídas; ajustes Spec 11 e Spec 12 aplicados
+- Status geral: MVP funcional em produção
+- **Única pendência aberta:** configuração do **Cloud Storage em produção**, que depende da ativação da **Conta Billing (plano Blaze)**. Enquanto isso, operações de arquivo (upload/download/remoção) rodam contra o **Storage emulator** local em modo `emulador`.
+
+### Pendência única (aberta)
+- **Cloud Storage em produção (Billing/Blaze):** habilitar Billing, publicar `storage.rules` em produção e validar upload/download reais. Inclui a validação do **envio real de e-mail de redefinição de senha** (depende do mesmo ambiente de produção com template do Firebase Auth). Tudo mais já está funcional em produção.
+
+### Spec 13 — Shell autenticado, navegação global e orientação inicial
+- Status: aplicado (produção)
+- Resultado: barra inferior persistente na área autenticada (`BarraInferior.vue`); navegação direta entre módulos; destaque do módulo ativo (`usarNavegacaoModulos.js`); regra estável de `← Voltar` (`route.back()`); home reorganizada com contexto do usuário, seletor de setor e cards de módulos; ícones locais do Lucide por cópia de SVG; proteção contra perda de formulário ao trocar de rota (`usarGuardaFormulario.js`)
+- Validação: `npm run build` OK; `npm run lint` OK
+- Pendências: nenhuma
+
+### Spec 14 — Biblioteca: descoberta por tipos, busca, metadados, legados e upload
+- Status: aplicado (produção)
+- Resultado: nova tela inicial da Biblioteca com busca por nome + cards de tipos (`PaginaBiblioteca.vue`); listagem por tipo (`PaginaBibliotecaTipo.vue`); resultados de busca (`PaginaBibliotecaBusca.vue`); remoção da antiga visão "todos os documentos" e do select de tipo; cards com tamanho em MB; suporte real a `.pdf` e `.xlsx`; ordenação alfabética; regras de upload centralizadas (`regrasUpload.js`); tratamento de arquivos legados sem `tamanho_bytes`/`extensao_arquivo`; correção do bug de reenvio simbólico da fase mock
+- Validação: `npm run build` OK; `npm run lint` OK
+- Pendências: nenhuma (upload/download reais dependem apenas do Storage em produção — pendência única global)
+
+### Spec 15 — Solicitações: filtros, listagens, paginação, linearidade e anexo
+- Status: aplicado (produção)
+- Resultado: filtros sempre visíveis por status e tipo (`FiltrosSolicitacoes.vue`); status iniciais pré-selecionados; paginação de 15 itens (`PaginacaoLista.vue`); tipo identificado por ícone; detalhes lineares (secretário e encarregado); histórico com data e hora; validação de anexo final (PDF até 2 MB); estado vazio com SVG + texto; mesma lógica de listagem para encarregado e secretário (`usarListaSolicitacoes.js`)
+- Validação: `npm run build` OK; `npm run lint` OK; `npm run test:unit` OK
+- Pendências: nenhuma
+
+### Analytics — Eventos GA4
+- Status: aplicado (produção)
+- Resultado: instrumentação GA4 com fonte única de nomes (`src/enums/eventosAnalytics.js`) e disparo central `dispararEvento` (`src/servicos/firebase/analytics.js`); rastreio de navegação por tela (`src/servicos/casos_de_uso/analyticsNavegacao.js`, integrado ao `router/guards.js`); eventos de conversão/conclusão de fluxo; documentação em `docs/analytics-eventos.md`
+- Comportamento: só envia dados quando `VITE_APP_MODE=producao`; em `emulador` os eventos são ignorados silenciosamente (sem chamadas de rede)
+- Validação: `npm run build` OK; `npm run test:unit` OK (`tests/unit/analyticsNavegacao.test.js`)
+- Pendências: nenhuma
 
 ### Spec 16 — Autenticação: senha e perfil do usuário
-- Status: aplicado
+- Status: aplicado (produção)
 - Resultado: fluxos "Esqueci minha senha" (rota pública), "Redefinir senha" via link do e-mail (rota pública, `verifyPasswordResetCode` + `confirmPasswordReset`) e "Alterar senha" (rota autenticada, `reauthenticateWithCredential` + `updatePassword`); tela de perfil "Minhas informações" (rota `perfil`) com dados cadastrais + ações Alterar senha/Sair, acessível por ícone de conta na Início; `sendPasswordResetEmail` com `actionCodeSettings.url` retornando à aplicação; `celular` exposto no contexto; regras/mensagens de senha centralizadas em `src/servicos/casos_de_uso/senha.js`; prop opcional `voltar` no `CabecalhoPagina`
 - Segurança: campos `type="password"`; mensagens genéricas; resposta anti-enumeração no envio de redefinição; `alterar-senha` exige sessão + reautenticação
 - Validação: `npm run lint` OK; `npm run test:unit` OK (regras puras de senha); `npm run build` OK
-- Pendências: **envio real de e-mail de redefinição só validável em produção (Cloud Billing/Blaze)** com template de e-mail do Firebase configurado; em `emulador` o Auth emulator não envia e-mail (testar via log do container ou `oobCodes`); ver `docs/specs/spec-16-autenticacao-senha.md`
+- Pendências: validação do envio real de e-mail de redefinição consolidada junto à pendência única (produção com Billing e template de e-mail do Firebase); ver `docs/specs/spec-16-autenticacao-senha.md`
 
 ### Mudança pós-Sprint — Infra de arquivos
 - Status: aplicado
@@ -34,48 +61,35 @@ Não registrar intenção como se fosse entrega concluída.
 ---
 
 ## Última atualização
-- Data: 2026-09-25
+- Data: 2026-09-30
 - Responsável: Kiro
 - Status: concluído
 
 ### Resumo
-- Objetivo: revisar tipos (arquivo/solicitação); incluir `comum_congregacao`; atualizar seed.
-- Resultado: novos tipos oficiais; campo `comum_congregacao` em `usuarios`/`solicitacoes` (obrigatório, denormalizado, imutável) com regra de segurança; seed sem arquivos e com novos usuários. Ver `docs/specs/spec-12-ajustes-tipos-e-comum-congregacao.md`.
-
-### Arquivos impactados
-- src/servicos/casos_de_uso/biblioteca.js (TIPOS_ARQUIVO)
-- src/servicos/casos_de_uso/solicitacoes.js (TIPOS_SOLICITACAO; validação comum)
-- src/servicos/casos_de_uso/autenticacao.js (comum_congregacao no contexto)
-- src/servicos/repositorios/repositorioSolicitacoes.js (grava comum_congregacao)
-- src/modulos/solicitacoes/PaginaSolicitacaoForm.vue (envio + exibição)
-- src/modulos/solicitacoes/PaginaSolicitacaoDetalhe.vue, admin/PaginaFilaDetalhe.vue, admin/PaginaFilaSolicitacoes.vue (exibição)
-- firestore.rules (validação/imutabilidade de comum_congregacao)
-- scripts/seed-emulador.mjs (remoção de arquivos; novos usuários; log)
-- tests/regras/solicitacoes.test.js, tests/regras/arquivos.test.js (novos tipos + casos comum)
-- docs mestre, steering-03, piloto-seed-dados, README, spec-12 (nova)
-
-### Nova regra de segurança (aprovada)
-- `solicitacoes`: na criação, `comum_congregacao` deve ser string não-vazia e igual a `docUsuario().comum_congregacao`; imutável nos updates de solicitante e admin.
+- Objetivo: sincronizar o status com a fase real do projeto; registrar Specs 13, 14, 15, 16 e Analytics; remover pendências já resolvidas; deixar explícita a única pendência aberta.
+- Resultado: fase atual documentada como **Sprint 3 concluída + Analytics**, com produção funcional (Hosting, Firestore, Authentication). Pendências de deploy, regras Firestore de produção e fluxo de solicitações — antes listadas nos lotes — estão **resolvidas**. Permanece **uma única pendência**: Cloud Storage em produção, dependente da ativação da Conta Billing (Blaze).
 
 ### Validação
-- Testes de regras (Docker): 61/61 pass (inclui 3 novos casos de comum_congregacao)
-- `npm run build` OK; `eslint` (src, scripts, tests) OK
-
-### Ambiente local controlado
-- Seed atualizado (senha `senha123`):
-  - secretários: Alberto Sabino da Silva (Cachoeira), Daniel Gomes de Araújo (Cachoeira+Queluz)
-  - encarregados: Central, Embaú (Cachoeira), Bairro da Figueira (Queluz)
-  - arquivos: não semeados (Biblioteca nasce vazia)
+- `npm run build` OK
+- `npm run lint` OK
+- `npm run test:unit` OK (49/49)
 
 ### Pendências
-- deploy real e Storage real: pendentes (Billing)
+- Cloud Storage em produção + Billing/Blaze (inclui validação do e-mail real de redefinição de senha)
 
 ### Bloqueios
-- deploy depende de Billing e credenciais do responsável (fora do alcance do agente)
+- Ativação de Billing/Blaze depende do responsável (fora do alcance do agente)
 
 ---
 
 ## Histórico por lote
+
+> Nota: os Lotes 1–9 abaixo são **registro histórico** das Sprints 1 e 2. Itens
+> então marcados como pendentes — regras Firestore de produção, deploy/Hosting,
+> Authentication e a antiga camada mock de arquivos — foram **resolvidos** por
+> specs posteriores (11 a 16) e pela publicação em produção. A camada mock foi
+> removida (ver "Mudança pós-Sprint — Infra de arquivos"). A única pendência
+> viva do projeto é o Cloud Storage em produção (Billing), descrita no topo.
 
 ### Lote 1 — Fundação executável do projeto
 - Status: concluído
@@ -126,10 +140,10 @@ Não registrar intenção como se fosse entrega concluída.
 - Pendências: regras de Storage e upload/download reais (Billing)
 
 ### Lote 9 — Publicação e piloto inicial
-- Status: preparado (deploy manual pelo responsável)
-- Resultado: guia passo a passo (`docs/guia-publicacao-piloto.md`), indicadores, seed de dados e script de emulador; hosting/regras/índices prontos para publicar
-- Validação: `npm run build` OK (gera dist/); config de hosting/rewrites conferida
-- Pendências: deploy real e criação de dados (Billing/login); Storage real
+- Status: concluído (publicado em produção)
+- Resultado: guia passo a passo (`docs/guia-publicacao-piloto.md`), indicadores, seed de dados e script de emulador; Hosting, Firestore (regras/índices) e Authentication publicados e funcionais em produção
+- Validação: `npm run build` OK (gera dist/); Hosting/Firestore/Auth operando em produção
+- Pendências: apenas Cloud Storage em produção (Billing) — ver "Pendência única" no topo
 
 ---
 

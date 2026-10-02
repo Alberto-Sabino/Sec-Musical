@@ -44,6 +44,8 @@ import BaseInput from '@/componentes/BaseInput.vue'
 import { usarSessao } from '@/composables/usarSessao'
 import { TIPOS_ARQUIVO } from '@/servicos/casos_de_uso/biblioteca'
 import { iconeTipoArquivo, descricaoTipoArquivo } from './apresentacaoTipos'
+import { dispararEvento } from '@/servicos/firebase/analytics'
+import { ACOES } from '@/enums/eventosAnalytics'
 
 const router = useRouter()
 const { ehAdmin, nomeSetorAtivo } = usarSessao()
@@ -63,6 +65,7 @@ function buscar() {
   if (!q) {
     return
   }
+  dispararEvento(ACOES.BIBLIOTECA_BUSCAR)
   router.push({ name: 'biblioteca-busca', query: { q } })
 }
 
@@ -71,6 +74,7 @@ function abrirTipo(tipo) {
 }
 
 function irParaNovo() {
+  dispararEvento(ACOES.BIBLIOTECA_CADASTRAR_ARQUIVO)
   router.push({ name: 'arquivo-novo' })
 }
 </script>

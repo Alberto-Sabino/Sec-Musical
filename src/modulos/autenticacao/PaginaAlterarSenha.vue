@@ -51,6 +51,8 @@ import BaseInput from '@/componentes/BaseInput.vue'
 import BaseBotao from '@/componentes/BaseBotao.vue'
 import MensagemFeedback from '@/componentes/MensagemFeedback.vue'
 import { alterarSenha } from '@/servicos/casos_de_uso/autenticacao'
+import { dispararEvento } from '@/servicos/firebase/analytics'
+import { ERROS, PARAMS_ERRO_FORMULARIO } from '@/enums/eventosAnalytics'
 
 const router = useRouter()
 
@@ -80,6 +82,9 @@ async function enviar() {
     confirmacao.value = ''
     return
   }
+  dispararEvento(ERROS.ERRO_FORMULARIO, {
+    formulario: PARAMS_ERRO_FORMULARIO.ALTERAR_SENHA,
+  })
   mensagemErro.value = resultado.erro
 }
 

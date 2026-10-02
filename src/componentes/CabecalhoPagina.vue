@@ -26,6 +26,8 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import IconeVoltar from '@/componentes/icones/IconeVoltar.vue'
 import { ehRotaInicialDeModulo, moduloDaRota } from '@/composables/usarNavegacaoModulos'
+import { dispararEvento } from '@/servicos/firebase/analytics'
+import { ACOES } from '@/enums/eventosAnalytics'
 
 const props = defineProps({
   titulo: { type: String, required: true },
@@ -51,6 +53,7 @@ const mostrarVoltar = computed(() => {
 })
 
 function aoClicarVoltar() {
+  dispararEvento(ACOES.NAVEGACAO_VOLTAR, { origem: route.name || null })
   router.back()
 }
 </script>

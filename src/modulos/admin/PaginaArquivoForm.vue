@@ -84,6 +84,8 @@ import {
   hintBiblioteca,
   validarArquivoBiblioteca,
 } from '@/servicos/casos_de_uso/regrasUpload'
+import { dispararEvento } from '@/servicos/firebase/analytics'
+import { ERROS, PARAMS_ERRO_FORMULARIO } from '@/enums/eventosAnalytics'
 
 const route = useRoute()
 const router = useRouter()
@@ -195,7 +197,12 @@ async function salvar() {
   mensagemErro.value = ''
   mensagemSucesso.value = ''
 
+  const formulario = ehEdicao.value
+    ? PARAMS_ERRO_FORMULARIO.BIBLIOTECA_EDITAR_ARQUIVO
+    : PARAMS_ERRO_FORMULARIO.BIBLIOTECA_NOVO_ARQUIVO
+
   if (!validar()) {
+    dispararEvento(ERROS.ERRO_FORMULARIO, { formulario, motivo: 'validacao' })
     return
   }
 
@@ -213,6 +220,7 @@ async function salvar() {
     mensagemSucesso.value = await persistirArquivo(dados)
     setTimeout(() => router.push({ name: 'biblioteca' }), 600)
   } catch (e) {
+    dispararEvento(ERROS.ERRO_FORMULARIO, { formulario, motivo: 'integracao' })
     mensagemErro.value = e?.message || 'Não foi possível salvar o arquivo.'
   } finally {
     salvando.value = false
