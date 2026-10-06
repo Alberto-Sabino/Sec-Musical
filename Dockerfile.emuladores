@@ -14,6 +14,12 @@ WORKDIR /app
 # Config necessária para subir os emuladores.
 COPY firebase.json firestore.rules firestore.indexes.json storage.rules .firebaserc ./
 
+# Cloud Functions: instala as dependências dentro da imagem (camada cacheável).
+# O emulador de Functions executa este código a partir de /app/functions.
+COPY functions/package.json ./functions/package.json
+RUN cd functions && npm install --omit=dev
+COPY functions/ ./functions/
+
 # Entrypoint com persistência (import/export no volume /data).
 COPY scripts/emuladores-entrypoint.sh /usr/local/bin/emuladores-entrypoint.sh
 RUN chmod +x /usr/local/bin/emuladores-entrypoint.sh
@@ -23,7 +29,7 @@ RUN firebase setup:emulators:firestore \
   && firebase setup:emulators:storage \
   && firebase setup:emulators:ui || true
 
-EXPOSE 4000 5000 8080 9099 9199
+EXPOSE 4000 5000 5001 8080 9099 9199
 
-# Sobe Auth, Firestore e Storage com persistência (Hosting servido pelo Vite no host).
+# Sobe Auth, Firestore, Storage e Functions com persistência (Hosting servido pelo Vite no host).
 CMD ["/usr/local/bin/emuladores-entrypoint.sh"]

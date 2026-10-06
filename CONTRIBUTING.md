@@ -24,7 +24,7 @@ feito com o mínimo de dependências de propósito.
 ```bash
 npm install
 cp .env.example .env.local        # preencher as chaves
-docker compose up -d emuladores   # sobe Auth/Firestore/Storage
+docker compose up -d emuladores   # sobe Auth/Firestore/Storage/Functions
 npm run seed:emulador             # usuários + setores
 npm run seed:arquivos             # arquivos de exemplo
 npm run seed:solicitacoes         # solicitações de exemplo

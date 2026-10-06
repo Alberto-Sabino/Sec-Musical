@@ -2,7 +2,7 @@
 # A aplicação (Vite) roda no host: `npm run dev`.
 #
 # Uso:
-#   docker compose up emuladores      # sobe Auth/Firestore/Storage
+#   docker compose up emuladores      # sobe Auth/Firestore/Storage/Functions
 #   npm run seed:emulador             # (host) popula dados de teste
 #   npm run dev                       # (host) app conversa com os emuladores
 services:
@@ -14,6 +14,7 @@ services:
     stop_grace_period: 60s
     ports:
       - '4000:4000' # Emulator UI
+      - '5001:5001' # Functions
       - '8080:8080' # Firestore
       - '9099:9099' # Auth
       - '9199:9199' # Storage

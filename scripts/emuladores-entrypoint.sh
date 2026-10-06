@@ -29,13 +29,13 @@ trap encerrar TERM INT
 if [ -f "$DATA_DIR/firebase-export-metadata.json" ]; then
   echo "[emuladores] Importando estado persistido de $DATA_DIR"
   firebase emulators:start \
-    --only auth,firestore,storage \
+    --only auth,firestore,storage,functions \
     --project "$PROJETO" \
     --import="$DATA_DIR" &
 else
   echo "[emuladores] Sem estado prévio; iniciando limpo"
   firebase emulators:start \
-    --only auth,firestore,storage \
+    --only auth,firestore,storage,functions \
     --project "$PROJETO" &
 fi
 

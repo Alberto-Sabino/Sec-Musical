@@ -27,11 +27,19 @@ npm run preview   # pré-visualizar o build
 ```
 
 ## Emuladores Firebase (via Docker, com persistência)
-Os emuladores (Auth, Firestore, Storage) rodam em container:
+Os emuladores (Auth, Firestore, Storage e Functions) rodam em container:
 ```bash
-docker compose up -d emuladores   # sobe Auth/Firestore/Storage
+docker compose up -d emuladores   # sobe Auth/Firestore/Storage/Functions
 docker compose down               # derruba (exporta o estado antes de sair)
 ```
+Portas expostas: UI `4000`, Functions `5001`, Firestore `8080`, Auth `9099`,
+Storage `9199`.
+
+> As Cloud Functions (`functions/`) são copiadas e têm as dependências
+> instaladas **dentro da imagem** (`Dockerfile.emuladores`). Ao alterar o código
+> em `functions/`, refazer o build: `docker compose up -d --build emuladores`.
+> A callable `syncClaimsFromUsuario` fica em
+> `http://127.0.0.1:5001/sec-musical-mvp/us-central1/syncClaimsFromUsuario`.
 Persistência: os dados são mantidos entre reinícios num volume Docker
 (`emulador-dados`, montado em `/data`). No `down`/`stop`, o entrypoint faz um
 export explícito para `/data/export`; no `up` seguinte, reimporta esse estado.

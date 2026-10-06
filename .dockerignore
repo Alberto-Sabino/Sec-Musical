@@ -1,9 +1,9 @@
 node_modules
+functions/node_modules
 dist
 .git
 docs
 src
-functions
 .env
 .env.local
 .env.*.local
