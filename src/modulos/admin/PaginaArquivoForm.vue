@@ -149,7 +149,9 @@ const accept = acceptBiblioteca()
 const hint = computed(() => hintBiblioteca(form.tipo))
 
 const ehEdicao = computed(() => !!route.params.id)
-const carregandoInicial = ref(false)
+// Em edição, já nascemos em "carregando" para não renderizar o formulário
+// vazio por um frame antes do fetch (evita o flash vazio → carrega → preenchido).
+const carregandoInicial = ref(!!route.params.id)
 const bloqueado = ref(false)
 const salvando = ref(false)
 const mensagemErro = ref('')

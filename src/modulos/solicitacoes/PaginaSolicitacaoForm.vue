@@ -80,7 +80,7 @@ const opcoesTipo = TIPOS_SOLICITACAO
 const ehEdicao = computed(() => !!route.params.id)
 const comumCongregacao = computed(() => estado.contexto?.comum_congregacao || '—')
 
-const carregandoInicial = ref(false)
+const carregandoInicial = ref(!!route.params.id)
 const salvando = ref(false)
 const mensagemErro = ref('')
 const mensagemSucesso = ref('')

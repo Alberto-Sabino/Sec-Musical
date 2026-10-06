@@ -1,7 +1,9 @@
 <template>
-  <div class="feedback" :class="`feedback--${tipo}`" role="alert">
-    <slot />
-  </div>
+  <Transition name="fade-slide-up" appear>
+    <div class="feedback" :class="`feedback--${tipo}`" role="alert">
+      <slot />
+    </div>
+  </Transition>
 </template>
 
 <script setup>

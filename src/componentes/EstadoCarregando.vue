@@ -1,8 +1,10 @@
 <template>
-  <div class="carregando" role="status">
-    <span class="carregando__spinner" aria-hidden="true"></span>
-    <span class="carregando__texto">{{ texto }}</span>
-  </div>
+  <Transition name="fade" appear>
+    <div class="carregando" role="status">
+      <span class="carregando__spinner" aria-hidden="true"></span>
+      <span class="carregando__texto">{{ texto }}</span>
+    </div>
+  </Transition>
 </template>
 
 <script setup>

@@ -1,33 +1,41 @@
 <template>
   <div class="app" :class="{ 'app--com-barra': mostrarBarra }">
-    <router-view />
+    <router-view v-slot="{ Component }">
+      <Transition name="route-fade" mode="out-in">
+        <component :is="Component" />
+      </Transition>
+    </router-view>
     <BarraInferior v-if="mostrarBarra" />
 
     <!-- Confirmação de saída de formulário com alterações não salvas (dirty-guard). -->
-    <div
-      v-if="confirmacaoSaida.aberta"
-      class="saida"
-      role="dialog"
-      aria-modal="true"
-      @click.self="responder(false)"
-    >
+    <Transition name="fade" appear>
       <div
-        ref="caixaSaida"
-        class="saida__caixa"
-        tabindex="-1"
-        aria-label="Deseja mesmo sair dessa tela?"
+        v-if="confirmacaoSaida.aberta"
+        class="saida"
+        role="dialog"
+        aria-modal="true"
+        @click.self="responder(false)"
       >
-        <h2 class="saida__titulo">Deseja sair dessa tela?</h2>
-        <p class="saida__mensagem">
-          Existem alterações não salvas nesse formulário. Se você sair agora, elas serão
-          descartadas.
-        </p>
-        <div class="saida__acoes acoes-responsivas">
-          <BaseBotao variante="secundario" @click="responder(false)">Continuar aqui</BaseBotao>
-          <BaseBotao variante="destrutivo" @click="responder(true)">Sair mesmo assim</BaseBotao>
-        </div>
+        <Transition name="modal-pop" appear>
+          <div
+            ref="caixaSaida"
+            class="saida__caixa"
+            tabindex="-1"
+            aria-label="Deseja mesmo sair dessa tela?"
+          >
+            <h2 class="saida__titulo">Deseja sair dessa tela?</h2>
+            <p class="saida__mensagem">
+              Existem alterações não salvas nesse formulário. Se você sair agora, elas serão
+              descartadas.
+            </p>
+            <div class="saida__acoes acoes-responsivas">
+              <BaseBotao variante="secundario" @click="responder(false)">Continuar aqui</BaseBotao>
+              <BaseBotao variante="destrutivo" @click="responder(true)">Sair mesmo assim</BaseBotao>
+            </div>
+          </div>
+        </Transition>
       </div>
-    </div>
+    </Transition>
   </div>
 </template>
 

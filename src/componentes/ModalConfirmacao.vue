@@ -1,22 +1,32 @@
 <template>
-  <div v-if="aberto" class="modal" role="dialog" aria-modal="true" @click.self="$emit('cancelar')">
-    <div ref="caixa" class="modal__caixa" tabindex="-1" :aria-label="titulo">
-      <h2 class="modal__titulo">{{ titulo }}</h2>
-      <p v-if="mensagem" class="modal__mensagem">{{ mensagem }}</p>
-      <div class="modal__acoes acoes-responsivas">
-        <BaseBotao variante="secundario" @click="$emit('cancelar')">
-          {{ rotuloCancelar }}
-        </BaseBotao>
-        <BaseBotao
-          :variante="destrutivo ? 'destrutivo' : 'primario'"
-          :carregando="carregando"
-          @click="$emit('confirmar')"
-        >
-          {{ rotuloConfirmar }}
-        </BaseBotao>
-      </div>
+  <Transition name="fade" appear>
+    <div
+      v-if="aberto"
+      class="modal"
+      role="dialog"
+      aria-modal="true"
+      @click.self="$emit('cancelar')"
+    >
+      <Transition name="modal-pop" appear>
+        <div ref="caixa" class="modal__caixa" tabindex="-1" :aria-label="titulo">
+          <h2 class="modal__titulo">{{ titulo }}</h2>
+          <p v-if="mensagem" class="modal__mensagem">{{ mensagem }}</p>
+          <div class="modal__acoes acoes-responsivas">
+            <BaseBotao variante="secundario" @click="$emit('cancelar')">
+              {{ rotuloCancelar }}
+            </BaseBotao>
+            <BaseBotao
+              :variante="destrutivo ? 'destrutivo' : 'primario'"
+              :carregando="carregando"
+              @click="$emit('confirmar')"
+            >
+              {{ rotuloConfirmar }}
+            </BaseBotao>
+          </div>
+        </div>
+      </Transition>
     </div>
-  </div>
+  </Transition>
 </template>
 
 <script setup>

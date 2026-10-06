@@ -59,6 +59,16 @@
 
   /* Sombra */
   --sombra-card: 0 1px 3px rgba(28, 36, 48, 0.08);
+
+  /* Motion (Spec 19) — animar apenas opacity/transform.
+     Durações pequenas e consistentes; mesmo easing variando só a duração. */
+  --dur-1: 120ms; /* micro */
+  --dur-2: 180ms; /* padrão */
+  --dur-3: 240ms; /* ênfase leve */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --motion-y: 6px; /* slide vertical sutil */
+  --motion-scale: 0.98; /* scale sutil */
 }
 
 * {
@@ -103,5 +113,81 @@ body {
   }
   .acoes-responsivas > * {
     width: auto;
+  }
+}
+
+/* ============================================================
+   Motion (Spec 19) — transições reutilizáveis.
+   Regras: só opacity/transform; sem layout shift; motion seletivo.
+   Nomes estáveis para uso com <Transition>/<TransitionGroup>.
+   ============================================================ */
+
+/* fade: entrada/saída por opacidade (uso geral, backdrop, container). */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity var(--dur-2) var(--ease-standard);
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* fade-slide-up: fade + leve deslize vertical (feedback, listas pequenas). */
+.fade-slide-up-enter-active,
+.fade-slide-up-leave-active {
+  transition:
+    opacity var(--dur-2) var(--ease-standard),
+    transform var(--dur-2) var(--ease-standard);
+}
+.fade-slide-up-enter-from,
+.fade-slide-up-leave-to {
+  opacity: 0;
+  transform: translateY(var(--motion-y));
+}
+
+/* modal-pop: fade + leve scale (caixa de modal). */
+.modal-pop-enter-active,
+.modal-pop-leave-active {
+  transition:
+    opacity var(--dur-2) var(--ease-standard),
+    transform var(--dur-3) var(--ease-emphasized);
+}
+.modal-pop-enter-from,
+.modal-pop-leave-to {
+  opacity: 0;
+  transform: scale(var(--motion-scale)) translateY(var(--motion-y));
+}
+
+/* route-fade: transição sutil ENTRE telas autenticadas.
+   Apenas ENTRADA: o fade só ocorre na tela que chega.
+   A saída é instantânea (sem leave-active) para não exibir o
+   desmonte da tela anterior (campos limpando / layout quebrando)
+   durante o fade-out. Com mode="out-in", a tela antiga é removida
+   imediatamente e a nova entra com fade. */
+.route-fade-enter-active {
+  transition: opacity var(--dur-2) var(--ease-standard);
+}
+.route-fade-enter-from {
+  opacity: 0;
+}
+
+/* ============================================================
+   Acessibilidade: respeitar prefers-reduced-motion.
+   Reduz durações para ~1ms e remove transform decorativo.
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .fade-slide-up-enter-from,
+  .fade-slide-up-leave-to,
+  .modal-pop-enter-from,
+  .modal-pop-leave-to {
+    transform: none;
   }
 }

@@ -10,7 +10,7 @@ Não registrar intenção como se fosse entrega concluída.
 ---
 
 ## Estado atual
-- Fase ativa: **Sprint 3 concluída** (Specs 13, 14, 15 e 16 aplicadas) + Analytics GA4 + **Spec 17 aplicada** (Custom Claims + hardening de rules + Cloud Functions) + **Spec 18 aplicada** (Biblioteca Global: escopo global|setor + admin_global)
+- Fase ativa: **Sprint 3 concluída** (Specs 13, 14, 15 e 16 aplicadas) + Analytics GA4 + **Spec 17 aplicada** (Custom Claims + hardening de rules + Cloud Functions) + **Spec 18 aplicada** (Biblioteca Global: escopo global|setor + admin_global) + **Spec 19 aplicada** (UI Motion: animações leves e padronizadas)
 - Ambiente de produção: **funcional** — Hosting, Firestore (regras + índices), Authentication e **regras de Storage** publicados e operando; Hosting será republicado com Analytics para o piloto
 - Sprints anteriores: Sprint 1 (Spec 09) e Sprint 2 (Spec 10) concluídas; ajustes Spec 11 e Spec 12 aplicados
 - Status geral: MVP funcional em produção
@@ -76,6 +76,19 @@ Não registrar intenção como se fosse entrega concluída.
 - Validação: `npm run build` OK; `npm run lint` OK; `npm run test:unit` OK; testes de regras (Docker) OK.
 - Pendências: deploy de `functions`/`storage.rules` em produção segue na pendência única (Billing/Blaze).
 
+### Spec 19 — UI Motion (animações leves e padronizadas)
+- Status: aplicado (produção)
+- Resultado:
+  - Tokens de motion em `src/componentes/tokens.css` (`--dur-1/2/3`, `--ease-standard/emphasized`, `--motion-y`, `--motion-scale`) e classes reutilizáveis `fade`, `fade-slide-up`, `modal-pop`, `route-fade` (só `opacity/transform`).
+  - `prefers-reduced-motion: reduce` global (durações ~1ms + remove transform).
+  - Aplicação: modal (`ModalConfirmacao.vue`) com backdrop `fade` + caixa `modal-pop`; modal de saída em `App.vue`; feedback (`MensagemFeedback.vue`) com `fade-slide-up`; loading (`EstadoCarregando.vue`) com `fade`; transição de rota no `App.vue`.
+- Ajustes pós-implementação (ver §9 da spec):
+  - `route-fade` tornada **enter-only** (removida animação de saída): a tela anterior desmontava visível durante o fade-out (campos limpando/layout quebrando). Agora só a tela que chega faz fade-in.
+  - Flash "vazio → carrega → preenchido" em formulários de edição corrigido: `carregandoInicial` nasce `true` em modo edição (`ref(!!route.params.id)`) em `PaginaArquivoForm.vue` e `PaginaSolicitacaoForm.vue`.
+- Decisões: sem novas dependências; sem `TransitionGroup` item-a-item em listas (risco de jank); sem mudança de contrato/rotas/regras.
+- Validação: `npm run build` OK; `npm run lint` OK; `prettier --check` OK nos arquivos tocados.
+- Pendências: nenhuma
+
 ### Spec 17 — Custom Claims + hardening de Rules (Firestore/Storage) + sync via Cloud Functions
 - Status: aplicado localmente (emulador); deploy de produção pendente de Billing
 - Resultado:
@@ -105,14 +118,13 @@ Não registrar intenção como se fosse entrega concluída.
 - Status: concluído
 
 ### Resumo
-- Objetivo: aplicar a Spec 18 (Biblioteca Global): escopo `global|setor`, claim `admin_global`, hardening de rules, a continuação de UI (indicador de global + gating de ações + guard de edição) e refinamentos finais de UI/legibilidade.
-- Resultado: arquivos podem ser globais (visíveis em todos os setores) ou restritos a um setor; governança de escrita global por `admin_global`; UI com checkbox + select, dicas de escopo destacadas, indicador de global nas listagens/detalhe, Editar/Remover ocultos para quem não pode gerenciar, guard impedindo edição direta de global por não `admin_global`, padrão único de campo desabilitado e transições entre estados do formulário; comentários/legibilidade revisados sem mudança de comportamento.
+- Objetivo: aplicar a Spec 19 (UI Motion): tokens e classes de transição padronizadas, motion em modais/feedback/loading/transição de rota, com `prefers-reduced-motion`.
+- Resultado: animações leves (só `opacity/transform`) consistentes; dois ajustes de regressão após validação manual — `route-fade` enter-only (fim do desmonte visível na saída) e correção do flash "vazio → carrega → preenchido" nos formulários de edição (`carregandoInicial` nasce `true` em edição). Documentado na §9 da `docs/specs/spec-19-UI-motion.md`.
 
 ### Validação
 - `npm run build` OK
 - `npm run lint` OK
-- `npm run test:unit` OK (56/56)
-- Testes de regras (Docker) OK (128/128)
+- `prettier --check` OK nos arquivos tocados
 
 ### Pendências
 - Cloud Storage em produção + Billing/Blaze (deploy de `functions` e publicação de `storage.rules`)
