@@ -58,31 +58,33 @@ produção pela Function.
 Objetivo imediato: republicar o frontend em produção com o Analytics já
 configurado, para o piloto. Não requer Billing.
 
-### A.1 Variáveis de ambiente de produção
-```bash
-cp .env.example .env.local   # se ainda não existir
-```
-Preencher em `.env.local` as chaves reais do Firebase (Console > Configurações do
-projeto). Para a build de produção com Analytics ativo:
+### A.1 Configuração de produção (`.env.prod`)
+A build de produção usa o arquivo **`.env.prod`** (modo Vite `prod`), carregado
+automaticamente por `npm run build:prod`. Não é preciso tocar na `.env.local` (que
+fica dedicada ao modo emulador).
+
+Garantir que `.env.prod` exista na raiz com as chaves reais do Firebase e:
 ```
 VITE_APP_MODE=producao
-VITE_FIREBASE_MEASUREMENT_ID=   # ID GA4 do projeto (obrigatório p/ Analytics)
+VITE_FIREBASE_MEASUREMENT_ID=G-...   # ID GA4 do projeto (obrigatório p/ Analytics)
 ```
-> Em `producao`, o Analytics envia dados; em `emulador`, os eventos são ignorados.
-> `VITE_APP_MODE=producao` também aponta a infra de arquivos para o Storage real —
-> o que é esperado em produção, mas as operações de arquivo só funcionarão após o §B
-> (Billing). Consulta/Firestore/Auth/navegação funcionam normalmente.
+> `.env.prod` contém chaves reais e **não é commitado** (está no `.gitignore`).
+> Como é um arquivo mode-specific, seu `VITE_APP_MODE` tem precedência sobre o da
+> `.env.local` — então `build:prod` sempre sai em `producao`, sem risco de confusão.
+> Em `producao`, o Analytics envia dados e a infra de arquivos aponta para o Storage
+> real (as operações de arquivo só funcionam após o §B/Billing; consulta, Auth,
+> Firestore e navegação funcionam normalmente).
 
 ### A.2 Validar localmente
 ```bash
 npm install
-npm run build        # termina sem erro; gera dist/
+npm run build:prod   # build de produção; termina sem erro; gera dist/
 npm run test:unit    # helpers puros
 ```
 
 ### A.3 Publicar o Hosting
 ```bash
-npm run build
+npm run build:prod
 firebase deploy --only hosting
 ```
 O CLI mostra a Hosting URL ao final. Validar no navegador: login, Biblioteca
@@ -169,10 +171,9 @@ projeto configurar App Check no cliente; caso contrário quebra as chamadas. For
 escopo atual (ver Spec 17 §7.6).
 
 ### B.7 Rebuild e redeploy do frontend em produção
-Garantir a build de produção apontando ao Storage real:
+Garantir a build de produção apontando ao Storage real (usa `.env.prod`):
 ```bash
-# .env.local: VITE_APP_MODE=producao
-npm run build
+npm run build:prod
 firebase deploy --only hosting
 ```
 

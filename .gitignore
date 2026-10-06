@@ -3,12 +3,16 @@ node_modules
 dist
 dist-ssr
 
+# Repomix
+repomix-out
+
 # Variáveis de ambiente (Vite)
 .env
 .env.local
 .env.*.local
 .env.development
 .env.production
+.env.prod
 
 # Firebase / emuladores
 .firebase
