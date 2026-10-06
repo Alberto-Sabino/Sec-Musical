@@ -23,6 +23,13 @@ service cloud.firestore {
       return estaAtivo() && docUsuario().nivel_acesso == 2;
     }
 
+    // Governança global (Spec 18): admin com admin_global=true no documento.
+    // Consistência: admin_global só vale para admin (nivel_acesso == 2), por isso
+    // depende de ehAdmin(). Nunca verdadeiro para usuário comum.
+    function ehAdminGlobal() {
+      return ehAdmin() && docUsuario().admin_global == true;
+    }
+
     function setoresDoUsuario() {
       return docUsuario().ids_setor;
     }
@@ -31,10 +38,20 @@ service cloud.firestore {
       return idSetor in setoresDoUsuario();
     }
 
+    // Escopo de um documento de arquivo. Legados sem campo = 'setor' (Spec 18 §3.1).
+    function escopoDe(dados) {
+      return ('escopo' in dados) ? dados.escopo : 'setor';
+    }
+    function ehGlobal(dados) {
+      return escopoDe(dados) == 'global';
+    }
+
     // ---- usuarios ----
     // Autenticado lê apenas o próprio documento.
     // Cliente não cria nem altera (gestão de usuários fora do MVP por interface),
-    // o que impede elevação de privilégio (nivel_acesso, ids_setor, ativo).
+    // o que impede elevação de privilégio (nivel_acesso, ids_setor, ativo e
+    // admin_global — Spec 18). A consistência "admin_global só com nivel_acesso==2"
+    // é garantida na origem (sync de claims) e aqui pela proibição total de escrita.
     match /usuarios/{idUsuario} {
       allow read: if estaAutenticado() && request.auth.uid == idUsuario;
       allow write: if false;
@@ -49,33 +66,66 @@ service cloud.firestore {
     }
 
     // ---- arquivos ----
+    // Escopo (Spec 18): 'setor' (recorte por id_setor) ou 'global' (do sistema).
     match /arquivos/{idArquivo} {
-      // Leitura por perfil e setor:
-      // - usuário comum: nível 1 do próprio setor;
-      // - admin: nível 1 e 2 dos próprios setores.
+      // Leitura:
+      // - escopo 'setor': usuário ativo do setor; nível 2 só admin;
+      // - escopo 'global': qualquer usuário ativo; nível 2 só admin
+      //   (global é do sistema, visível em todos os setores).
       allow read: if estaAutenticado()
         && estaAtivo()
-        && pertenceAoSetor(resource.data.id_setor)
         && (
-          resource.data.nivel_acesso == 1
-          || (ehAdmin() && resource.data.nivel_acesso == 2)
+          (ehGlobal(resource.data)
+            && (resource.data.nivel_acesso == 1 || (ehAdmin() && resource.data.nivel_acesso == 2)))
+          || (!ehGlobal(resource.data)
+            && pertenceAoSetor(resource.data.id_setor)
+            && (resource.data.nivel_acesso == 1 || (ehAdmin() && resource.data.nivel_acesso == 2)))
         );
 
-      // Somente admin cria/edita/remove, e apenas no próprio setor.
+      // Criação:
+      // - global: somente admin_global; id_setor ausente;
+      // - setor: admin do próprio setor.
+      // Sempre: id_usuario == próprio uid e nivel_acesso ∈ [1,2].
       allow create: if ehAdmin()
-        && pertenceAoSetor(request.resource.data.id_setor)
         && request.resource.data.id_usuario == request.auth.uid
-        && request.resource.data.nivel_acesso in [1, 2];
+        && request.resource.data.nivel_acesso in [1, 2]
+        && (
+          (ehGlobal(request.resource.data)
+            && ehAdminGlobal()
+            && !('id_setor' in request.resource.data))
+          || (!ehGlobal(request.resource.data)
+            && pertenceAoSetor(request.resource.data.id_setor))
+        );
 
+      // Atualização:
+      // - destino global: exige admin_global e id_setor ausente;
+      // - destino setor: admin do setor destino.
+      // Origem global exige admin_global; origem setor exige admin do setor de origem.
       allow update: if ehAdmin()
-        && pertenceAoSetor(resource.data.id_setor)
-        && pertenceAoSetor(request.resource.data.id_setor)
-        && request.resource.data.nivel_acesso in [1, 2];
+        && request.resource.data.nivel_acesso in [1, 2]
+        && (
+          (ehGlobal(resource.data) && ehAdminGlobal())
+          || (!ehGlobal(resource.data) && pertenceAoSetor(resource.data.id_setor))
+        )
+        && (
+          (ehGlobal(request.resource.data)
+            && ehAdminGlobal()
+            && !('id_setor' in request.resource.data))
+          || (!ehGlobal(request.resource.data)
+            && pertenceAoSetor(request.resource.data.id_setor))
+        );
 
+      // Remoção:
+      // - global: somente admin_global;
+      // - setor: admin do setor.
       allow delete: if ehAdmin()
-        && pertenceAoSetor(resource.data.id_setor);
+        && (
+          (ehGlobal(resource.data) && ehAdminGlobal())
+          || (!ehGlobal(resource.data) && pertenceAoSetor(resource.data.id_setor))
+        );
 
-      // Auditoria: apenas admin do setor do arquivo lê e escreve.
+      // Auditoria: apenas admin lê e escreve (do setor do arquivo ou admin_global
+      // no caso de arquivo global).
       match /auditoria/{idAuditoria} {
         allow read: if ehAdmin();
         allow create: if ehAdmin()

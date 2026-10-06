@@ -5,10 +5,12 @@
 // Firebase gerenciado para espelhar cadastro -> claims (fonte de autorização
 // usada pelas Storage Rules e pela sessão do app).
 //
-// Claims mínimas (Spec 17 §6.1):
+// Claims mínimas (Spec 17 §6.1 + Spec 18):
 //   - nivel_acesso: number (1 = usuário comum, 2 = admin)
 //   - ids_setor:    array<string>
 //   - ativo:        boolean
+//   - admin_global: boolean (Spec 18) — governança de arquivos globais;
+//                   consistência: só pode ser true quando nivel_acesso == 2.
 //
 // Estratégia: callable manual (https.onCall), não-trigger (Spec 17 §7.1).
 import { initializeApp } from 'firebase-admin/app'
@@ -46,7 +48,15 @@ function extrairClaims(dados) {
     throw new HttpsError('invalid-argument', 'Campo "ids_setor" contém valor inválido.')
   }
 
-  return { ativo, nivel_acesso: nivelAcesso, ids_setor: idsSetor }
+  // admin_global (Spec 18): consistência obrigatória — nunca true fora de admin.
+  const adminGlobal = nivelAcesso === NIVEL_ADMIN && dados.admin_global === true
+
+  return {
+    ativo,
+    nivel_acesso: nivelAcesso,
+    ids_setor: idsSetor,
+    admin_global: adminGlobal,
+  }
 }
 
 // syncClaimsFromUsuario({ uid }): espelha usuarios/{uid} para os custom claims.
@@ -89,6 +99,7 @@ export const syncClaimsFromUsuario = onCall(async (request) => {
     nivel_acesso: claims.nivel_acesso,
     qtd_setores: claims.ids_setor.length,
     ativo: claims.ativo,
+    admin_global: claims.admin_global,
   })
 
   return { ok: true }

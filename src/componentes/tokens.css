@@ -23,6 +23,11 @@
   --cor-info: #1b56a4;
   --cor-info-fundo: #e6f0fb;
 
+  /* Estado desabilitado (padrão único para campos de formulário) */
+  --cor-desabilitado-fundo: #eceff3;
+  --cor-desabilitado-texto: #9aa4b2;
+  --cor-desabilitado-borda: #d5dbe3;
+
   /* Status de solicitação (padrão visual estável) */
   --status-em-aberto: #9a6a00;
   --status-em-aberto-fundo: #fbf1dc;

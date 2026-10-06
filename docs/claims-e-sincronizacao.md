@@ -18,17 +18,25 @@ Fonte de verdade: documento `usuarios/{uid}`. As claims espelham três campos:
 | `ativo`        | `boolean`       | `ativo`                   | `false` → nega tudo no Storage      |
 | `nivel_acesso` | `number`        | `nivel_acesso`            | `1` = usuário comum, `2` = admin    |
 | `ids_setor`    | `array<string>` | `ids_setor`               | setores aos quais o usuário pertence |
+| `admin_global` | `boolean`       | `admin_global`            | governança de arquivos globais (Spec 18) |
 
 As Storage Rules (`storage.rules`) usam esses claims:
 
-- **Biblioteca** (`biblioteca/{id_setor}/nivel_1|nivel_2/...`):
+- **Biblioteca por setor** (`biblioteca/{id_setor}/nivel_1|nivel_2/...`):
   - leitura: usuário `ativo` cujo `ids_setor` contém o setor; `nivel_2` exige admin;
   - escrita/remoção: admin (`nivel_acesso == 2`) do setor.
+- **Biblioteca global** (`biblioteca_global/nivel_1|nivel_2/...`) — Spec 18:
+  - leitura: qualquer usuário `ativo`; `nivel_2` exige admin;
+  - escrita/remoção: somente `admin_global` (necessariamente admin).
 - **Solicitações** (`solicitacoes/{id_setor}/{id_solicitante}/{id}/resposta.pdf`):
   - leitura: **somente o solicitante** (`request.auth.uid == id_solicitante`) — nem admin lê;
   - escrita/remoção: admin do setor.
 
-Limites: claims têm limite de tamanho no token; manter apenas os três campos acima.
+Consistência obrigatória (Spec 18): `admin_global` só pode ser `true` quando
+`nivel_acesso == 2`. A Cloud Function força `admin_global = false` para quem não é
+admin, mesmo que o documento diga o contrário.
+
+Limites: claims têm limite de tamanho no token; manter apenas os campos acima.
 Não usar nomes reservados de OIDC (`sub`, `iat`, `iss`, etc.).
 
 ---
@@ -43,7 +51,8 @@ Contrato:
 - Entrada: `{ uid: string }`
 - Saída: `{ ok: true }` (ou erro padronizado `HttpsError`)
 - Autorização: **qualquer admin ativo** pode executar (ver §5, melhoria futura).
-- Efeito: lê `usuarios/{uid}` e grava os claims `ativo`, `nivel_acesso`, `ids_setor`.
+- Efeito: lê `usuarios/{uid}` e grava os claims `ativo`, `nivel_acesso`, `ids_setor`
+  e `admin_global` (este último forçado a `false` quando `nivel_acesso != 2`).
 
 ### Deploy (requer Billing/Blaze)
 

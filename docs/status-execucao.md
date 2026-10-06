@@ -10,7 +10,7 @@ Não registrar intenção como se fosse entrega concluída.
 ---
 
 ## Estado atual
-- Fase ativa: **Sprint 3 concluída** (Specs 13, 14, 15 e 16 aplicadas) + Analytics GA4 + **Spec 17 aplicada** (Custom Claims + hardening de rules + Cloud Functions)
+- Fase ativa: **Sprint 3 concluída** (Specs 13, 14, 15 e 16 aplicadas) + Analytics GA4 + **Spec 17 aplicada** (Custom Claims + hardening de rules + Cloud Functions) + **Spec 18 aplicada** (Biblioteca Global: escopo global|setor + admin_global)
 - Ambiente de produção: **funcional** — Hosting, Firestore (regras + índices), Authentication e **regras de Storage** publicados e operando; Hosting será republicado com Analytics para o piloto
 - Sprints anteriores: Sprint 1 (Spec 09) e Sprint 2 (Spec 10) concluídas; ajustes Spec 11 e Spec 12 aplicados
 - Status geral: MVP funcional em produção
@@ -51,6 +51,31 @@ Não registrar intenção como se fosse entrega concluída.
 - Validação: `npm run lint` OK; `npm run test:unit` OK (regras puras de senha); `npm run build` OK
 - Pendências: validação do envio real de e-mail de redefinição consolidada junto à pendência única (produção com Billing e template de e-mail do Firebase); ver `docs/specs/spec-16-autenticacao-senha.md`
 
+### Spec 18 — Biblioteca Global (escopo global|setor) + admin_global + hardening de rules
+- Status: aplicado localmente (emulador); deploy de produção pendente de Billing (storage.rules + functions)
+- Resultado:
+  - **Modelo de dados:** campo `escopo` ('global'|'setor') em `arquivos` (fonte única `src/enums/escopoArquivos.js`); legados sem `escopo` tratados como 'setor'. Campo `admin_global` (boolean) em `usuarios`.
+  - **Caminhos:** `biblioteca_global/{nivel_1|nivel_2}/{id}.{ext}` para globais; setor mantém `biblioteca/{id_setor}/...` (`bibliotecaCaminhos.js`).
+  - **Casos de uso/repositório:** cadastro/edição com escopo e `id_setor` condicional; listagem une setor + globais (`repositorioArquivos.js` + 2 índices novos em `firestore.indexes.json`).
+  - **UI:** `PaginaArquivoForm.vue` com checkbox "Restringir o arquivo ao setor" + select de setor; checkbox travada/marcada para admin sem `admin_global`.
+  - **Sessão:** derivado `ehAdminGlobal` (claim com fallback no contexto); `admin_global` exposto no contexto (`autenticacao.js`, `usarSessao.js`).
+  - **Rules:** Firestore — leitura global (nível 2 só admin), escrita/remoção global só `admin_global` com `id_setor` ausente; escrita setor pelo admin do setor. Storage — novo `match biblioteca_global` (escrita/remoção só `admin_global`, MIME/teto mantidos).
+  - **Claims:** `syncClaimsFromUsuario` passa a espelhar `admin_global` com consistência (`false` se `nivel_acesso != 2`); seeder injeta `admin_global` localmente.
+  - **Testes:** unit do enum (`tests/unit/escopoArquivos.test.js`) e de caminhos globais; regras de Firestore e Storage com cenários globais e de governança.
+- Continuação (UI — indicador + gating + guard):
+  - `IconeGlobal.vue` (Lucide globe local); indicador de global nas listagens (`PaginaBibliotecaTipo.vue`, `PaginaBibliotecaBusca.vue`) e no detalhe (`DetalheArquivo.vue`).
+  - Gating de Editar/Remover por elegibilidade: helper puro `podeGerenciarArquivo(arquivo, ehAdminGlobal)`; em `PaginaBibliotecaTipo.vue` as ações só aparecem para `ehAdmin && podeGerenciar(arquivo)` (global exige `admin_global`).
+  - Guard em `PaginaArquivoForm.vue`: edição de arquivo global por quem não é `admin_global` é bloqueada (mensagem + redirect para `biblioteca`).
+  - Testes: `podeGerenciarArquivo` coberto em `tests/unit/escopoArquivos.test.js`.
+- Refinamentos de UI (formulário de arquivo):
+  - dicas de escopo destacadas (setor em azul/info com `IconeBiblioteca`; global em amarelo/alerta com `IconeGlobal`);
+  - padrão único de campo desabilitado nos componentes base (`BaseInput`/`BaseSelect`/`BaseTextarea`): fundo acinzentado, borda tracejada, texto esmaecido e `cursor: not-allowed` (tokens `--cor-desabilitado-*`);
+  - transições (`<Transition>`) entre estados do formulário (carregando/bloqueado/card) e entre as dicas, com suporte a `prefers-reduced-motion`.
+- Legibilidade: comentários sintetizados e escopo interno das funções separado por quebras de linha nos módulos da spec (sem mudança de comportamento).
+- Decisões: governança de UI = sem `admin_global`, os controles de escopo (checkbox + select) **não são renderizados**; exibe-se apenas um aviso de que o arquivo fica restrito ao setor ativo. Com `admin_global`, checkbox + select controlam o escopo. Global não grava `id_setor` (removido no update via `deleteField`).
+- Validação: `npm run build` OK; `npm run lint` OK; `npm run test:unit` OK; testes de regras (Docker) OK.
+- Pendências: deploy de `functions`/`storage.rules` em produção segue na pendência única (Billing/Blaze).
+
 ### Spec 17 — Custom Claims + hardening de Rules (Firestore/Storage) + sync via Cloud Functions
 - Status: aplicado localmente (emulador); deploy de produção pendente de Billing
 - Resultado:
@@ -75,21 +100,22 @@ Não registrar intenção como se fosse entrega concluída.
 ---
 
 ## Última atualização
-- Data: 2026-09-30
+- Data: 2026-10-06
 - Responsável: Kiro
 - Status: concluído
 
 ### Resumo
-- Objetivo: sincronizar o status com a fase real do projeto; registrar Specs 13, 14, 15, 16 e Analytics; remover pendências já resolvidas; deixar explícita a única pendência aberta.
-- Resultado: fase atual documentada como **Sprint 3 concluída + Analytics**, com produção funcional (Hosting, Firestore, Authentication). Pendências de deploy, regras Firestore de produção e fluxo de solicitações — antes listadas nos lotes — estão **resolvidas**. Permanece **uma única pendência**: Cloud Storage em produção, dependente da ativação da Conta Billing (Blaze).
+- Objetivo: aplicar a Spec 18 (Biblioteca Global): escopo `global|setor`, claim `admin_global`, hardening de rules, a continuação de UI (indicador de global + gating de ações + guard de edição) e refinamentos finais de UI/legibilidade.
+- Resultado: arquivos podem ser globais (visíveis em todos os setores) ou restritos a um setor; governança de escrita global por `admin_global`; UI com checkbox + select, dicas de escopo destacadas, indicador de global nas listagens/detalhe, Editar/Remover ocultos para quem não pode gerenciar, guard impedindo edição direta de global por não `admin_global`, padrão único de campo desabilitado e transições entre estados do formulário; comentários/legibilidade revisados sem mudança de comportamento.
 
 ### Validação
 - `npm run build` OK
 - `npm run lint` OK
-- `npm run test:unit` OK (49/49)
+- `npm run test:unit` OK (56/56)
+- Testes de regras (Docker) OK (128/128)
 
 ### Pendências
-- Cloud Storage em produção + Billing/Blaze (inclui validação do e-mail real de redefinição de senha)
+- Cloud Storage em produção + Billing/Blaze (deploy de `functions` e publicação de `storage.rules`)
 
 ### Bloqueios
 - Ativação de Billing/Blaze depende do responsável (fora do alcance do agente)

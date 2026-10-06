@@ -62,9 +62,11 @@ function niveisPorPerfil(nivelAcessoUsuario) {
   return [NIVEL_ARQUIVO.PUBLICO]
 }
 
-// Lista a biblioteca do contexto atual (setor ativo + perfil), com filtro opcional por tipo.
+// Lista a biblioteca do contexto (setor ativo + perfil), com filtro opcional por
+// tipo. Os globais entram automaticamente — a união é feita no repositório (Spec 18).
 export async function listarBiblioteca({ nivelAcesso, idSetor, tipo }) {
   const niveis = niveisPorPerfil(nivelAcesso)
+
   return listarArquivos({ idSetor, niveis, tipo: tipo || null })
 }
 

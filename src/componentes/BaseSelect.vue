@@ -41,6 +41,9 @@ defineEmits(['update:modelValue'])
   font-weight: 600;
   color: var(--cor-texto-suave);
 }
+.campo:has(.campo__controle:disabled) .campo__rotulo {
+  color: var(--cor-desabilitado-texto);
+}
 .campo__controle {
   min-height: 44px;
   padding: 0 var(--espaco-md);
@@ -53,6 +56,14 @@ defineEmits(['update:modelValue'])
 .campo__controle:focus {
   outline: none;
   border-color: var(--cor-primaria);
+}
+.campo__controle:disabled {
+  background: var(--cor-desabilitado-fundo);
+  color: var(--cor-desabilitado-texto);
+  border-color: var(--cor-desabilitado-borda);
+  border-style: dashed;
+  cursor: not-allowed;
+  opacity: 0.85;
 }
 .campo__controle--erro {
   border-color: var(--cor-erro);

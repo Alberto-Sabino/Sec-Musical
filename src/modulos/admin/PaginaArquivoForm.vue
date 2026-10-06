@@ -5,10 +5,15 @@
       :subtitulo="`Setor ativo: ${nomeSetorAtivo}`"
     />
 
-    <EstadoCarregando v-if="carregandoInicial" texto="Carregando arquivo..." />
+    <Transition name="form-estado" mode="out-in">
+      <EstadoCarregando v-if="carregandoInicial" key="carregando" texto="Carregando arquivo..." />
 
-    <BaseCard v-else>
-      <form class="form" @submit.prevent="salvar">
+      <MensagemFeedback v-else-if="bloqueado" key="bloqueado" tipo="erro">
+        Você não tem permissão para editar este arquivo global.
+      </MensagemFeedback>
+
+      <BaseCard v-else key="form">
+        <form class="form" @submit.prevent="salvar">
         <BaseInput
           v-model="form.titulo"
           rotulo="Título"
@@ -31,6 +36,44 @@
           :erro="erros.nivel_acesso"
         />
 
+        <!-- Escopo do arquivo (Spec 18). Governança de UI:
+             - admin_global: controla o escopo (checkbox + select de setor);
+             - demais admins: sem controles (escopo sempre = setor ativo), apenas um aviso. -->
+        <div v-if="podeGlobal" class="escopo">
+          <label class="escopo__check">
+            <input
+              type="checkbox"
+              :checked="form.restringir"
+              @change="aoAlternarRestringir($event.target.checked)"
+            />
+            <span>Restringir o arquivo ao setor</span>
+          </label>
+
+          <BaseSelect
+            v-model="form.id_setor"
+            rotulo="Setor"
+            placeholder="Selecione o setor"
+            :opcoes="opcoesSetor"
+            :disabled="!form.restringir"
+            :erro="erros.id_setor"
+          />
+
+          <Transition name="dica" mode="out-in">
+            <p v-if="form.restringir" key="setor" class="escopo__dica-setor">
+              <IconeBiblioteca class="escopo__dica-icone" aria-hidden="true" />
+              Visível apenas no setor selecionado.
+            </p>
+            <p v-else key="global" class="escopo__dica-global">
+              <IconeGlobal class="escopo__dica-icone" aria-hidden="true" />
+              Arquivo global: visível em todos os setores.
+            </p>
+          </Transition>
+        </div>
+
+        <MensagemFeedback v-else tipo="info">
+          Este arquivo ficará restrito ao setor ativo: {{ nomeSetorAtivo }}.
+        </MensagemFeedback>
+
         <UploaderArquivo
           :rotulo="ehEdicao ? 'Substituir arquivo (opcional)' : 'Arquivo'"
           :texto-padrao="ehEdicao ? 'Manter arquivo atual' : 'Selecionar arquivo'"
@@ -52,6 +95,7 @@
         </div>
       </form>
     </BaseCard>
+    </Transition>
   </ContainerPagina>
 </template>
 
@@ -67,6 +111,8 @@ import BaseBotao from '@/componentes/BaseBotao.vue'
 import UploaderArquivo from '@/componentes/UploaderArquivo.vue'
 import EstadoCarregando from '@/componentes/EstadoCarregando.vue'
 import MensagemFeedback from '@/componentes/MensagemFeedback.vue'
+import IconeGlobal from '@/componentes/icones/IconeGlobal.vue'
+import IconeBiblioteca from '@/componentes/icones/IconeBiblioteca.vue'
 import { usarSessao } from '@/composables/usarSessao'
 import { registrarGuardaFormulario } from '@/composables/usarGuardaFormulario'
 import {
@@ -79,6 +125,7 @@ import {
   atualizarArquivoExistente,
 } from '@/servicos/casos_de_uso/bibliotecaAdmin'
 import { obterArquivo } from '@/servicos/repositorios/repositorioArquivos'
+import { ESCOPO_ARQUIVO, escopoDoArquivo } from '@/enums/escopoArquivos'
 import {
   acceptBiblioteca,
   hintBiblioteca,
@@ -89,17 +136,21 @@ import { ERROS, PARAMS_ERRO_FORMULARIO } from '@/enums/eventosAnalytics'
 
 const route = useRoute()
 const router = useRouter()
-const { estado, nomeSetorAtivo } = usarSessao()
+const { estado, nomeSetorAtivo, opcoesSetor, ehAdminGlobal } = usarSessao()
 
 const opcoesTipo = TIPOS_ARQUIVO
 const opcoesNivel = NIVEL_ARQUIVO_OPCOES
 
+// Governança (Spec 18): só admin_global controla o escopo. Para os demais, os
+// controles não são renderizados e o escopo é sempre 'setor' (setor ativo).
+const podeGlobal = computed(() => ehAdminGlobal.value === true)
+
 const accept = acceptBiblioteca()
-// Hint dinâmica conforme o tipo selecionado (limite muda para `metodos`).
 const hint = computed(() => hintBiblioteca(form.tipo))
 
 const ehEdicao = computed(() => !!route.params.id)
 const carregandoInicial = ref(false)
+const bloqueado = ref(false)
 const salvando = ref(false)
 const mensagemErro = ref('')
 const mensagemSucesso = ref('')
@@ -111,11 +162,29 @@ const form = reactive({
   titulo: '',
   tipo: '',
   nivel_acesso: NIVEL_ARQUIVO.PUBLICO,
+  // restringir = true  → escopo 'setor' (id_setor obrigatório)
+  // restringir = false → escopo 'global' (só admin_global)
+  restringir: true,
+  id_setor: estado.setorAtivo || '',
 })
 const erros = reactive({})
 
 // Snapshot dos valores iniciais para detectar alteração pendente (dirty-guard).
-const formInicial = ref({ titulo: '', tipo: '', nivel_acesso: NIVEL_ARQUIVO.PUBLICO })
+const formInicial = ref({
+  titulo: '',
+  tipo: '',
+  nivel_acesso: NIVEL_ARQUIVO.PUBLICO,
+  restringir: true,
+  id_setor: estado.setorAtivo || '',
+})
+
+function aoAlternarRestringir(marcado) {
+  form.restringir = marcado
+  if (marcado && !form.id_setor) {
+    form.id_setor = estado.setorAtivo || ''
+  }
+  delete erros.id_setor
+}
 
 function estaSujo() {
   if (salvando.value || mensagemSucesso.value) {
@@ -129,7 +198,9 @@ function estaSujo() {
   return (
     form.titulo !== formInicial.value.titulo ||
     form.tipo !== formInicial.value.tipo ||
-    Number(form.nivel_acesso) !== Number(formInicial.value.nivel_acesso)
+    Number(form.nivel_acesso) !== Number(formInicial.value.nivel_acesso) ||
+    form.restringir !== formInicial.value.restringir ||
+    form.id_setor !== formInicial.value.id_setor
   )
 }
 
@@ -178,6 +249,13 @@ function validar() {
     erros.nivel_acesso = 'Selecione o nível.'
   }
 
+  // Escopo: só validamos o setor quando os controles são exibidos (admin_global)
+  // e o arquivo está restrito ao setor. Caso contrário, o escopo é derivado no
+  // submit (setor ativo). Exige setor dentre os setores do admin.
+  if (podeGlobal.value && form.restringir && !estado.contexto?.ids_setor?.includes(form.id_setor)) {
+    erros.id_setor = 'Selecione o setor.'
+  }
+
   if (!ehEdicao.value && !arquivoSelecionado.value) {
     erros.arquivo = 'Selecione um arquivo.'
   }
@@ -209,8 +287,15 @@ async function salvar() {
   salvando.value = true
 
   try {
+    // Sem admin_global o escopo é sempre 'setor' no setor ativo; com admin_global
+    // deriva da checkbox.
+    const escopo =
+      podeGlobal.value && !form.restringir ? ESCOPO_ARQUIVO.GLOBAL : ESCOPO_ARQUIVO.SETOR
+    const idSetor =
+      escopo === ESCOPO_ARQUIVO.SETOR ? (podeGlobal.value ? form.id_setor : estado.setorAtivo) : null
     const dados = {
-      id_setor: estado.setorAtivo,
+      escopo,
+      id_setor: idSetor,
       tipo: form.tipo,
       titulo: form.titulo.trim(),
       nivel_acesso: Number(form.nivel_acesso),
@@ -253,13 +338,28 @@ onMounted(async () => {
     }
 
     arquivoAtual.value = doc
+
+    // Guard (Spec 18 — continuação): edição de arquivo global exige admin_global.
+    // Impede acesso direto por URL de quem não é elegível.
+    if (escopoDoArquivo(doc) === ESCOPO_ARQUIVO.GLOBAL && !ehAdminGlobal.value) {
+      bloqueado.value = true
+      setTimeout(() => router.push({ name: 'biblioteca' }), 1200)
+      return
+    }
+
     form.titulo = doc.titulo || ''
     form.tipo = doc.tipo || ''
     form.nivel_acesso = doc.nivel_acesso || NIVEL_ARQUIVO.PUBLICO
+    // Legados sem escopo são tratados como 'setor'.
+    const escopo = escopoDoArquivo(doc)
+    form.restringir = escopo === ESCOPO_ARQUIVO.SETOR
+    form.id_setor = doc.id_setor || estado.setorAtivo || ''
     formInicial.value = {
       titulo: form.titulo,
       tipo: form.tipo,
       nivel_acesso: form.nivel_acesso,
+      restringir: form.restringir,
+      id_setor: form.id_setor,
     }
   } catch {
     mensagemErro.value = 'Não foi possível carregar o arquivo.'
@@ -277,5 +377,98 @@ onMounted(async () => {
 }
 .form__acoes {
   margin-top: var(--espaco-sm);
+}
+.escopo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-sm);
+}
+.escopo__check {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-xs);
+  font-size: var(--fonte-tamanho-md);
+  color: var(--cor-texto);
+  cursor: pointer;
+}
+.escopo__check input[disabled] {
+  cursor: not-allowed;
+}
+.escopo__dica-setor {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-xs);
+  padding: var(--espaco-sm) var(--espaco-md);
+  border-radius: var(--raio-md);
+  font-size: var(--fonte-tamanho-sm);
+  font-weight: 600;
+  color: var(--cor-info);
+  background: var(--cor-info-fundo);
+}
+.escopo__dica-global {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-xs);
+  padding: var(--espaco-sm) var(--espaco-md);
+  border-radius: var(--raio-md);
+  font-size: var(--fonte-tamanho-sm);
+  font-weight: 600;
+  color: var(--cor-alerta);
+  background: var(--cor-alerta-fundo);
+}
+.escopo__dica-icone {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+/* Transição entre estados do formulário (carregando / bloqueado / card). */
+.form-estado-enter-active,
+.form-estado-leave-active {
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease;
+}
+.form-estado-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.form-estado-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+/* Transição entre as dicas de escopo (setor ↔ global). */
+.dica-enter-active,
+.dica-leave-active {
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+.dica-enter-from {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+.dica-leave-to {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+/* Acessibilidade: respeita quem prefere menos movimento. */
+@media (prefers-reduced-motion: reduce) {
+  .form-estado-enter-active,
+  .form-estado-leave-active,
+  .dica-enter-active,
+  .dica-leave-active {
+    transition: opacity 0.12s ease;
+  }
+  .form-estado-enter-from,
+  .form-estado-leave-to,
+  .dica-enter-from,
+  .dica-leave-to {
+    transform: none;
+  }
 }
 </style>

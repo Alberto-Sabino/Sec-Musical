@@ -7,13 +7,14 @@ import {
   assertSucceeds,
   assertFails,
 } from '@firebase/rules-unit-testing'
-import { setDoc, getDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore'
+import { setDoc, getDoc, updateDoc, deleteDoc, deleteField, doc } from 'firebase/firestore'
 
 const PROJETO = 'sec-musical-mvp'
 
 // IDs de teste
 const UID_USUARIO = 'user_comum'
 const UID_ADMIN = 'admin_1'
+const UID_ADMIN_GLOBAL = 'admin_global_1'
 const UID_INATIVO = 'user_inativo'
 const SETOR_A = 'setorA'
 const SETOR_B = 'setorB'
@@ -50,6 +51,13 @@ beforeEach(async () => {
       ativo: true,
       ids_setor: [SETOR_A],
     })
+    // Admin com governança global (Spec 18).
+    await setDoc(doc(db, 'usuarios', UID_ADMIN_GLOBAL), {
+      nivel_acesso: 2,
+      ativo: true,
+      ids_setor: [SETOR_A],
+      admin_global: true,
+    })
     await setDoc(doc(db, 'usuarios', UID_INATIVO), {
       nivel_acesso: 1,
       ativo: false,
@@ -58,8 +66,9 @@ beforeEach(async () => {
     // Setores (para leitura de nome).
     await setDoc(doc(db, 'setores', SETOR_A), { id_setor: SETOR_A, nome: 'Setor A', ativo: true })
     await setDoc(doc(db, 'setores', SETOR_B), { id_setor: SETOR_B, nome: 'Setor B', ativo: true })
-    // Arquivo público (nível 1) e restrito (nível 2) no setor A.
+    // Arquivo público (nível 1) e restrito (nível 2) no setor A (escopo setor).
     await setDoc(doc(db, 'arquivos', 'arq_pub_A'), {
+      escopo: 'setor',
       id_setor: SETOR_A,
       tipo: 'circulares',
       titulo: 'Público A',
@@ -68,6 +77,7 @@ beforeEach(async () => {
       id_usuario: UID_ADMIN,
     })
     await setDoc(doc(db, 'arquivos', 'arq_rest_A'), {
+      escopo: 'setor',
       id_setor: SETOR_A,
       tipo: 'circulares',
       titulo: 'Restrito A',
@@ -77,11 +87,38 @@ beforeEach(async () => {
     })
     // Arquivo público em outro setor (B).
     await setDoc(doc(db, 'arquivos', 'arq_pub_B'), {
+      escopo: 'setor',
       id_setor: SETOR_B,
       tipo: 'circulares',
       titulo: 'Público B',
       nivel_acesso: 1,
       id_nuvem: `biblioteca/${SETOR_B}/nivel_1/arq_pub_B.pdf`,
+      id_usuario: UID_ADMIN,
+    })
+    // Arquivos GLOBAIS (sem id_setor): público (nível 1) e restrito (nível 2).
+    await setDoc(doc(db, 'arquivos', 'arq_glob_pub'), {
+      escopo: 'global',
+      tipo: 'circulares',
+      titulo: 'Global Público',
+      nivel_acesso: 1,
+      id_nuvem: 'biblioteca_global/nivel_1/arq_glob_pub.pdf',
+      id_usuario: UID_ADMIN_GLOBAL,
+    })
+    await setDoc(doc(db, 'arquivos', 'arq_glob_rest'), {
+      escopo: 'global',
+      tipo: 'circulares',
+      titulo: 'Global Restrito',
+      nivel_acesso: 2,
+      id_nuvem: 'biblioteca_global/nivel_2/arq_glob_rest.pdf',
+      id_usuario: UID_ADMIN_GLOBAL,
+    })
+    // Arquivo legado SEM campo escopo (deve ser tratado como setor).
+    await setDoc(doc(db, 'arquivos', 'arq_legado_A'), {
+      id_setor: SETOR_A,
+      tipo: 'circulares',
+      titulo: 'Legado A',
+      nivel_acesso: 1,
+      id_nuvem: `biblioteca/${SETOR_A}/nivel_1/arq_legado_A.pdf`,
       id_usuario: UID_ADMIN,
     })
   })
@@ -92,6 +129,9 @@ function ctxUsuario() {
 }
 function ctxAdmin() {
   return testEnv.authenticatedContext(UID_ADMIN).firestore()
+}
+function ctxAdminGlobal() {
+  return testEnv.authenticatedContext(UID_ADMIN_GLOBAL).firestore()
 }
 function ctxInativo() {
   return testEnv.authenticatedContext(UID_INATIVO).firestore()
@@ -115,6 +155,13 @@ test('usuarios: não autenticado não lê (bloqueado)', async () => {
 
 test('usuarios: cliente não altera o próprio documento (bloqueado)', async () => {
   await assertFails(updateDoc(doc(ctxUsuario(), 'usuarios', UID_USUARIO), { nivel_acesso: 2 }))
+})
+
+test('usuarios: cliente NÃO grava admin_global=true (consistência Spec 18) (bloqueado)', async () => {
+  // Escrita de usuarios é totalmente negada ao cliente; isto impede elevação de
+  // privilégio por admin_global diretamente no documento.
+  await assertFails(updateDoc(doc(ctxUsuario(), 'usuarios', UID_USUARIO), { admin_global: true }))
+  await assertFails(updateDoc(doc(ctxAdmin(), 'usuarios', UID_ADMIN), { admin_global: true }))
 })
 
 // ---- arquivos: leitura ----
@@ -144,6 +191,7 @@ test('arquivos: usuário inativo NÃO lê (bloqueado)', async () => {
 
 // ---- arquivos: escrita ----
 const NOVO = {
+  escopo: 'setor',
   id_setor: SETOR_A,
   tipo: 'circulares',
   titulo: 'Novo',
@@ -206,6 +254,137 @@ test('arquivos: admin remove no próprio setor (permitido)', async () => {
 
 test('arquivos: usuário comum NÃO remove (bloqueado)', async () => {
   await assertFails(deleteDoc(doc(ctxUsuario(), 'arquivos', 'arq_pub_A')))
+})
+
+// ---- arquivos globais (Spec 18) ----
+const GLOBAL_NOVO = {
+  escopo: 'global',
+  tipo: 'circulares',
+  titulo: 'Global Novo',
+  nivel_acesso: 1,
+  id_nuvem: 'biblioteca_global/nivel_1/arq_glob_novo.pdf',
+  id_usuario: UID_ADMIN_GLOBAL,
+  extensao_arquivo: 'pdf',
+  tamanho_bytes: 100,
+}
+
+// leitura
+test('global: usuário comum lê global nível 1 (permitido)', async () => {
+  await assertSucceeds(getDoc(doc(ctxUsuario(), 'arquivos', 'arq_glob_pub')))
+})
+
+test('global: usuário comum NÃO lê global nível 2 (bloqueado)', async () => {
+  await assertFails(getDoc(doc(ctxUsuario(), 'arquivos', 'arq_glob_rest')))
+})
+
+test('global: admin lê global nível 2 (permitido)', async () => {
+  await assertSucceeds(getDoc(doc(ctxAdmin(), 'arquivos', 'arq_glob_rest')))
+})
+
+test('global: usuário inativo NÃO lê global (bloqueado)', async () => {
+  await assertFails(getDoc(doc(ctxInativo(), 'arquivos', 'arq_glob_pub')))
+})
+
+// legado (sem escopo) = setor
+test('legado: usuário lê arquivo legado (tratado como setor) do próprio setor (permitido)', async () => {
+  await assertSucceeds(getDoc(doc(ctxUsuario(), 'arquivos', 'arq_legado_A')))
+})
+
+// escrita global
+test('global: admin_global cria arquivo global sem id_setor (permitido)', async () => {
+  await assertSucceeds(setDoc(doc(ctxAdminGlobal(), 'arquivos', 'arq_glob_c1'), GLOBAL_NOVO))
+})
+
+test('global: admin comum NÃO cria arquivo global (bloqueado)', async () => {
+  await assertFails(
+    setDoc(doc(ctxAdmin(), 'arquivos', 'arq_glob_c2'), {
+      ...GLOBAL_NOVO,
+      id_usuario: UID_ADMIN,
+    }),
+  )
+})
+
+test('global: usuário comum NÃO cria arquivo global (bloqueado)', async () => {
+  await assertFails(
+    setDoc(doc(ctxUsuario(), 'arquivos', 'arq_glob_c3'), {
+      ...GLOBAL_NOVO,
+      id_usuario: UID_USUARIO,
+    }),
+  )
+})
+
+test('global: criar global COM id_setor é bloqueado (consistência Spec 18)', async () => {
+  await assertFails(
+    setDoc(doc(ctxAdminGlobal(), 'arquivos', 'arq_glob_c4'), {
+      ...GLOBAL_NOVO,
+      id_setor: SETOR_A,
+    }),
+  )
+})
+
+test('setor: criar escopo setor SEM id_setor é bloqueado (consistência Spec 18)', async () => {
+  // Sem id_setor, pertenceAoSetor(request.resource.data.id_setor) não é satisfeito.
+  const semSetor = { ...NOVO }
+  delete semSetor.id_setor
+  await assertFails(setDoc(doc(ctxAdmin(), 'arquivos', 'arq_setor_sem_id'), semSetor))
+})
+
+test('global: admin_global atualiza arquivo global (permitido)', async () => {
+  await assertSucceeds(
+    updateDoc(doc(ctxAdminGlobal(), 'arquivos', 'arq_glob_pub'), { titulo: 'Editado' }),
+  )
+})
+
+test('conversão: admin_global muda setor → global (permitido)', async () => {
+  // arq_pub_A é escopo setor; converte para global removendo id_setor.
+  await assertSucceeds(
+    updateDoc(doc(ctxAdminGlobal(), 'arquivos', 'arq_pub_A'), {
+      escopo: 'global',
+      id_setor: deleteField(),
+      id_nuvem: 'biblioteca_global/nivel_1/arq_pub_A.pdf',
+    }),
+  )
+})
+
+test('conversão: admin_global muda global → setor (permitido)', async () => {
+  await assertSucceeds(
+    updateDoc(doc(ctxAdminGlobal(), 'arquivos', 'arq_glob_pub'), {
+      escopo: 'setor',
+      id_setor: SETOR_A,
+      id_nuvem: `biblioteca/${SETOR_A}/nivel_1/arq_glob_pub.pdf`,
+    }),
+  )
+})
+
+test('conversão: admin comum NÃO converte setor → global (bloqueado)', async () => {
+  await assertFails(
+    updateDoc(doc(ctxAdmin(), 'arquivos', 'arq_pub_A'), {
+      escopo: 'global',
+      id_setor: deleteField(),
+      id_nuvem: 'biblioteca_global/nivel_1/arq_pub_A.pdf',
+    }),
+  )
+})
+
+test('global: admin comum NÃO atualiza arquivo global (bloqueado)', async () => {
+  await assertFails(updateDoc(doc(ctxAdmin(), 'arquivos', 'arq_glob_pub'), { titulo: 'X' }))
+})
+
+test('global: admin_global remove arquivo global (permitido)', async () => {
+  await assertSucceeds(deleteDoc(doc(ctxAdminGlobal(), 'arquivos', 'arq_glob_pub')))
+})
+
+test('global: admin comum NÃO remove arquivo global (bloqueado)', async () => {
+  await assertFails(deleteDoc(doc(ctxAdmin(), 'arquivos', 'arq_glob_pub')))
+})
+
+test('global: admin_global também cria no próprio setor (escopo setor) (permitido)', async () => {
+  await assertSucceeds(
+    setDoc(doc(ctxAdminGlobal(), 'arquivos', 'arq_setor_por_global'), {
+      ...NOVO,
+      id_usuario: UID_ADMIN_GLOBAL,
+    }),
+  )
 })
 
 // ---- auditoria ----

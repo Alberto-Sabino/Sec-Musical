@@ -26,6 +26,11 @@ service firebase.storage {
     function ehAdmin() {
       return ativo() && request.auth.token.nivel_acesso == 2;
     }
+    // Governança global (Spec 18): claim admin_global. Consistência: só vale para
+    // admin (nivel_acesso == 2). Nunca verdadeiro para usuário comum.
+    function ehAdminGlobal() {
+      return ehAdmin() && request.auth.token.admin_global == true;
+    }
     function pertenceAoSetor(idSetor) {
       return ativo() && idSetor in request.auth.token.ids_setor;
     }
@@ -61,7 +66,21 @@ service firebase.storage {
       allow delete: if ehAdmin() && pertenceAoSetor(idSetor);
     }
 
-    // Caminho oficial do anexo final de solicitações:
+    // Caminho oficial da Biblioteca GLOBAL (Spec 18):
+    // biblioteca_global/nivel_1|nivel_2/{id_arquivo}.{pdf|xlsx}
+    match /biblioteca_global/{nivel}/{arquivo} {
+      // Leitura: usuário ativo (global é do sistema). Nível 2 (restrito) exige admin.
+      allow read: if ativo()
+        && (nivel == 'nivel_1' || (nivel == 'nivel_2' && ehAdmin()));
+
+      // Escrita (create/update): somente admin_global; valida MIME e teto.
+      allow create, update: if ehAdminGlobal()
+        && (ehPdf() || ehXlsx())
+        && dentroTetoBiblioteca();
+
+      // Remoção: somente admin_global (delete não possui request.resource).
+      allow delete: if ehAdminGlobal();
+    }
     // solicitacoes/{id_setor}/{id_solicitante}/{id_solicitacao}/resposta.pdf
     match /solicitacoes/{idSetor}/{idSolicitante}/{idSolicitacao}/{arquivo} {
       // Leitura: SOMENTE o solicitante que criou a solicitação (Spec 17 §2.2),

@@ -18,6 +18,29 @@ test('montarIdNuvem usa nivel_1 para público e nivel_2 para restrito', () => {
   )
 })
 
+test('montarIdNuvem usa biblioteca_global para escopo global (Spec 18)', () => {
+  assert.equal(
+    montarIdNuvem({ escopo: 'global', nivelAcesso: 1, idArquivo: 'g1', extensao: 'pdf' }),
+    'biblioteca_global/nivel_1/g1.pdf',
+  )
+  assert.equal(
+    montarIdNuvem({ escopo: 'global', nivelAcesso: 2, idArquivo: 'g2', extensao: 'xlsx' }),
+    'biblioteca_global/nivel_2/g2.xlsx',
+  )
+})
+
+test('montarIdNuvem com escopo setor (ou ausente) usa o caminho por setor', () => {
+  assert.equal(
+    montarIdNuvem({ escopo: 'setor', idSetor: 's', nivelAcesso: 1, idArquivo: 'a', extensao: 'pdf' }),
+    'biblioteca/s/nivel_1/a.pdf',
+  )
+  // Ausência de escopo = legado = setor.
+  assert.equal(
+    montarIdNuvem({ idSetor: 's', nivelAcesso: 1, idArquivo: 'a', extensao: 'pdf' }),
+    'biblioteca/s/nivel_1/a.pdf',
+  )
+})
+
 test('montarIdNuvem respeita a extensão real informada', () => {
   const caminho = montarIdNuvem({
     idSetor: 's',

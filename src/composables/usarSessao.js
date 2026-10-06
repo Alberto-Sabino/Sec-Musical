@@ -168,6 +168,13 @@ export function usarSessao() {
     estado: readonly(estado),
     // derivados (contexto do Firestore — fonte do fluxo operacional)
     ehAdmin: computed(() => estado.contexto?.ehAdmin === true),
+    // Governança global (Spec 18): prioriza o claim (fonte das rules); cai para o
+    // contexto do Firestore quando o claim ainda não foi sincronizado.
+    ehAdminGlobal: computed(
+      () =>
+        (estado.claims?.nivel_acesso === 2 && estado.claims?.admin_global === true) ||
+        estado.contexto?.admin_global === true,
+    ),
     setoresDisponiveis: computed(() => estado.contexto?.ids_setor || []),
     // derivados dos custom claims (Spec 17) — fonte usada pelas Storage Rules
     claims: computed(() => estado.claims || {}),

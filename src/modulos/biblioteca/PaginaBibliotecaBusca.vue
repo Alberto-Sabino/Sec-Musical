@@ -23,6 +23,11 @@
             <span class="item__topo">
               <component :is="iconeTipoArquivo(arquivo.tipo)" class="item__icone" />
               <span class="item__titulo">{{ arquivo.titulo }}</span>
+              <IconeGlobal
+                v-if="ehArquivoGlobal(arquivo)"
+                class="item__global"
+                aria-label="Arquivo global"
+              />
               <span
                 v-if="ehAdmin"
                 class="item__nivel"
@@ -58,6 +63,7 @@ import BaseCard from '@/componentes/BaseCard.vue'
 import EstadoCarregando from '@/componentes/EstadoCarregando.vue'
 import EstadoVazio from '@/componentes/EstadoVazio.vue'
 import MensagemFeedback from '@/componentes/MensagemFeedback.vue'
+import IconeGlobal from '@/componentes/icones/IconeGlobal.vue'
 import DetalheArquivo from './DetalheArquivo.vue'
 import { usarSessao } from '@/composables/usarSessao'
 import {
@@ -67,6 +73,7 @@ import {
   buscarBibliotecaPorNome,
 } from '@/servicos/casos_de_uso/biblioteca'
 import { formatarData, formatarTamanho } from '@/servicos/casos_de_uso/formato'
+import { ESCOPO_ARQUIVO, escopoDoArquivo } from '@/enums/escopoArquivos'
 import { iconeTipoArquivo } from './apresentacaoTipos'
 import { dispararEvento } from '@/servicos/firebase/analytics'
 import { ACOES } from '@/enums/eventosAnalytics'
@@ -84,6 +91,11 @@ const subtitulo = computed(() => (termo.value ? `Resultados para “${termo.valu
 
 function ehRestrito(arquivo) {
   return arquivo.nivel_acesso === NIVEL_ARQUIVO.RESTRITO
+}
+
+// Indicador visual: arquivo global (Spec 18 — continuação).
+function ehArquivoGlobal(arquivo) {
+  return escopoDoArquivo(arquivo) === ESCOPO_ARQUIVO.GLOBAL
 }
 
 async function carregar() {
@@ -153,6 +165,12 @@ onMounted(carregar)
   font-weight: 600;
   color: var(--cor-texto);
   flex: 1;
+}
+.item__global {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: var(--cor-primaria);
 }
 .item__nivel {
   flex-shrink: 0;

@@ -23,6 +23,11 @@
             <span class="item__topo">
               <component :is="iconeTipo" class="item__icone" />
               <span class="item__titulo">{{ arquivo.titulo }}</span>
+              <IconeGlobal
+                v-if="ehArquivoGlobal(arquivo)"
+                class="item__global"
+                aria-label="Arquivo global"
+              />
               <span
                 v-if="ehAdmin"
                 class="item__nivel"
@@ -37,7 +42,7 @@
             </span>
           </button>
 
-          <div v-if="ehAdmin" class="item__acoes">
+          <div v-if="ehAdmin && podeGerenciar(arquivo)" class="item__acoes">
             <BaseBotao variante="secundario" @click="irParaEdicao(arquivo)">Editar</BaseBotao>
             <BaseBotao variante="destrutivo-sutil" @click="pedirRemocao(arquivo)">
               Remover
@@ -77,6 +82,7 @@ import EstadoCarregando from '@/componentes/EstadoCarregando.vue'
 import EstadoVazio from '@/componentes/EstadoVazio.vue'
 import MensagemFeedback from '@/componentes/MensagemFeedback.vue'
 import ModalConfirmacao from '@/componentes/ModalConfirmacao.vue'
+import IconeGlobal from '@/componentes/icones/IconeGlobal.vue'
 import DetalheArquivo from './DetalheArquivo.vue'
 import { usarSessao } from '@/composables/usarSessao'
 import {
@@ -88,13 +94,14 @@ import {
 } from '@/servicos/casos_de_uso/biblioteca'
 import { excluirArquivo } from '@/servicos/casos_de_uso/bibliotecaAdmin'
 import { formatarData, formatarTamanho } from '@/servicos/casos_de_uso/formato'
+import { ESCOPO_ARQUIVO, escopoDoArquivo, podeGerenciarArquivo } from '@/enums/escopoArquivos'
 import { iconeTipoArquivo } from './apresentacaoTipos'
 import { dispararEvento } from '@/servicos/firebase/analytics'
 import { ACOES } from '@/enums/eventosAnalytics'
 
 const route = useRoute()
 const router = useRouter()
-const { estado, ehAdmin, nomeSetorAtivo } = usarSessao()
+const { estado, ehAdmin, ehAdminGlobal, nomeSetorAtivo } = usarSessao()
 
 const arquivos = ref([])
 const carregandoInicial = ref(true)
@@ -110,6 +117,16 @@ const subtitulo = computed(() => `${nomeSetorAtivo.value} · Tipo: ${rotuloTipoA
 
 function ehRestrito(arquivo) {
   return arquivo.nivel_acesso === NIVEL_ARQUIVO.RESTRITO
+}
+
+// Indicador visual: arquivo global (Spec 18 — continuação).
+function ehArquivoGlobal(arquivo) {
+  return escopoDoArquivo(arquivo) === ESCOPO_ARQUIVO.GLOBAL
+}
+
+// Elegibilidade de UI para Editar/Remover (defesa em profundidade; rules são a barreira real).
+function podeGerenciar(arquivo) {
+  return podeGerenciarArquivo(arquivo, ehAdminGlobal.value)
 }
 
 async function carregar() {
@@ -210,6 +227,12 @@ onMounted(carregar)
   font-weight: 600;
   color: var(--cor-texto);
   flex: 1;
+}
+.item__global {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: var(--cor-primaria);
 }
 .item__nivel {
   flex-shrink: 0;

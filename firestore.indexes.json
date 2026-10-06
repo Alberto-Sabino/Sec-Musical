@@ -20,6 +20,25 @@
       ]
     },
     {
+      "collectionGroup": "arquivos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "escopo", "order": "ASCENDING" },
+        { "fieldPath": "nivel_acesso", "order": "ASCENDING" },
+        { "fieldPath": "data_atualizacao", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "arquivos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "escopo", "order": "ASCENDING" },
+        { "fieldPath": "nivel_acesso", "order": "ASCENDING" },
+        { "fieldPath": "tipo", "order": "ASCENDING" },
+        { "fieldPath": "data_atualizacao", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "solicitacoes",
       "queryScope": "COLLECTION",
       "fields": [

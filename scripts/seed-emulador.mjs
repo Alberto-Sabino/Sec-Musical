@@ -34,6 +34,7 @@ const USUARIOS = [
     celular: '12992575921',
     comum: 'Quilombo',
     nivel: 2,
+    admin_global: true,
     setores: ['cachoeira', 'cruzeiro', 'queluz', 'sjbarreiro'],
   },
   {
@@ -185,6 +186,8 @@ async function main() {
         nivel_acesso: u.nivel,
         ativo: true,
         ids_setor: u.setores,
+        // admin_global (Spec 18): só vale para admin (nivel 2); default false.
+        admin_global: u.nivel === 2 && u.admin_global === true,
         data_criacao: serverTimestamp(),
         data_atualizacao: serverTimestamp(),
       })
@@ -200,6 +203,7 @@ async function main() {
       ativo: true,
       nivel_acesso: u.nivel,
       ids_setor: u.setores,
+      admin_global: u.nivel === 2 && u.admin_global === true,
     })
   }
 

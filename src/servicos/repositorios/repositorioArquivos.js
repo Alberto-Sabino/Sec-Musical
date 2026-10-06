@@ -11,23 +11,48 @@ import {
   setDoc,
   updateDoc,
   deleteDoc,
+  deleteField,
   addDoc,
   serverTimestamp,
 } from 'firebase/firestore'
 import { db } from '@/servicos/firebase'
+import { ESCOPO_ARQUIVO } from '@/enums/escopoArquivos'
 
 function mapear(snap) {
   return snap.docs.map((d) => ({ id_arquivo: d.id, ...d.data() }))
 }
 
-// Lista arquivos de um setor filtrando pelos níveis de acesso permitidos.
-// niveis: array de números (ex.: [1] para usuário, [1, 2] para admin).
-// tipo: opcional; se informado, filtra por tipo.
-// Índices: id_setor + nivel_acesso + data_atualizacao
-//          id_setor + nivel_acesso + tipo + data_atualizacao
+// Deduplica por id_arquivo preservando a ordem de inserção.
+function deduplicar(lista) {
+  const vistos = new Set()
+  const resultado = []
+  for (const item of lista) {
+    if (vistos.has(item.id_arquivo)) {
+      continue
+    }
+    vistos.add(item.id_arquivo)
+    resultado.push(item)
+  }
+  return resultado
+}
+
+// Lista arquivos visíveis no setor ativo, incluindo os GLOBAIS (Spec 18).
+// Faz duas consultas (setor + global) porque o Firestore não permite OR entre
+// campos distintos (id_setor vs escopo). Índices: (id_setor|escopo) + nivel_acesso
+// [+ tipo] + data_atualizacao.
 export async function listarArquivos({ idSetor, niveis, tipo }) {
+  const [doSetor, globais] = await Promise.all([
+    consultarArquivos({ campo: 'id_setor', valor: idSetor, niveis, tipo }),
+    consultarArquivos({ campo: 'escopo', valor: ESCOPO_ARQUIVO.GLOBAL, niveis, tipo }),
+  ])
+
+  return deduplicar([...doSetor, ...globais])
+}
+
+// Consulta por um campo de recorte (id_setor OU escopo) + nível + tipo opcional.
+async function consultarArquivos({ campo, valor, niveis, tipo }) {
   const colecao = collection(db, 'arquivos')
-  const clausulas = [where('id_setor', '==', idSetor), where('nivel_acesso', 'in', niveis)]
+  const clausulas = [where(campo, '==', valor), where('nivel_acesso', 'in', niveis)]
 
   if (tipo) {
     clausulas.push(where('tipo', '==', tipo))
@@ -36,6 +61,7 @@ export async function listarArquivos({ idSetor, niveis, tipo }) {
   clausulas.push(orderBy('data_atualizacao', 'desc'))
 
   const snap = await getDocs(query(colecao, ...clausulas))
+
   return mapear(snap)
 }
 
@@ -51,13 +77,12 @@ export async function obterArquivo(idArquivo) {
   return lista[0] || null
 }
 
-// Cria o documento de metadados com o id já conhecido (id_arquivo).
-// Campos conforme contrato: id_setor, tipo, titulo, nivel_acesso, id_nuvem, id_usuario,
-// data_inclusao, data_atualizacao. Não inventar campos.
+// Cria o documento com o id já conhecido. Escopo 'global' NÃO grava id_setor
+// (§3.1 — preferir ausente). Não inventar campos fora do contrato.
 export async function criarArquivo(idArquivo, dados) {
   const referencia = doc(db, 'arquivos', idArquivo)
-  await setDoc(referencia, {
-    id_setor: dados.id_setor,
+  const base = {
+    escopo: dados.escopo,
     tipo: dados.tipo,
     titulo: dados.titulo,
     nivel_acesso: dados.nivel_acesso,
@@ -67,16 +92,26 @@ export async function criarArquivo(idArquivo, dados) {
     tamanho_bytes: dados.tamanho_bytes,
     data_inclusao: serverTimestamp(),
     data_atualizacao: serverTimestamp(),
-  })
+  }
+
+  if (dados.escopo !== ESCOPO_ARQUIVO.GLOBAL) {
+    base.id_setor = dados.id_setor
+  }
+
+  await setDoc(referencia, base)
 }
 
-// Atualiza metadados de um arquivo existente. Sempre atualiza data_atualizacao.
+// Atualiza metadados (sempre renova data_atualizacao). Ao virar 'global', remove
+// o campo id_setor em vez de gravar null (§3.1).
 export async function atualizarArquivo(idArquivo, dados) {
   const referencia = doc(db, 'arquivos', idArquivo)
-  await updateDoc(referencia, {
-    ...dados,
-    data_atualizacao: serverTimestamp(),
-  })
+  const payload = { ...dados, data_atualizacao: serverTimestamp() }
+
+  if (dados.escopo === ESCOPO_ARQUIVO.GLOBAL && 'id_setor' in payload) {
+    payload.id_setor = deleteField()
+  }
+
+  await updateDoc(referencia, payload)
 }
 
 // Remove o documento de metadados.

@@ -23,6 +23,7 @@ const SETOR_B = 'setorB'
 // UIDs de teste
 const UID_COMUM = 'user_comum' // nivel_acesso 1, setorA
 const UID_ADMIN = 'admin_a' // nivel_acesso 2, setorA
+const UID_ADMIN_GLOBAL = 'admin_global_a' // nivel_acesso 2, setorA, admin_global
 const UID_SOLICITANTE = 'solicitante_1' // dono da resposta final
 const UID_INATIVO = 'user_inativo' // ativo=false
 
@@ -55,6 +56,16 @@ function ctxComum() {
 function ctxAdmin() {
   return testEnv
     .authenticatedContext(UID_ADMIN, { ativo: true, nivel_acesso: 2, ids_setor: [SETOR_A] })
+    .storage()
+}
+function ctxAdminGlobal() {
+  return testEnv
+    .authenticatedContext(UID_ADMIN_GLOBAL, {
+      ativo: true,
+      nivel_acesso: 2,
+      ids_setor: [SETOR_A],
+      admin_global: true,
+    })
     .storage()
 }
 function ctxSolicitante() {
@@ -160,6 +171,93 @@ test('biblioteca: usuário comum NÃO remove (bloqueado)', async () => {
   const caminho = `biblioteca/${SETOR_A}/nivel_1/del2.pdf`
   await semeadoNoStorage(caminho, MIME_PDF)
   await assertFails(deleteObject(storageRef(ctxComum(), caminho)))
+})
+
+// ================= Biblioteca GLOBAL (Spec 18) =================
+
+// ---- leitura ----
+test('global: usuário comum lê nivel_1 global (permitido)', async () => {
+  const caminho = `biblioteca_global/nivel_1/g1.pdf`
+  await semeadoNoStorage(caminho, MIME_PDF)
+  await assertSucceeds(getBytes(storageRef(ctxComum(), caminho)))
+})
+
+test('global: usuário comum NÃO lê nivel_2 global (bloqueado)', async () => {
+  const caminho = `biblioteca_global/nivel_2/g2.pdf`
+  await semeadoNoStorage(caminho, MIME_PDF)
+  await assertFails(getBytes(storageRef(ctxComum(), caminho)))
+})
+
+test('global: admin lê nivel_2 global (permitido)', async () => {
+  const caminho = `biblioteca_global/nivel_2/g3.pdf`
+  await semeadoNoStorage(caminho, MIME_PDF)
+  await assertSucceeds(getBytes(storageRef(ctxAdmin(), caminho)))
+})
+
+test('global: não autenticado NÃO lê global (bloqueado)', async () => {
+  const caminho = `biblioteca_global/nivel_1/g4.pdf`
+  await semeadoNoStorage(caminho, MIME_PDF)
+  await assertFails(getBytes(storageRef(anonimo(), caminho)))
+})
+
+test('global: usuário inativo NÃO lê global (bloqueado)', async () => {
+  const caminho = `biblioteca_global/nivel_1/g5.pdf`
+  await semeadoNoStorage(caminho, MIME_PDF)
+  await assertFails(getBytes(storageRef(ctxInativo(), caminho)))
+})
+
+// ---- escrita ----
+test('global: admin_global envia PDF global dentro do limite (permitido)', async () => {
+  await assertSucceeds(enviar(ctxAdminGlobal(), `biblioteca_global/nivel_1/gw1.pdf`, 1 * MB, MIME_PDF))
+})
+
+test('global: admin_global envia XLSX global (permitido)', async () => {
+  await assertSucceeds(
+    enviar(ctxAdminGlobal(), `biblioteca_global/nivel_1/gw2.xlsx`, 1 * MB, MIME_XLSX),
+  )
+})
+
+test('global: admin comum (sem admin_global) NÃO escreve global (bloqueado)', async () => {
+  await assertFails(enviar(ctxAdmin(), `biblioteca_global/nivel_1/gw3.pdf`, 1 * MB, MIME_PDF))
+})
+
+test('global: usuário comum NÃO escreve global (bloqueado)', async () => {
+  await assertFails(enviar(ctxComum(), `biblioteca_global/nivel_1/gw4.pdf`, 1 * MB, MIME_PDF))
+})
+
+// Consistência de claims (Spec 18): mesmo que o token traga admin_global=true,
+// se nivel_acesso != 2 a rule nega (ehAdminGlobal exige nivel_acesso == 2).
+test('global: claim forjado admin_global=true com nivel_acesso=1 NÃO escreve (bloqueado)', async () => {
+  const ctxForjado = testEnv
+    .authenticatedContext('user_forjado', {
+      ativo: true,
+      nivel_acesso: 1,
+      ids_setor: [SETOR_A],
+      admin_global: true,
+    })
+    .storage()
+  await assertFails(enviar(ctxForjado, `biblioteca_global/nivel_1/gwforj.pdf`, 1 * MB, MIME_PDF))
+})
+
+test('global: formato não aceito (imagem) é bloqueado', async () => {
+  await assertFails(enviar(ctxAdminGlobal(), `biblioteca_global/nivel_1/gw5.png`, 1000, 'image/png'))
+})
+
+test('global: acima do teto de 50 MB é bloqueado', async () => {
+  await assertFails(enviar(ctxAdminGlobal(), `biblioteca_global/nivel_1/gw6.pdf`, 51 * MB, MIME_PDF))
+})
+
+// ---- deleção ----
+test('global: admin_global remove arquivo global (permitido)', async () => {
+  const caminho = `biblioteca_global/nivel_1/gdel1.pdf`
+  await semeadoNoStorage(caminho, MIME_PDF)
+  await assertSucceeds(deleteObject(storageRef(ctxAdminGlobal(), caminho)))
+})
+
+test('global: admin comum NÃO remove arquivo global (bloqueado)', async () => {
+  const caminho = `biblioteca_global/nivel_1/gdel2.pdf`
+  await semeadoNoStorage(caminho, MIME_PDF)
+  await assertFails(deleteObject(storageRef(ctxAdmin(), caminho)))
 })
 
 // ================= Solicitações (resposta final) =================

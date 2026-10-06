@@ -51,6 +51,14 @@ defineEmits(['update:modelValue'])
   outline: none;
   border-color: var(--cor-primaria);
 }
+.campo__controle:disabled {
+  background: var(--cor-desabilitado-fundo);
+  color: var(--cor-desabilitado-texto);
+  border-color: var(--cor-desabilitado-borda);
+  border-style: dashed;
+  cursor: not-allowed;
+  opacity: 0.85;
+}
 .campo__controle--erro {
   border-color: var(--cor-erro);
 }

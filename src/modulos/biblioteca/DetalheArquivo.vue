@@ -3,6 +3,10 @@
     <div ref="caixa" class="detalhe__caixa" tabindex="-1" :aria-label="arquivo.titulo">
       <div class="detalhe__cabecalho">
         <h2 class="detalhe__titulo">{{ arquivo.titulo }}</h2>
+        <span v-if="ehArquivoGlobal" class="detalhe__global">
+          <IconeGlobal class="detalhe__global-icone" aria-hidden="true" />
+          Global
+        </span>
         <span
           v-if="mostrarNivel"
           class="detalhe__nivel"
@@ -43,12 +47,14 @@
 import { ref, computed } from 'vue'
 import BaseBotao from '@/componentes/BaseBotao.vue'
 import MensagemFeedback from '@/componentes/MensagemFeedback.vue'
+import IconeGlobal from '@/componentes/icones/IconeGlobal.vue'
 import {
   NIVEL_ARQUIVO,
   rotuloNivelArquivo,
   rotuloTipoArquivo,
   baixarArquivoBiblioteca,
 } from '@/servicos/casos_de_uso/biblioteca'
+import { ESCOPO_ARQUIVO, escopoDoArquivo } from '@/enums/escopoArquivos'
 import { formatarData } from '@/servicos/casos_de_uso/formato'
 import { formatarTamanho } from '@/servicos/casos_de_uso/formato'
 import { baixarBlob } from '@/servicos/casos_de_uso/download'
@@ -71,6 +77,9 @@ const baixando = ref(false)
 const erroDownload = ref('')
 
 const ehRestrito = computed(() => props.arquivo?.nivel_acesso === NIVEL_ARQUIVO.RESTRITO)
+const ehArquivoGlobal = computed(
+  () => escopoDoArquivo(props.arquivo || {}) === ESCOPO_ARQUIVO.GLOBAL,
+)
 const rotuloNivel = computed(() => rotuloNivelArquivo(props.arquivo?.nivel_acesso))
 const rotuloTipo = computed(() => rotuloTipoArquivo(props.arquivo?.tipo) || '—')
 const dataFormatada = computed(() => formatarData(props.arquivo?.data_atualizacao))
@@ -114,12 +123,15 @@ async function baixar() {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: var(--espaco-sm);
   margin-bottom: var(--espaco-md);
 }
 .detalhe__titulo {
   margin: 0;
   font-size: var(--fonte-tamanho-lg);
+  flex: 1;
+  min-width: 0;
 }
 .detalhe__nivel {
   flex-shrink: 0;
@@ -127,6 +139,22 @@ async function baixar() {
   border-radius: 999px;
   font-size: var(--fonte-tamanho-sm);
   font-weight: 600;
+}
+.detalhe__global {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px var(--espaco-sm);
+  border-radius: 999px;
+  font-size: var(--fonte-tamanho-sm);
+  font-weight: 600;
+  color: var(--cor-primaria);
+  background: var(--cor-primaria-fundo, var(--cor-superficie));
+}
+.detalhe__global-icone {
+  width: 14px;
+  height: 14px;
 }
 .detalhe__nivel--publico {
   color: var(--cor-sucesso);

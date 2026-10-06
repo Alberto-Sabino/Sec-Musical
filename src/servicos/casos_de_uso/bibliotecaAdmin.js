@@ -16,31 +16,33 @@ import {
 import { ACAO_AUDITORIA_ARQUIVO } from '@/servicos/casos_de_uso/biblioteca'
 import { extensaoDoNome } from '@/servicos/casos_de_uso/regrasUpload'
 import { montarIdNuvem, inferirExtensao } from '@/servicos/casos_de_uso/bibliotecaCaminhos'
+import { escopoDoArquivo, ehGlobal } from '@/enums/escopoArquivos'
 
 // Cadastra um novo arquivo.
-// dados: { id_setor, tipo, titulo, nivel_acesso, id_usuario }
-// arquivo: File selecionado no uploader (já validado na camada de UI).
+// dados: { escopo, id_setor?, tipo, titulo, nivel_acesso, id_usuario }
+// (escopo 'global' ignora id_setor).
 export async function cadastrarArquivo(dados, arquivo) {
   if (!arquivo) {
     throw new Error('Selecione um arquivo para cadastrar.')
   }
 
-  const referencia = novaReferenciaArquivo()
-  const idArquivo = referencia.id
+  const escopo = dados.escopo
+  const idSetor = ehGlobal(escopo) ? null : dados.id_setor
+  const idArquivo = novaReferenciaArquivo().id
   const extensao = extensaoDoNome(arquivo.name)
   const idNuvem = montarIdNuvem({
-    idSetor: dados.id_setor,
+    escopo,
+    idSetor,
     nivelAcesso: dados.nivel_acesso,
     idArquivo,
     extensao,
   })
 
-  // 1) Storage primeiro.
   await enviarArquivo(idNuvem, arquivo)
 
-  // 2) Persistência dos metadados (inclui extensao_arquivo e tamanho_bytes).
   await criarArquivo(idArquivo, {
-    id_setor: dados.id_setor,
+    escopo,
+    id_setor: idSetor,
     tipo: dados.tipo,
     titulo: dados.titulo,
     nivel_acesso: dados.nivel_acesso,
@@ -50,31 +52,27 @@ export async function cadastrarArquivo(dados, arquivo) {
     tamanho_bytes: arquivo.size,
   })
 
-  // 3) Auditoria mínima.
   await registrarAuditoria(idArquivo, ACAO_AUDITORIA_ARQUIVO.CRIADO, dados.id_usuario)
 
   return { id_arquivo: idArquivo, id_nuvem: idNuvem }
 }
 
-// Atualiza um arquivo existente.
-// arquivoAtual: documento persistido (para conhecer id_nuvem/nivel/extensão atuais).
-// dados: metadados editáveis { tipo, titulo, nivel_acesso, id_usuario }.
-// novoArquivo: File opcional para substituição de conteúdo.
+// Atualiza um arquivo existente. Mudança de escopo/nível/setor pode alterar o
+// caminho (Spec 18): o id_nuvem é recalculado e o binário movido quando preciso.
+// novoArquivo: File opcional para substituir o conteúdo.
 export async function atualizarArquivoExistente(arquivoAtual, dados, novoArquivo) {
   const idArquivo = arquivoAtual.id_arquivo
-  const idSetor = arquivoAtual.id_setor
   const idUsuario = dados.id_usuario
-
-  // Extensão de destino: se há novo binário, vem dele; senão, preserva a atual (inferida).
+  const escopo = dados.escopo || escopoDoArquivo(arquivoAtual)
+  const idSetor = ehGlobal(escopo) ? null : dados.id_setor || arquivoAtual.id_setor
   const extensao = novoArquivo ? extensaoDoNome(novoArquivo.name) : inferirExtensao(arquivoAtual)
-
   const idNuvem = montarIdNuvem({
+    escopo,
     idSetor,
     nivelAcesso: dados.nivel_acesso,
     idArquivo,
     extensao,
   })
-
   const houveMudancaDeCaminho = idNuvem !== arquivoAtual.id_nuvem
 
   await sincronizarBinario({
@@ -84,22 +82,23 @@ export async function atualizarArquivoExistente(arquivoAtual, dados, novoArquivo
     houveMudancaDeCaminho,
   })
 
-  // Metadados: sempre atualiza id_nuvem/extensão; tamanho só muda com novo binário.
   const metadados = {
+    escopo,
+    id_setor: ehGlobal(escopo) ? null : idSetor,
     tipo: dados.tipo,
     titulo: dados.titulo,
     nivel_acesso: dados.nivel_acesso,
     id_nuvem: idNuvem,
     extensao_arquivo: extensao,
   }
+
   if (novoArquivo) {
     metadados.tamanho_bytes = novoArquivo.size
   }
-  await atualizarArquivo(idArquivo, metadados)
 
+  await atualizarArquivo(idArquivo, metadados)
   await registrarAuditoria(idArquivo, ACAO_AUDITORIA_ARQUIVO.ATUALIZADO, idUsuario)
 
-  // Remove o arquivo antigo do Storage se o caminho mudou.
   if (houveMudancaDeCaminho && arquivoAtual.id_nuvem) {
     await removerDoStorage(arquivoAtual.id_nuvem).catch(() => {})
   }
@@ -107,11 +106,8 @@ export async function atualizarArquivoExistente(arquivoAtual, dados, novoArquivo
   return { id_arquivo: idArquivo, id_nuvem: idNuvem }
 }
 
-// Garante que o binário esteja no caminho de destino antes de atualizar a referência.
-// - com novo binário: envia o arquivo selecionado;
-// - sem novo binário, mas caminho mudou: MOVE o binário real da origem para o destino
-//   (lê os bytes existentes e regrava); falha explicitamente se a origem não puder ser lida;
-// - sem novo binário e mesmo caminho: nada a fazer.
+// Garante o binário no destino antes de atualizar a referência:
+// novo binário → envia; sem binário mas caminho mudou → move; senão → nada.
 async function sincronizarBinario({
   idNuvemOrigem,
   idNuvemDestino,
@@ -122,6 +118,7 @@ async function sincronizarBinario({
     await enviarArquivo(idNuvemDestino, novoArquivo)
     return
   }
+
   if (houveMudancaDeCaminho) {
     await moverArquivo(idNuvemOrigem, idNuvemDestino)
   }

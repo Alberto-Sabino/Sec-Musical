@@ -49,6 +49,9 @@ export async function carregarContextoUsuario(idUsuario) {
   const nivelAcesso = documento.nivel_acesso
   const idsSetor = Array.isArray(documento.ids_setor) ? documento.ids_setor : []
   const ehAdmin = nivelAcesso === NIVEL_ADMIN
+  // Governança global (Spec 18): só vale para admin. Consistência: admin_global
+  // nunca é verdadeiro para nivel_acesso != 2.
+  const adminGlobal = ehAdmin && documento.admin_global === true
 
   // Usuário comum precisa de exatamente um setor; admin precisa de ao menos um.
   if (idsSetor.length === 0) {
@@ -65,6 +68,7 @@ export async function carregarContextoUsuario(idUsuario) {
     ativo: documento.ativo,
     ids_setor: idsSetor,
     ehAdmin,
+    admin_global: adminGlobal,
   }
 
   return { ok: true, motivo: null, contexto }
