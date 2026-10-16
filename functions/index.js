@@ -1,5 +1,5 @@
 // Cloud Functions (Spec 17 + Spec 18): sincroniza Custom Claims a partir de
-// usuarios/{uid}. Callable manual (não-trigger). Ver docs/claims-e-sincronizacao.md.
+// usuarios/{uid}. Callable manual (não-trigger). Ver docs/guias/claims-e-sincronizacao.md.
 import { initializeApp } from 'firebase-admin/app'
 import { getAuth } from 'firebase-admin/auth'
 import { getFirestore } from 'firebase-admin/firestore'

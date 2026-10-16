@@ -26,7 +26,7 @@ Ao final desta spec, o projeto deve ter:
 ## Pré-condições obrigatórias
 Só executar esta spec após considerar como base consolidada:
 - `README.md`
-- `docs/index-operacional-mvp.md`
+- `docs/README-docs.md`
 - `docs/master/documento-tecnico-mestre-portal-musical-mvp.md`
 - `docs/steering/steering-01.md`
 - `docs/steering/steering-02.md`

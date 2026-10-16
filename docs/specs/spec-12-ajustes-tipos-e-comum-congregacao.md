@@ -89,5 +89,5 @@ vocabulário operacional real.
 ## Documentação sincronizada
 - `docs/master/documento-tecnico-mestre-portal-musical-mvp.md` (contratos, nota do campo, tipos).
 - `docs/steering/steering-03.md` (contratos `usuarios` e `solicitacoes`).
-- `docs/piloto-seed-dados.md` (exemplo de usuário e tipo de arquivo).
+- `docs/guias/piloto-seed-dados.md` (exemplo de usuário e tipo de arquivo).
 - `README.md` (regra "descobrir antes de executar" + fluxo de testes via Docker).

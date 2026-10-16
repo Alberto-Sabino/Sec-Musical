@@ -26,14 +26,22 @@ Não inclui:
 ---
 
 ## Campos mínimos de criação
+Preenchidos pelo usuário:
 - `tipo`
-- `comentario`, quando aplicável dentro do limite
+- `nome_beneficiario` (exibido como "Pessoa afetada"); obrigatório e imutável após a criação
+- `descricao`; obrigatória, editável apenas enquanto `em_aberto`
+
+Denormalizados do contexto do usuário na criação:
+- `nome_solicitante`
+- `comum_congregacao` (igual ao valor do documento do próprio solicitante; imutável)
 
 Campos de sistema:
 - `id_setor`
 - `id_solicitante`
 - `status = em_aberto`
 - `id_responsavel = vazio`
+- `nome_responsavel = vazio`
+- `conclusao = vazia`
 - `id_nuvem = vazio`
 - `data_solicitacao`
 - `data_atualizacao`
@@ -44,7 +52,8 @@ Campos de sistema:
 - o usuário vê apenas solicitações em que `id_solicitante` é ele mesmo;
 - pode editar somente enquanto o status atual for `em_aberto`;
 - pode cancelar somente enquanto o status atual for `em_aberto`;
-- pode baixar o anexo final apenas quando a solicitação estiver `concluida`.
+- a `conclusao` (resposta do responsável) só fica visível quando a solicitação estiver `concluida`;
+- pode baixar o anexo final apenas quando a solicitação estiver `concluida`; esse anexo é legível somente pelo próprio solicitante.
 
 ---
 
@@ -67,9 +76,11 @@ Campos de sistema:
 
 ## Fluxo de edição
 - permitido apenas em `em_aberto`;
-- não pode definir `id_responsavel`;
-- não pode anexar `id_nuvem`;
-- não pode mudar para `em_andamento` nem `concluida`.
+- o usuário pode ajustar `tipo` e `descricao`;
+- `nome_beneficiario` e `comum_congregacao` são imutáveis após a criação;
+- não pode definir `id_responsavel` nem `nome_responsavel`;
+- não pode gravar `conclusao` nem `id_nuvem`;
+- não pode mudar para `em_andamento` nem `concluida` (apenas manter `em_aberto` ou cancelar).
 
 ---
 

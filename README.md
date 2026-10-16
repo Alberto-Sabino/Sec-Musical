@@ -19,9 +19,9 @@ Construir o **Portal Musical MVP** com execução disciplinada por IA, sem expan
 Em caso de dúvida, conflito ou ambiguidade, seguir esta ordem:
 
 1. `docs/master/documento-tecnico-mestre-portal-musical-mvp.md`
-2. `docs/specs/spec-09-execucao-operacional-sprint-1.md` ou `docs/specs/spec-10-execucao-operacional-sprint-2.md`
-3. `docs/apoio/` (Specs 01 a 08)
-4. `docs/steering/steering-01.md` até `docs/steering/steering-05.md`
+2. `docs/steering/steering-01.md` até `docs/steering/steering-05.md`
+3. `docs/specs/` — a spec mais específica do tema (01 a 19; 01–08 são as specs base de domínio)
+4. `docs/decisoes/status-execucao.md` (estado vivo do projeto)
 5. Código já existente no repositório
 
 Se houver conflito real entre documentos, **parar e pedir confirmação humana**.
@@ -32,37 +32,43 @@ Se houver conflito real entre documentos, **parar e pedir confirmação humana**
 
 Antes de implementar qualquer coisa, ler nesta ordem:
 
-1. `docs/index-operacional-mvp.md`
+1. `docs/README-docs.md` (índice e estado atual da documentação)
 2. `docs/master/documento-tecnico-mestre-portal-musical-mvp.md`
 3. `docs/steering/steering-01.md`
 4. `docs/steering/steering-02.md`
 5. `docs/steering/steering-03.md`
 6. `docs/steering/steering-04.md`
 7. `docs/steering/steering-05.md`
-8. `docs/specs/spec-09-execucao-operacional-sprint-1.md`
+8. `docs/decisoes/status-execucao.md` (o que já está pronto e o que falta)
+9. A(s) spec(s) específica(s) do tema em `docs/specs/`
 
-### Para Sprint 1
+### Estado atual do projeto
 
-Usar como apoio:
+O MVP está **funcional em produção** (Hosting, Auth, Firestore e regras de
+Storage publicados). As Sprints 1, 2 e 3 estão concluídas (Specs 09 a 16), além
+das Specs 17, 18 e 19. A **única pendência viva** é ativar o Cloud Billing
+(Blaze) para o Cloud Storage real e o deploy das Cloud Functions — runbook em
+`docs/guias/guia-publicacao-piloto.md` (§B).
 
-- `docs/apoio/apoio-note-21.md`
-- `docs/apoio/apoio-note-22.md`
-- `docs/apoio/apoio-note-23.md`
-- `docs/apoio/apoio-note-24.md`
-- `docs/apoio/apoio-note-25.md`
-- `docs/apoio/apoio-note-26.md`
-- `docs/apoio/apoio-note-27.md`
-- `docs/apoio/apoio-note-28.md`
+### Specs base de domínio (01 a 08)
 
-### Para Sprint 2
+As Specs 01 a 08 (em `docs/specs/`) continuam válidas como contrato funcional e
+técnico do domínio. Consultá-las ao mexer no tema correspondente:
 
-Só iniciar após fechamento real da Spec 09:
+- `docs/specs/spec-01-fundacao-tecnica-ambiente.md`
+- `docs/specs/spec-02-autenticacao-sessao-contexto.md`
+- `docs/specs/spec-03-design-system-base.md`
+- `docs/specs/spec-04-biblioteca-consulta-listagem-download.md`
+- `docs/specs/spec-05-biblioteca-admin-cadastro-auditoria.md`
+- `docs/specs/spec-06-solicitacoes-usuario.md`
+- `docs/specs/spec-07-solicitacoes-admin.md`
+- `docs/specs/spec-08-seguranca-auditoria-testes.md`
 
-- `docs/specs/spec-10-execucao-operacional-sprint-2.md`
+### Execução histórica das Sprints
 
-### Melhoria de infraestrutura local
-
-- `docs/specs/spec-11-melhoria-infraestrutura-local.md`
+As Specs 09 (Sprint 1) e 10 (Sprint 2) descrevem os lotes de execução e estão
+**concluídas**. Novas evoluções entram como specs próprias (padrão das Specs 11
+a 19).
 
 ---
 
@@ -134,10 +140,10 @@ Antes de alterar código, o Kiro deve:
 
 ### Regras de ambiente e execução (ler antes de rodar qualquer comando)
 
-- **Descobrir antes de executar**: para saber como algo roda (build, testes, emuladores, ambiente), consultar primeiro este README, os `docs/steering/` e as `docs/specs/` (especialmente `docs/setup-local.md`). Nunca começar tentando executar código ou instalar dependências para "descobrir".
+- **Descobrir antes de executar**: para saber como algo roda (build, testes, emuladores, ambiente), consultar primeiro este README, os `docs/steering/` e as `docs/specs/` (especialmente `docs/guias/setup-local.md`). Nunca começar tentando executar código ou instalar dependências para "descobrir".
 - **Não instalar dependências de sistema** (ex.: Java/JRE) no host. O ambiente já está provisionado.
 - **Emuladores Firebase**: rodam no **Docker do usuário** e normalmente já estão em execução. Não iniciar/instalar emuladores no host.
-- **Testes de regras (Firestore)**: executam em container isolado, conforme `docs/setup-local.md`:
+- **Testes de regras (Firestore)**: executam em container isolado, conforme `docs/guias/setup-local.md`:
   ```bash
   docker build -f Dockerfile.rules-test -t portal-musical-rules-test .
   docker run --rm portal-musical-rules-test
@@ -251,7 +257,36 @@ Uma entrega só conta como pronta se:
 - não depender de operação manual escondida;
 - tiver tratamento mínimo de erro;
 - não expuser ação que a regra não permite;
-- estiver validada no contexto local aplicável.
+- estiver validada no contexto local aplicável;
+- tiver a documentação alinhada conforme a regra abaixo.
+
+## Regra de alinhamento da documentação
+
+Ao fim de **toda nova spec** e de **toda nova implementação**, atualizar a
+documentação para refletir o estado real do projeto, sem contradições nem
+informação falsa. Antes de considerar a entrega concluída:
+
+1. **Spec específica** — registrar/atualizar a spec do tema em `docs/specs/`.
+2. **Contrato e segurança** — se mudaram campos, coleções, status, `id_nuvem`,
+   regras de acesso ou modelo de autorização, refletir no documento mestre
+   (`docs/master/`) e no `docs/steering/steering-03.md`.
+3. **Steering** — se a decisão muda arquitetura, protocolo ou UX transversal,
+   refletir no steering correspondente.
+4. **Estado vivo** — registrar o resultado em `docs/decisoes/status-execucao.md`
+   (curto e factual) e, se afetar leitura/estrutura, no `docs/README-docs.md`.
+
+Formato obrigatório da documentação:
+
+- voz única, descritiva e no presente; sem trechos de "decisão superada" soltos
+  na parte ativa de um documento (histórico vai para a spec de execução datada);
+- citar nomes reais de campos, caminhos e arquivos (sem placeholders que já têm
+  valor definido);
+- a precedência é documento mestre → steering → spec específica → código; em
+  conflito real, **parar e pedir confirmação humana** em vez de inventar.
+
+A documentação não pode afirmar o que o código ou o estado de produção não
+sustentam. Se a spec mais específica diverge do mestre/steering, o código e a
+spec prevalecem — e o mestre/steering devem ser atualizados na mesma entrega.
 
 ## Regra final
 

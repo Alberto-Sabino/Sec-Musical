@@ -26,15 +26,19 @@ Não inclui:
 ---
 
 ## Regras de acesso
+Cada arquivo tem um `escopo`: `setor` (recortado por `id_setor`) ou `global`
+(do sistema, visível em todos os setores). O `nivel_acesso` (1 público / 2
+restrito) é independente do escopo.
+
 ### Usuário
-Pode ver apenas:
-- arquivos do próprio setor;
-- com `nivel_acesso = 1`.
+Pode ver:
+- arquivos de `nivel_acesso = 1` do próprio setor;
+- arquivos de `nivel_acesso = 1` globais.
 
 ### Admin
 Pode ver:
-- arquivos do setor ativo;
-- com `nivel_acesso = 1` e `nivel_acesso = 2`.
+- arquivos de `nivel_acesso = 1` e `2` do setor ativo;
+- arquivos de `nivel_acesso = 1` e `2` globais.
 
 ---
 
@@ -95,8 +99,9 @@ No MVP, o detalhe pode ser uma página simples ou um painel/modal, desde que man
 ---
 
 ## Critérios de aceite
-- Usuário vê apenas arquivos públicos do próprio setor;
-- Admin vê arquivos públicos e restritos do setor ativo;
+- Usuário vê arquivos públicos do próprio setor e os públicos globais;
+- Admin vê arquivos públicos e restritos do setor ativo e os globais;
+- a listagem indica quando um arquivo é global;
 - o filtro por tipo funciona corretamente;
 - a ordenação por atualização funciona;
 - o download usa a referência salva em `id_nuvem`;

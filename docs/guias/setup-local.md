@@ -82,4 +82,5 @@ Os testes ficam em `tests/regras/` e validam cenários permitidos e bloqueados d
 
 ## Estado atual
 - Arquivos (upload/download) usam o **Storage real via SDK** apontando para o **Storage emulator** local (modo `emulador`), sem exigir Billing. O Storage de **produção** segue pendente de Billing.
-- Acompanhar progresso por lote em `docs/status-execucao.md`.
+- Este ambiente é de ensaio local; não substitui a validação real contra o Storage de produção.
+- Acompanhar progresso por lote em `docs/decisoes/status-execucao.md`.

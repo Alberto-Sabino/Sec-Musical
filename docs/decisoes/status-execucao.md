@@ -17,7 +17,7 @@ Não registrar intenção como se fosse entrega concluída.
 - **Pendência aberta (Billing/Blaze):** ativar a Conta Billing para habilitar o **Cloud Storage real** (bucket) e o **deploy das Cloud Functions** (`syncClaimsFromUsuario`). Enquanto isso, operações de arquivo rodam contra o **Storage emulator** local (modo `emulador`) e os claims são injetados pelo seeder.
 
 ### Pendência aberta (Billing/Blaze)
-- **Cloud Storage real + Cloud Functions:** ativar Billing e seguir o runbook de deploy restante em `docs/guia-publicacao-piloto.md` (§B: regras de Storage, deploy de `functions`, sincronização de claims, CORS do bucket; §C: validações manuais). As `storage.rules` (endurecidas na Spec 17) já estão publicadas, mas só vigoram de fato com o bucket real + claims sincronizados. Inclui a validação do **envio real de e-mail de redefinição de senha** (template do Firebase Auth). Tudo mais já está funcional em produção.
+- **Cloud Storage real + Cloud Functions:** ativar Billing e seguir o runbook de deploy restante em `docs/guias/guia-publicacao-piloto.md` (§B: regras de Storage, deploy de `functions`, sincronização de claims, CORS do bucket; §C: validações manuais). As `storage.rules` (endurecidas na Spec 17) já estão publicadas, mas só vigoram de fato com o bucket real + claims sincronizados. Inclui a validação do **envio real de e-mail de redefinição de senha** (template do Firebase Auth). Tudo mais já está funcional em produção.
 
 ### Spec 13 — Shell autenticado, navegação global e orientação inicial
 - Status: aplicado (produção)
@@ -39,7 +39,7 @@ Não registrar intenção como se fosse entrega concluída.
 
 ### Analytics — Eventos GA4
 - Status: aplicado (produção)
-- Resultado: instrumentação GA4 com fonte única de nomes (`src/enums/eventosAnalytics.js`) e disparo central `dispararEvento` (`src/servicos/firebase/analytics.js`); rastreio de navegação por tela (`src/servicos/casos_de_uso/analyticsNavegacao.js`, integrado ao `router/guards.js`); eventos de conversão/conclusão de fluxo; documentação em `docs/analytics-eventos.md`
+- Resultado: instrumentação GA4 com fonte única de nomes (`src/enums/eventosAnalytics.js`) e disparo central `dispararEvento` (`src/servicos/firebase/analytics.js`); rastreio de navegação por tela (`src/servicos/casos_de_uso/analyticsNavegacao.js`, integrado ao `router/guards.js`); eventos de conversão/conclusão de fluxo; documentação em `docs/guias/analytics-eventos.md`
 - Comportamento: só envia dados quando `VITE_APP_MODE=producao`; em `emulador` os eventos são ignorados silenciosamente (sem chamadas de rede)
 - Validação: `npm run build` OK; `npm run test:unit` OK (`tests/unit/analyticsNavegacao.test.js`)
 - Pendências: nenhuma
@@ -98,7 +98,7 @@ Não registrar intenção como se fosse entrega concluída.
   - **Frontend/sessão:** `onIdTokenChanged` + leitura de claims (`getIdTokenResult`) + utilitário de refresh e wrapper da callable (`repositorioAutenticacao.js`, `usarSessao.js`).
   - **Seeder:** `scripts/seed-emulador.mjs` injeta os claims no Auth emulator (REST `accounts:update`), para o dev rodar com as MESMAS rules de produção.
   - **Testes:** `tests/regras/storage.test.js` reescrito simulando claims (admin/comum/solicitante/inativo e setores).
-  - **Docs:** `docs/claims-e-sincronizacao.md` (claims, sync, refresh, debug, melhoria futura).
+  - **Docs:** `docs/guias/claims-e-sincronizacao.md` (claims, sync, refresh, debug, melhoria futura).
 - Decisões humanas: D1 implementar Functions (Billing em breve); D2 qualquer admin sincroniza qualquer uid (melhoria futura registrada); D3 rules endurecidas únicas (prod=dev) + seeder injeta claims (dados locais podem ser recriados).
 - Validação: `npm run test:unit` OK; testes de regras (Docker) OK; `npm run build` OK.
 - Pendências: deploy de `functions` e publicação das `storage.rules` em produção seguem na pendência única (Billing/Blaze); melhoria futura: restringir sync por setor do admin executor.
@@ -193,7 +193,7 @@ Não registrar intenção como se fosse entrega concluída.
 
 ### Lote 9 — Publicação e piloto inicial
 - Status: concluído (publicado em produção)
-- Resultado: guia passo a passo (`docs/guia-publicacao-piloto.md`), indicadores, seed de dados e script de emulador; Hosting, Firestore (regras/índices) e Authentication publicados e funcionais em produção
+- Resultado: guia passo a passo (`docs/guias/guia-publicacao-piloto.md`), indicadores, seed de dados e script de emulador; Hosting, Firestore (regras/índices) e Authentication publicados e funcionais em produção
 - Validação: `npm run build` OK (gera dist/); Hosting/Firestore/Auth operando em produção
 - Pendências: apenas Cloud Storage em produção (Billing) — ver "Pendência única" no topo
 

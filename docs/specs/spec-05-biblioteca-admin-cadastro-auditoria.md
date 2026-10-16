@@ -24,7 +24,8 @@ Não inclui:
 ---
 
 ## Campos mínimos do cadastro
-- `id_setor`
+- `escopo` (`setor` ou `global`)
+- `id_setor` (apenas quando `escopo = setor`)
 - `tipo`
 - `titulo`
 - `nivel_acesso`
@@ -41,8 +42,10 @@ Campos de sistema:
 
 ## Regras de acesso
 - somente Admin pode acessar esta experiência;
-- o Admin só pode operar sobre arquivos do setor ativo e dos setores aos quais pertence;
-- o `id_nuvem` deve respeitar o padrão definido para biblioteca;
+- sobre arquivos de setor: o Admin só opera nos setores aos quais pertence (setor ativo);
+- sobre arquivos globais: somente Admin com `admin_global` pode criar, editar ou remover; os demais admins só criam arquivos restritos ao setor ativo;
+- arquivos globais não gravam `id_setor`;
+- o `id_nuvem` deve respeitar o padrão definido para a biblioteca (por setor ou global);
 - o fluxo de upload deve concluir no Storage antes da persistência final no Firestore.
 
 ---

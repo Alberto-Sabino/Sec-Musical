@@ -99,37 +99,24 @@ Somente se surgir necessidade real de:
 - operações privilegiadas fora do alcance confortável das regras;
 - saneamento automatizado recorrente.
 
-## Regra de infraestrutura trocável
-Integrações externas e recursos de plataforma devem ser acessados por camada de infraestrutura trocável.
+## Camada de infraestrutura de arquivos
+Integrações externas e recursos de plataforma são acessados por uma camada de
+infraestrutura isolada.
 
 ### Diretriz
-A UI não fala diretamente com implementações concretas de arquivo.
-Os casos de uso consomem interfaces estáveis.
-A infraestrutura pode ter mais de uma implementação, desde que preserve assinatura, contrato e comportamento esperado.
+A UI não fala diretamente com o SDK de arquivos. Os casos de uso consomem uma
+interface estável; a infraestrutura concentra o acesso ao Cloud Storage.
 
-### Aplicação obrigatória neste MVP
-> Decisão superada (registro histórico): a implementação `mock` foi removida. A infra de arquivos tem uma única implementação real (`firebase.js`), com destino (emulador vs produção) selecionado por `VITE_APP_MODE`. Ver documento mestre e `docs/specs/spec-11-melhoria-infraestrutura-local.md`.
-
-Para operações de arquivo, prever:
-- implementação `mock`
-- implementação `firebase`
-
-### Regra de troca
-A seleção da implementação deve ocorrer por configuração do projeto, sem bifurcação espalhada na UI.
-
-## Seleção de infraestrutura
-Operações de arquivo devem ser resolvidas por configuração central do projeto.
-
-Exemplo esperado:
-- `mock`
-- `firebase`
-
-A troca de implementação não deve exigir alteração em componentes visuais nem em casos de uso.
+### Implementação única
+As operações de arquivo têm uma única implementação real (SDK do Storage). O
+destino — emulador em desenvolvimento, Storage de produção quando houver Billing
+— é selecionado por `VITE_APP_MODE`, de forma central, sem bifurcação espalhada
+pela UI nem contrato diferente por ambiente.
 
 ### Proibição
-- não espalhar `if mock` dentro de componentes visuais;
+- não espalhar seleção de ambiente dentro de componentes visuais;
 - não duplicar regra de negócio por causa da infraestrutura;
-- não criar contrato diferente entre mock e firebase.
+- não variar o contrato de arquivos entre ambientes.
 
 ## Diretrizes para o Kiro
 Ao gerar arquitetura ou código:

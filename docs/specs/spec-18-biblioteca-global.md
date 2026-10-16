@@ -226,7 +226,7 @@ Parar se precisar:
 - `storage.rules`
 - `functions/index.js`
 - `tests/regras/*`
-- `docs/claims-e-sincronizacao.md`
+- `docs/guias/claims-e-sincronizacao.md`
 
 # Continuação
 — UI: indicador de arquivo global + gating de ações + guard de edição (admin_global)

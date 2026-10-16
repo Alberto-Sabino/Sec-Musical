@@ -28,35 +28,46 @@ Não inclui:
 
 ---
 
+## Fontes de autorização
+- o Firestore autoriza pelo documento `usuarios/{uid}`, lido pelas próprias regras;
+- o Storage autoriza por Custom Claims no token (`ativo`, `nivel_acesso`, `ids_setor`, `admin_global`), porque as regras de Storage não leem o Firestore;
+- os claims espelham `usuarios/{uid}`: sincronizados em produção e injetados pelo seeder no ambiente local.
+
+---
+
 ## Segurança em Firestore
 ### `usuarios`
 - autenticado lê apenas o próprio documento;
-- cliente não altera `nivel_acesso`, `ids_setor` e `ativo`.
+- cliente não cria nem altera (sem escrita), impedindo mudar `nivel_acesso`, `ids_setor`, `ativo` e `admin_global`.
+
+### `setores`
+- leitura apenas por usuário ativo que pertence ao setor (para exibir o nome);
+- sem escrita pelo cliente.
 
 ### `arquivos`
-- Usuário lê apenas arquivos públicos do próprio setor;
-- Admin lê arquivos públicos e restritos dos próprios setores;
-- somente Admin cria, atualiza e remove arquivos do próprio contexto.
+- escopo `setor`: usuário ativo do setor lê `nivel_1`; `nivel_2` só admin;
+- escopo `global`: qualquer usuário ativo lê `nivel_1`; `nivel_2` só admin;
+- arquivos de setor: criados, atualizados e removidos só por admin do setor;
+- arquivos globais: criados, atualizados e removidos só por admin com `admin_global`, sem `id_setor`.
 
 ### `solicitacoes`
 - Usuário lê apenas as próprias solicitações;
-- Usuário cria solicitação apenas no próprio setor e com estado inicial correto;
+- Usuário cria solicitação apenas no próprio setor, com estado inicial correto e `comum_congregacao`/`nome_beneficiario`/`descricao` válidos;
 - Usuário edita ou cancela apenas em `em_aberto`;
-- Admin lê e atualiza solicitações dos próprios setores;
-- Admin respeita transições válidas de status.
+- Admin lê e trata solicitações dos próprios setores, respeitando as transições válidas;
+- uma vez assumida (`em_andamento`), só o responsável que assumiu pode alterá-la.
 
 ---
 
 ## Segurança em Storage
 ### Biblioteca
-- Usuário comum lê apenas `nivel_1` do próprio setor;
-- Admin lê `nivel_1` e `nivel_2` dos próprios setores;
-- apenas Admin envia, substitui ou remove arquivos da biblioteca.
+- escopo setor: usuário ativo do setor lê `nivel_1`; `nivel_2` só admin; escrita/remoção só por admin do setor;
+- escopo global: usuário ativo lê `nivel_1`; `nivel_2` só admin; escrita/remoção só por `admin_global`;
+- validação de MIME (PDF/XLSX) e teto de tamanho.
 
 ### Solicitações
-- Usuário comum lê apenas o anexo final das próprias solicitações concluídas;
-- Admin lê anexos de solicitações dos setores em que atua;
-- apenas Admin envia o anexo final.
+- o anexo final (`resposta.pdf`) é legível **somente pelo solicitante** — nem o admin lê;
+- apenas o admin do setor envia o anexo final (PDF até 2 MB).
 
 ---
 

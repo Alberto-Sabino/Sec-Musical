@@ -73,20 +73,39 @@ Pedir confirmação antes de:
 - misturar regra de negócio com código visual sem necessidade;
 - reaproveitar componente inadequado apenas para “forçar” reutilização.
 
-## Regra operacional quando Billing estiver ausente
-Se Cloud Storage for Firebase não puder ser usado por ausência de Billing/Blaze, o Kiro deve:
-> Decisão superada (registro histórico): a "versão simulada" foi substituída pelo Storage real via emulador local. Mantém-se a diretriz de não declarar o Storage de produção concluído. Ver `docs/specs/spec-11-melhoria-infraestrutura-local.md`.
+## Regra de alinhamento da documentação
+Ao fim de **toda nova spec** e de **toda nova implementação**, o Kiro deve
+atualizar a documentação para refletir o estado real, sem contradições nem
+informação falsa, antes de considerar a entrega concluída:
 
-- seguir com UI, Auth, Firestore e fluxo;
-- criar camada de infraestrutura de arquivos com interface estável;
-- implementar versão simulada isolada;
-- preservar contrato de dados e formato de `id_nuvem`;
-- registrar explicitamente que Storage real e regras de Storage continuam pendentes.
+- registrar/atualizar a spec do tema em `docs/specs/`;
+- refletir no documento mestre e em `steering-03` qualquer mudança de contrato,
+  coleção, status, `id_nuvem`, regra de acesso ou modelo de autorização;
+- refletir no steering correspondente mudanças de arquitetura, protocolo ou UX
+  transversal;
+- registrar o resultado em `docs/decisoes/status-execucao.md` (curto e factual).
+
+Manter voz única e descritiva no presente; não deixar trechos de "decisão
+superada" soltos na parte ativa de um documento (histórico vai para a spec de
+execução datada); citar nomes reais de campos e caminhos. A documentação não pode
+afirmar o que o código ou o estado de produção não sustentam. Detalhe completo
+desta regra no `README.md` ("Regra de alinhamento da documentação").
+
+## Regra operacional quando Billing estiver ausente
+Enquanto o Cloud Storage de produção não puder ser usado por ausência de
+Billing/Blaze, o Kiro deve:
+
+- seguir com UI, Auth, Firestore e fluxo normalmente;
+- executar as operações de arquivo de forma real contra o Storage emulator local;
+- manter o acesso a arquivos pela camada de infraestrutura isolada, com interface estável;
+- preservar o contrato de dados e o formato oficial de `id_nuvem`;
+- registrar explicitamente que o Storage de produção e suas regras seguem pendentes.
 
 O Kiro não deve:
-- bloquear a sprint por ausência de Storage, se houver caminho mock controlado;
-- declarar lote concluído como definitivo quando ele depender de validação real de Storage;
-- introduzir campos ou fluxos temporários para sustentar a simulação.
+
+- declarar o Storage de produção validado ou suas regras testadas;
+- declarar concluído, de forma definitiva, um lote que dependa da validação real do Storage de produção;
+- introduzir campos ou fluxos temporários no Firestore para contornar a ausência de Billing.
 
 ## Resultado esperado
 O Kiro deve operar como acelerador disciplinado do projeto: rápido na execução, mas restrito por specs, steering e revisão humana.

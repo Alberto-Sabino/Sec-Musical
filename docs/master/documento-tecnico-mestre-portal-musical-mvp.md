@@ -178,10 +178,15 @@ Campos principais:
 - `celular`
 - `comum_congregacao`
 - `nivel_acesso`
+- `admin_global`
 - `ativo`
 - `ids_setor`
 - `data_criacao`
 - `data_atualizacao`
+
+> `admin_global` (booleano) habilita a governança da Biblioteca Global. Só é
+> válido para admin (`nivel_acesso == 2`); para qualquer outro perfil o valor é
+> tratado como `false`. A sincronização de claims força essa consistência.
 
 ### Coleção `setores`
 Campos principais:
@@ -195,6 +200,7 @@ Campos principais:
 Campos principais:
 - `id_arquivo`
 - `id_setor`
+- `escopo`
 - `tipo`
 - `titulo`
 - `nivel_acesso`
@@ -202,6 +208,11 @@ Campos principais:
 - `id_usuario`
 - `data_inclusao`
 - `data_atualizacao`
+
+> `escopo` define o alcance do arquivo: `setor` (recortado por `id_setor`) ou
+> `global` (visível em todos os setores, do sistema). Arquivos globais não gravam
+> `id_setor` e só podem ser criados, alterados ou removidos por admin com
+> `admin_global`. Arquivos sem o campo são tratados como `setor`.
 
 ### Coleção `solicitacoes`
 Campos principais:
@@ -251,6 +262,10 @@ Campos principais:
 ## 10. Convenção de arquivos e `id_nuvem` ### Biblioteca - `biblioteca/{id_setor}/nivel_1/{id_arquivo}`
 - `biblioteca/{id_setor}/nivel_2/{id_arquivo}`
 
+### Biblioteca Global
+- `biblioteca_global/nivel_1/{id_arquivo}`
+- `biblioteca_global/nivel_2/{id_arquivo}`
+
 ### Solicitações
 - `solicitacoes/{id_setor}/{id_solicitante}/{id_solicitacao}/resposta`
 
@@ -263,9 +278,9 @@ Campos principais:
 ---
 
 ## Modo transitório de execução sem Cloud Storage de produção
-Enquanto o projeto estiver sem Cloud Billing habilitado para o Cloud Storage for Firebase de produção, as operações de arquivo são executadas de forma **real** contra o **Storage emulator local**, que não exige Billing. Não há camada simulada (mock).
+Enquanto o projeto estiver sem Cloud Billing habilitado para o Cloud Storage de produção, as operações de arquivo são executadas de forma **real** contra o **Storage emulator local**, que não exige Billing. Não há camada simulada.
 
-> Decisão atual (supera a estratégia de mock): como o desenvolvimento e o login dependem dos emuladores, a infraestrutura de arquivos usa o SDK real do Storage. Em desenvolvimento aponta para o emulador; em produção apontará para o Storage real (pendente de Billing). A antiga camada mock foi removida.
+A infraestrutura de arquivos usa o SDK real do Storage e tem uma única implementação. Em desenvolvimento aponta para o emulador; em produção apontará para o Storage real, pendente de Billing. A seleção de destino fica isolada na camada de infraestrutura, controlada por `VITE_APP_MODE`.
 
 ### Regras deste modo transitório
 - a interface e os casos de uso permanecem iguais ao modo final;
@@ -301,15 +316,26 @@ Permitir avanço do desenvolvimento com operações de arquivo reais (via emulad
 - usar Firestore e Storage como fonte real de proteção;
 - impedir que o cliente se promova ou altere permissões críticas.
 
+### Fontes de autorização
+- o Firestore autoriza pelo documento `usuarios/{uid}`, lido pelas próprias
+  regras do Firestore;
+- o Storage autoriza por Custom Claims no token (`ativo`, `nivel_acesso`,
+  `ids_setor`, `admin_global`), porque as regras de Storage não leem o Firestore;
+- os claims espelham o documento `usuarios/{uid}` e são provisionados pela
+  sincronização oficial; em ambiente local, injetados pelo seeder.
+
 ### Regras essenciais
 - autenticado lê apenas o próprio documento em `usuarios`;
 - leitura de `setores` permitida a usuário ativo que pertence ao setor (apenas para exibir o nome; sem escrita pelo cliente);
-- cliente não altera `nivel_acesso`, `ids_setor` ou `ativo`;
-- Usuário vê apenas biblioteca pública do próprio setor;
-- Admin vê biblioteca pública e restrita dos próprios setores;
-- Usuário vê apenas suas solicitações;
-- Admin vê solicitações dos setores em que atua;
-- apenas Admin envia arquivos para biblioteca e anexo final de solicitações.
+- cliente não altera `nivel_acesso`, `ids_setor`, `ativo` nem `admin_global`;
+- Usuário vê apenas a biblioteca pública do próprio setor e as globais públicas;
+- Admin vê a biblioteca pública e restrita dos próprios setores e as globais;
+- arquivos globais só podem ser criados, alterados ou removidos por admin com `admin_global`;
+- arquivos de setor só podem ser mantidos por admin do próprio setor;
+- Usuário vê apenas as próprias solicitações;
+- Admin vê e trata solicitações dos setores em que atua;
+- o anexo final da solicitação é legível apenas pelo próprio solicitante (nem o admin lê); apenas o admin do setor o envia;
+- uma vez assumida, a solicitação só pode ser alterada pelo responsável que a assumiu.
 
 ### Proteção operacional
 - arquivos não serão públicos;
@@ -347,7 +373,7 @@ Permitir avanço do desenvolvimento com operações de arquivo reais (via emulad
 1. montar caminho final
 2. enviar arquivo ao Storage
 3. atualizar solicitação com `id_nuvem`
-4. gravar comentário, se houver
+4. gravar `conclusao`, se houver
 5. concluir solicitação
 
 ---

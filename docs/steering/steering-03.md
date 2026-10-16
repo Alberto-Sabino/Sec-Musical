@@ -5,9 +5,9 @@ Manter toda implementação aderente ao contrato de dados, às regras de acesso 
 
 ## Fonte de verdade
 Usar como referência principal:
-- Contrato de dados v1
-- Regras de acesso e autorização — MVP
-- Base para specs — Firebase, arquivos, regras e fluxos do MVP
+- o documento técnico mestre (contrato de dados e segurança);
+- as specs de domínio e de segurança (`docs/specs/`);
+- as regras publicadas (`firestore.rules` e `storage.rules`).
 
 ## Princípios obrigatórios
 - negar tudo por padrão;
@@ -35,6 +35,7 @@ Usar como referência principal:
 - `celular`
 - `comum_congregacao`
 - `nivel_acesso`
+- `admin_global`
 - `ativo`
 - `ids_setor`
 - `data_criacao`
@@ -43,6 +44,7 @@ Usar como referência principal:
 ### `arquivos`
 - `id_arquivo`
 - `id_setor`
+- `escopo`
 - `tipo`
 - `titulo`
 - `nivel_acesso`
@@ -57,11 +59,13 @@ Usar como referência principal:
 - `id_solicitante`
 - `nome_solicitante`
 - `comum_congregacao`
+- `nome_beneficiario`
 - `id_responsavel`
 - `nome_responsavel`
 - `tipo`
 - `status`
-- `comentario`
+- `descricao`
+- `conclusao`
 - `id_nuvem`
 - `data_solicitacao`
 - `data_atualizacao`
@@ -80,45 +84,47 @@ Usar como referência principal:
 
 ### Usuário
 - lê apenas o próprio documento em `usuarios`;
-- lê apenas arquivos públicos do próprio setor;
-- cria solicitação apenas em seu setor;
+- lê os arquivos públicos do próprio setor e os arquivos públicos globais;
+- cria solicitação apenas no próprio setor;
 - lê apenas as próprias solicitações;
-- edita ou cancela apenas se estiver `em_aberto`;
+- edita ou cancela apenas enquanto `em_aberto`;
 - não define `id_responsavel`;
-- não grava `id_nuvem` em solicitação.
+- não grava `id_nuvem` na solicitação;
+- baixa o anexo final apenas das próprias solicitações; ninguém mais o lê.
 
 ### Admin
 - lê apenas o próprio documento de usuário;
 - opera apenas nos setores presentes em `ids_setor`;
-- pode criar, atualizar e remover arquivos do próprio contexto;
-- pode ver fila de solicitações do setor ativo;
-- pode assumir, comentar, anexar e concluir solicitações;
-- não pode operar fora do setor ao qual pertence.
+- cria, atualiza e remove arquivos de setor do próprio contexto;
+- cria, atualiza e remove arquivos globais apenas com `admin_global`;
+- vê a fila de solicitações do setor ativo;
+- assume, responde, anexa e conclui solicitações do próprio setor;
+- uma vez assumida a solicitação, apenas o responsável que a assumiu pode alterá-la;
+- não lê o anexo final da solicitação (restrito ao solicitante);
+- não opera fora dos setores aos quais pertence.
 
 ## Contrato oficial de `id_nuvem` ### Biblioteca - `biblioteca/{id_setor}/nivel_1/{id_arquivo}.pdf`
 - `biblioteca/{id_setor}/nivel_2/{id_arquivo}.pdf`
 
+### Biblioteca Global
+- `biblioteca_global/nivel_1/{id_arquivo}.pdf`
+- `biblioteca_global/nivel_2/{id_arquivo}.pdf`
+
 ### Solicitações
 - `solicitacoes/{id_setor}/{id_solicitante}/{id_solicitacao}/resposta.pdf`
 
-## Regra de segurança durante uso de mock
-> Decisão superada (registro histórico): não há mais mock de arquivos; a infra usa o Storage real via emulador local. As regras de segurança abaixo permanecem válidas em espírito — o Storage de **produção** e suas regras continuam pendentes de Billing e não devem ser declarados concluídos. Ver `docs/specs/spec-11-melhoria-infraestrutura-local.md`.
+## Autorização por camada
+O Firestore autoriza pelo documento `usuarios/{uid}`, lido pelas próprias regras.
+O Storage autoriza por Custom Claims no token (`ativo`, `nivel_acesso`,
+`ids_setor`, `admin_global`), porque as regras de Storage não leem o Firestore.
+Os claims espelham o documento `usuarios/{uid}`: provisionados pela sincronização
+oficial em produção e injetados pelo seeder no ambiente local, de modo que
+desenvolvimento e produção usam a mesma versão de regra.
 
-Mock de arquivo não substitui segurança real.
-
-### Regras
-- toda validação de Storage permanece pendente até implementação Firebase real;
-- mocks não autorizam criação de campos extras;
-- mocks não autorizam URLs públicas persistidas;
-- mocks não autorizam flexibilização de perfil, setor ou status;
-- resultados simulados devem respeitar o mesmo contrato que será exigido no ambiente real.
-
-### Registro correto de status
-Enquanto houver mock:
-- upload real: não validado
-- download real: não validado
-- regras de Storage: não validadas
-- segurança de arquivos: parcialmente pendente
+O Storage de **produção** e suas regras permanecem pendentes de Cloud Billing e
+não devem ser declarados concluídos. Em desenvolvimento, as operações de arquivo
+são reais contra o Storage emulator local, respeitando o mesmo contrato de dados
+e o formato oficial de `id_nuvem`.
 
 ## Fluxos críticos obrigatórios
 ### Cadastro de arquivo
@@ -139,7 +145,7 @@ Enquanto houver mock:
 1. montar `id_nuvem`
 2. enviar arquivo ao Storage
 3. atualizar `id_nuvem`
-4. atualizar comentário, se houver
+4. gravar `conclusao`, se houver
 5. concluir solicitação
 
 ## Regras para o Kiro

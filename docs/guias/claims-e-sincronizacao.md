@@ -130,7 +130,7 @@ Admin SDK usa), sem precisar do Admin SDK no host. Se recriar usuários, rode o 
 novamente para reinjetar os claims.
 
 > Como ainda não há piloto implantado, os dados locais podem ser descartados e
-> recriados do zero (sandbox). Ver `docs/setup-local.md`.
+> recriados do zero (sandbox). Ver `docs/guias/setup-local.md`.
 
 ---
 

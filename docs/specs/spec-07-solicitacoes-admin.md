@@ -1,4 +1,4 @@
-# Spec 07 — Solicitações admin: fila, tratamento, comentário, anexo final e conclusão
+# Spec 07 — Solicitações admin: fila, tratamento, resposta, anexo final e conclusão
 
 ## Objetivo
 Permitir que o Admin trate as solicitações do setor dentro da plataforma, com fluxo controlado, rastreável e consistente.
@@ -14,7 +14,7 @@ Inclui:
 - filtro por status;
 - detalhe administrativo da solicitação;
 - assumir solicitação;
-- comentário público;
+- resposta ao solicitante (`conclusao`);
 - upload do anexo final;
 - conclusão;
 - cancelamento operacional.
@@ -30,8 +30,10 @@ Não inclui:
 ## Regras de acesso
 - o Admin vê apenas solicitações de setores aos quais pertence;
 - a interface deve operar com um setor ativo por vez;
-- apenas Admin pode assumir, comentar, anexar resposta final, concluir ou cancelar operacionalmente;
-- o anexo final deve seguir o padrão de `id_nuvem` definido para solicitações.
+- apenas Admin pode assumir, responder, anexar resposta final, concluir ou cancelar operacionalmente;
+- uma vez assumida, a solicitação só pode ser alterada pelo responsável que a assumiu;
+- o anexo final segue o padrão de `id_nuvem` definido para solicitações;
+- o Admin envia o anexo final, mas **não o lê**: o download é restrito ao próprio solicitante.
 
 ---
 
@@ -49,14 +51,18 @@ Não inclui:
 - ao assumir, o sistema grava:
 - `status = em_andamento`
 - `id_responsavel = admin atual`
+- `nome_responsavel = nome do admin atual`
 - `data_atualizacao`
+- a partir daí, somente esse responsável pode tratar a solicitação.
 
 ---
 
-## Fluxo de comentário público
-- o Admin pode registrar comentário visível ao Usuário;
-- o comentário compõe a comunicação oficial daquela solicitação;
-- o limite de tamanho deve respeitar o contrato definido para o MVP.
+## Fluxo de resposta (`conclusao`)
+- o responsável registra a resposta no campo `conclusao`;
+- a `conclusao` só pode ser gravada ou alterada enquanto a solicitação está `em_andamento`;
+- ela fica visível ao solicitante apenas quando a solicitação estiver `concluida`;
+- na interface, esse campo aparece com o rótulo "Comentário"; o campo persistido é `conclusao`;
+- o tamanho respeita o limite definido para o MVP.
 
 ---
 
@@ -87,8 +93,9 @@ Não inclui:
 ## Dados importantes no detalhe administrativo
 - tipo da solicitação
 - solicitante
+- pessoa afetada (`nome_beneficiario`)
 - status
-- comentário atual
+- resposta atual (`conclusao`)
 - responsável, se houver
 - datas principais
 - ação de upload do anexo final

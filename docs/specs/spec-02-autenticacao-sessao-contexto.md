@@ -15,7 +15,8 @@ Inclui:
 - logout;
 - restauração de sessão;
 - carregamento do documento do usuário autenticado;
-- resolução de `nivel_acesso`, `ativo` e `ids_setor`;
+- resolução de `nivel_acesso`, `ativo`, `ids_setor` e `admin_global`;
+- leitura dos Custom Claims do token (`ativo`, `nivel_acesso`, `ids_setor`, `admin_global`), espelho do documento, usados na autorização de Storage;
 - guards de rota por autenticação;
 - guards por papel;
 - definição de setor ativo para admin.
@@ -30,7 +31,7 @@ Não inclui:
 ## Regras principais
 - ninguém usa o sistema sem autenticação;
 - o usuário autenticado lê apenas o próprio documento em `usuarios`;
-- `nivel_acesso`, `ids_setor` e `ativo` não podem ser alterados pelo cliente comum;
+- `nivel_acesso`, `ids_setor`, `ativo` e `admin_global` não podem ser alterados pelo cliente;
 - Usuário comum possui exatamente um setor;
 - Admin pode possuir um ou mais setores;
 - se o Admin tiver mais de um setor, a interface trabalha com **um setor ativo por vez**.

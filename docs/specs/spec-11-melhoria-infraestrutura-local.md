@@ -57,9 +57,9 @@ como superadas.
 ## Documentos atualizados
 - `README.md` (seção "Modo transitório sem Billing");
 - documento mestre (seção do modo transitório de execução);
-- `.env.example`, `docs/setup-local.md`, `docs/ambiente-local.md`,
-  `docs/piloto-seed-dados.md`, `docs/guia-publicacao-piloto.md`,
-  `docs/status-execucao.md`, `storage.rules`;
+- `.env.example`, `docs/guias/setup-local.md`,
+  `docs/guias/piloto-seed-dados.md`, `docs/guias/guia-publicacao-piloto.md`,
+  `docs/decisoes/status-execucao.md`, `storage.rules`;
 - notas de "decisão superada" em Specs 09/10 e Steering 02/03/05.
 
 ## Validação

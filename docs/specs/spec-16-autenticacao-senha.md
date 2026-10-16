@@ -25,7 +25,7 @@ Ao final desta spec, o projeto deve ter:
 Considerar como base consolidada:
 - `README.md`
 - `docs/master/documento-tecnico-mestre-portal-musical-mvp.md`
-- `docs/decisoes-ux.md`
+- `docs/decisoes/decisoes-ux.md`
 - `docs/specs/spec-13-shell-autenticado-e-orientacao-global.md` (shell, `← Voltar`)
 - módulo de autenticação já existente (`PaginaLogin.vue`, `usarSessao`,
   `repositorioAutenticacao`, `casos_de_uso/autenticacao.js`).
@@ -109,7 +109,7 @@ Alterados:
 ## Conformidade UX/CTA
 - Um CTA primário por tela ("Enviar e-mail", "Alterar senha").
 - Sem botão "Voltar" redundante no rodapé do formulário; o retorno usa o
-  `← Voltar` do cabeçalho (`docs/decisoes-ux.md`). O botão explícito só aparece
+  `← Voltar` do cabeçalho (`docs/decisoes/decisoes-ux.md`). O botão explícito só aparece
   nas telas de sucesso, como ação de conclusão.
 - Navegação por `router.push` (padrão do projeto), sem introduzir `RouterLink`.
 

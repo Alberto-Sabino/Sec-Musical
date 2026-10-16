@@ -8,7 +8,7 @@ Comandos rodam a partir da raiz do projeto, com `firebase login` feito.
 > + functions), `firestore.rules`, `firestore.indexes.json`, `storage.rules`
 > (endurecidas com custom claims — Spec 17), Cloud Function `syncClaimsFromUsuario`
 > em `functions/`, Analytics GA4 (ativo só em `producao`), seed de emulador e docs.
-> Sobre claims/sincronização, ver `docs/claims-e-sincronizacao.md`.
+> Sobre claims/sincronização, ver `docs/guias/claims-e-sincronizacao.md`.
 
 ---
 
@@ -143,7 +143,7 @@ cada usuário (um admin ativo chama a Function por uid). Opções:
   Em seguida, esse admin sincroniza os demais pela Function.
 
 > Refazer a sincronização sempre que mudar `nivel_acesso`, `ids_setor` ou `ativo`
-> de um usuário. Detalhes e depuração em `docs/claims-e-sincronizacao.md`.
+> de um usuário. Detalhes e depuração em `docs/guias/claims-e-sincronizacao.md`.
 
 ### B.5 Configurar CORS do bucket (necessário para download no navegador)
 O download usa `getBytes` (requisição do navegador ao endpoint do Storage), sujeito
@@ -193,7 +193,7 @@ pendentes de Billing):
 
 - [ ] Chamada da callable `syncClaimsFromUsuario` por admin ativo retorna `{ ok: true }`.
 - [ ] Chamada por não-admin é negada (`permission-denied`).
-- [ ] Claims aparecem no token após `forcarAtualizacaoToken` (ver `docs/claims-e-sincronizacao.md` §4).
+- [ ] Claims aparecem no token após `forcarAtualizacaoToken` (ver `docs/guias/claims-e-sincronizacao.md` §4).
 - [ ] Biblioteca: usuário comum lê `nivel_1` do próprio setor; **não** lê `nivel_2`; **não** lê setor fora da claim.
 - [ ] Biblioteca: admin faz upload/edição/remoção no próprio setor; é negado fora do setor.
 - [ ] Solicitações: admin do setor anexa `resposta.pdf`; **somente o solicitante** baixa a resposta (admin não baixa).
@@ -203,7 +203,7 @@ pendentes de Billing):
 ---
 
 ## 6. Preparar dados iniciais do piloto
-Seguir `docs/piloto-seed-dados.md` (estrutura exata dos documentos).
+Seguir `docs/guias/piloto-seed-dados.md` (estrutura exata dos documentos).
 
 1. **Setores**: criar o(s) setor(es) do piloto na coleção `setores`.
 2. **Usuários**:
@@ -228,7 +228,7 @@ Seguir `docs/piloto-seed-dados.md` (estrutura exata dos documentos).
 ---
 
 ## 8. Acompanhar indicadores
-Seguir `docs/piloto-indicadores.md`:
+Seguir `docs/guias/piloto-indicadores.md`:
 - logins, consultas à Biblioteca, solicitações abertas/concluídas, erros críticos.
 
 ---

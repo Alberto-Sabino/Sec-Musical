@@ -6,14 +6,14 @@ pelo projeto, para você não precisar descobrir tudo lendo arquivo por arquivo.
 
 Se algo neste guia divergir do código, o código manda — mas avise/atualize aqui.
 
-O "porquê" das decisões de UX e de estilo está em `docs/decisoes-ux.md`.
+O "porquê" das decisões de UX e de estilo está em `docs/decisoes/decisoes-ux.md`.
 
 ## Stack
 
 - Vue 3 (`<script setup>`) + Vue Router.
 - Vite para dev/build.
 - Firebase (Auth, Firestore, Storage). Em desenvolvimento tudo roda contra os
-  emuladores locais (Docker) — ver `docs/setup-local.md`.
+  emuladores locais (Docker) — ver `docs/guias/setup-local.md`.
 
 Sem biblioteca de UI, sem gerenciador de estado externo, sem lib de ícones. Se
 for tentado a adicionar uma dependência, pense duas vezes: quase tudo aqui foi
@@ -141,7 +141,7 @@ Coisas que você vai encontrar e é bom seguir para manter a consistência:
   que o app não consulta e você vê 404 no download/remoção.
 - **Emulador é persistente**: os dados ficam num volume Docker (exporta ao
   derrubar, importa ao subir). Para começar limpo, remova o volume — ver
-  `docs/setup-local.md`.
+  `docs/guias/setup-local.md`.
 - **Produção do Storage** depende de Billing e ainda não foi validada; trate como
   pendente.
 

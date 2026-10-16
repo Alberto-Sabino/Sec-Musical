@@ -128,9 +128,9 @@ O agente deve consultar sempre os arquivos abaixo antes de propor mudanças.
 - `tests/regras/solicitacoes.test.js`
 
 ### 5.6 Documentação operacional (para não quebrar o fluxo do projeto)
-- `docs/guia-publicacao-piloto.md` (ordem de deploy e ressalvas de Storage)
-- `docs/status-execucao.md` (pendência única: Storage em produção)
-- `docs/piloto-seed-dados.md` (estrutura exata dos documentos)
+- `docs/guias/guia-publicacao-piloto.md` (ordem de deploy e ressalvas de Storage)
+- `docs/decisoes/status-execucao.md` (pendência única: Storage em produção)
+- `docs/guias/piloto-seed-dados.md` (estrutura exata dos documentos)
 
 **Regra anti-alucinação:** se o agente não conseguir localizar um campo/status no código acima, ele deve parar e pedir confirmação humana.
 

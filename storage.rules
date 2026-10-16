@@ -8,7 +8,7 @@ rules_version = '2';
 //   - ids_setor:    array<string> (setores aos quais o usuário pertence)
 //
 // Os claims são provisionados pela Cloud Function `syncClaimsFromUsuario`, que
-// espelha `usuarios/{uid}` (ver docs/claims-e-sincronizacao.md). Em ambiente
+// espelha `usuarios/{uid}` (ver docs/guias/claims-e-sincronizacao.md). Em ambiente
 // local, o seeder injeta os mesmos claims — assim dev e produção usam UMA única
 // versão de regra.
 //
