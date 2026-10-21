@@ -118,6 +118,9 @@ import { registrarGuardaFormulario } from '@/composables/usarGuardaFormulario'
 import {
   TIPOS_ARQUIVO,
   ARQUIVO_PRIVADO_OPCOES,
+  ARQUIVO_PRIVADO_TOKEN,
+  privadoDoToken,
+  tokenDePrivado,
 } from '@/servicos/casos_de_uso/biblioteca'
 import {
   cadastrarArquivo,
@@ -163,7 +166,9 @@ const arquivoSelecionado = ref(null)
 const form = reactive({
   titulo: '',
   tipo: '',
-  arquivo_privado: false,
+  // Token de visibilidade do <select> ('publico' | 'privado'); convertido para
+  // o booleano arquivo_privado no submit (privadoDoToken).
+  arquivo_privado: ARQUIVO_PRIVADO_TOKEN.PUBLICO,
   // restringir = true  → escopo 'setor' (id_setor obrigatório)
   // restringir = false → escopo 'global' (só gerenciar_global)
   restringir: true,
@@ -175,7 +180,7 @@ const erros = reactive({})
 const formInicial = ref({
   titulo: '',
   tipo: '',
-  arquivo_privado: false,
+  arquivo_privado: ARQUIVO_PRIVADO_TOKEN.PUBLICO,
   restringir: true,
   id_setor: estado.setorAtivo || '',
 })
@@ -294,7 +299,7 @@ async function salvar() {
       id_setor: idSetor,
       tipo: form.tipo,
       titulo: form.titulo.trim(),
-      arquivo_privado: form.arquivo_privado === true,
+      arquivo_privado: privadoDoToken(form.arquivo_privado),
       id_usuario: estado.contexto.id_usuario,
     }
 
@@ -345,7 +350,7 @@ onMounted(async () => {
 
     form.titulo = doc.titulo || ''
     form.tipo = doc.tipo || ''
-    form.arquivo_privado = doc.arquivo_privado === true
+    form.arquivo_privado = tokenDePrivado(doc.arquivo_privado)
     // Legados sem escopo são tratados como 'setor'.
     const escopo = escopoDoArquivo(doc)
     form.restringir = escopo === ESCOPO_ARQUIVO.SETOR

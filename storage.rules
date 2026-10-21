@@ -13,6 +13,7 @@ rules_version = '2';
 // 100% por capabilities (Spec 23); não há mais legado de perfil no token.
 //
 // Produção: pendente de publicação até ativação de Billing/Blaze (Storage real).
+
 service firebase.storage {
   match /b/{bucket}/o {
 
@@ -20,80 +21,79 @@ service firebase.storage {
     function autenticado() {
       return request.auth != null;
     }
+
     function ativo() {
       return autenticado() && request.auth.token.ativo == true;
     }
+
+    function caps() {
+      return ('caps' in request.auth.token) ? request.auth.token.caps : [];
+    }
+
+    function idsSetor() {
+      return ('ids_setor' in request.auth.token) ? request.auth.token.ids_setor : [];
+    }
+    
     // Capability concedida: usuário ativo cujo claim `caps` contém a capability.
     function temCap(cap) {
-      return ativo() && (cap in request.auth.token.caps);
+      return ativo() && (cap in caps());
     }
+
     function pertenceAoSetor(idSetor) {
-      return ativo() && idSetor in request.auth.token.ids_setor;
+      return ativo() && (idSetor in idsSetor());
     }
 
     // ---- Helpers de MIME/tamanho (Specs 14/15) ----
     function ehPdf() {
       return request.resource.contentType == 'application/pdf';
     }
+
     function ehXlsx() {
       return request.resource.contentType ==
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
     }
-    // Teto máximo da Biblioteca (50 MB; o limite fino por tipo é imposto na
-    // camada de casos de uso/UI — src/servicos/casos_de_uso/regrasUpload.js).
+
     function dentroTetoBiblioteca() {
       return request.resource.size <= 50 * 1024 * 1024;
     }
 
-    // Caminho oficial da Biblioteca:
     // biblioteca/{id_setor}/nivel_1|nivel_2/{id_arquivo}.{pdf|xlsx}
     match /biblioteca/{idSetor}/{nivel}/{arquivo} {
-      // Leitura: pertence ao setor; nivel_1 exige ler_publicos, nivel_2 exige ler_privados.
       allow read: if pertenceAoSetor(idSetor)
         && (
           (nivel == 'nivel_1' && temCap('biblioteca_ler_publicos'))
           || (nivel == 'nivel_2' && temCap('biblioteca_ler_privados'))
         );
 
-      // Escrita (create/update): gerenciar_setor + pertence ao setor; valida MIME e teto.
       allow create, update: if temCap('biblioteca_gerenciar_setor')
         && pertenceAoSetor(idSetor)
         && (ehPdf() || ehXlsx())
         && dentroTetoBiblioteca();
 
-      // Remoção: gerenciar_setor + pertence ao setor (delete não possui request.resource).
       allow delete: if temCap('biblioteca_gerenciar_setor') && pertenceAoSetor(idSetor);
     }
 
-    // Caminho oficial da Biblioteca GLOBAL (Spec 18):
     // biblioteca_global/nivel_1|nivel_2/{id_arquivo}.{pdf|xlsx}
     match /biblioteca_global/{nivel}/{arquivo} {
-      // Leitura: nivel_1 exige ler_publicos, nivel_2 exige ler_privados.
       allow read: if (nivel == 'nivel_1' && temCap('biblioteca_ler_publicos'))
         || (nivel == 'nivel_2' && temCap('biblioteca_ler_privados'));
 
-      // Escrita (create/update): gerenciar_global; valida MIME e teto.
       allow create, update: if temCap('biblioteca_gerenciar_global')
         && (ehPdf() || ehXlsx())
         && dentroTetoBiblioteca();
 
-      // Remoção: gerenciar_global (delete não possui request.resource).
       allow delete: if temCap('biblioteca_gerenciar_global');
     }
 
     // solicitacoes/{id_setor}/{id_solicitante}/{id_solicitacao}/resposta.pdf
     match /solicitacoes/{idSetor}/{idSolicitante}/{idSolicitacao}/{arquivo} {
-      // Leitura: SOMENTE o solicitante que criou a solicitação (Spec 17 §2.2),
-      // independentemente de perfil. Admin NÃO lê a resposta final.
       allow read: if ativo() && request.auth.uid == idSolicitante;
 
-      // Escrita (create/update): agir_setor + pertence ao setor; PDF até 2 MB (Spec 15).
       allow create, update: if temCap('solicitacoes_agir_setor')
         && pertenceAoSetor(idSetor)
         && ehPdf()
         && request.resource.size <= 2 * 1024 * 1024;
 
-      // Remoção: agir_setor + pertence ao setor (delete não possui request.resource).
       allow delete: if temCap('solicitacoes_agir_setor') && pertenceAoSetor(idSetor);
     }
 

@@ -16,10 +16,28 @@ export const TIPOS_ARQUIVO = [
 
 // Visibilidade do ARQUIVO (Spec 23): arquivo_privado=false é público; true é
 // privado/restrito. Opções { valor, rotulo } para o select do formulário.
+// Tokens de visibilidade para o <select> (BaseSelect trabalha com strings; o
+// <option value> nativo é sempre string). A conversão para o booleano
+// arquivo_privado (contrato de dados) é feita por privadoDoToken/tokenDePrivado.
+export const ARQUIVO_PRIVADO_TOKEN = {
+  PUBLICO: 'publico',
+  PRIVADO: 'privado',
+}
+
 export const ARQUIVO_PRIVADO_OPCOES = [
-  { valor: false, rotulo: 'Público' },
-  { valor: true, rotulo: 'Privado' },
+  { valor: ARQUIVO_PRIVADO_TOKEN.PUBLICO, rotulo: 'Público' },
+  { valor: ARQUIVO_PRIVADO_TOKEN.PRIVADO, rotulo: 'Privado' },
 ]
+
+// Converte o token do <select> no booleano arquivo_privado (contrato de dados).
+export function privadoDoToken(token) {
+  return token === ARQUIVO_PRIVADO_TOKEN.PRIVADO
+}
+
+// Converte o booleano arquivo_privado no token do <select>.
+export function tokenDePrivado(arquivoPrivado) {
+  return arquivoPrivado === true ? ARQUIVO_PRIVADO_TOKEN.PRIVADO : ARQUIVO_PRIVADO_TOKEN.PUBLICO
+}
 
 // Rótulo de visibilidade a partir do booleano arquivo_privado.
 export function rotuloArquivoPrivado(arquivoPrivado) {
