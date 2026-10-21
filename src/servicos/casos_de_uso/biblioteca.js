@@ -2,7 +2,6 @@
 // Orquestram repositório (`arquivos`) e infraestrutura de arquivos (download).
 import { listarArquivos } from '@/servicos/repositorios/repositorioArquivos'
 import { baixarArquivo } from '@/servicos/infraestrutura_arquivos'
-import { NIVEL_ADMIN } from '@/servicos/casos_de_uso/autenticacao'
 
 // Tipos oficiais de arquivo (contrato do MVP).
 export const TIPOS_ARQUIVO = [
@@ -15,24 +14,17 @@ export const TIPOS_ARQUIVO = [
   { valor: 'outros', rotulo: 'Outros' },
 ]
 
-// Nível de acesso do ARQUIVO (contrato do MVP): 1 = público, 2 = restrito.
-// Distinto do nivel_acesso do USUÁRIO (1 = usuário, 2 = admin), definido em autenticacao.js.
-export const NIVEL_ARQUIVO = {
-  PUBLICO: 1,
-  RESTRITO: 2,
-}
-
-// Rótulos amigáveis do nível de acesso do arquivo (fonte única de exibição).
-export const NIVEL_ARQUIVO_ROTULOS = {
-  [NIVEL_ARQUIVO.PUBLICO]: 'Público',
-  [NIVEL_ARQUIVO.RESTRITO]: 'Restrito',
-}
-
-// Opções { valor, rotulo } para selects de nível (rótulo com número entre parênteses).
-export const NIVEL_ARQUIVO_OPCOES = [
-  { valor: NIVEL_ARQUIVO.PUBLICO, rotulo: 'Público (nível 1)' },
-  { valor: NIVEL_ARQUIVO.RESTRITO, rotulo: 'Restrito (nível 2)' },
+// Visibilidade do ARQUIVO (Spec 23): arquivo_privado=false é público; true é
+// privado/restrito. Opções { valor, rotulo } para o select do formulário.
+export const ARQUIVO_PRIVADO_OPCOES = [
+  { valor: false, rotulo: 'Público' },
+  { valor: true, rotulo: 'Privado' },
 ]
+
+// Rótulo de visibilidade a partir do booleano arquivo_privado.
+export function rotuloArquivoPrivado(arquivoPrivado) {
+  return arquivoPrivado === true ? 'Privado' : 'Público'
+}
 
 // Ações oficiais registradas na auditoria de arquivos.
 export const ACAO_AUDITORIA_ARQUIVO = {
@@ -41,33 +33,18 @@ export const ACAO_AUDITORIA_ARQUIVO = {
   REMOVIDO: 'removido',
 }
 
-// Rótulo amigável de um nível de acesso de arquivo. Fallback vazio para valores fora do contrato.
-export function rotuloNivelArquivo(nivel) {
-  return NIVEL_ARQUIVO_ROTULOS[nivel] || ''
-}
-
 // Rótulo amigável de um tipo de arquivo. Fallback para o próprio valor.
 export function rotuloTipoArquivo(tipo) {
   const encontrado = TIPOS_ARQUIVO.find((item) => item.valor === tipo)
   return encontrado ? encontrado.rotulo : tipo
 }
 
-// Níveis visíveis conforme perfil:
-// - usuário comum: apenas público (1);
-// - admin: público (1) e restrito (2).
-function niveisPorPerfil(nivelAcessoUsuario) {
-  if (nivelAcessoUsuario === NIVEL_ADMIN) {
-    return [NIVEL_ARQUIVO.PUBLICO, NIVEL_ARQUIVO.RESTRITO]
-  }
-  return [NIVEL_ARQUIVO.PUBLICO]
-}
-
-// Lista a biblioteca do contexto (setor ativo + perfil), com filtro opcional por
-// tipo. Os globais entram automaticamente — a união é feita no repositório (Spec 18).
-export async function listarBiblioteca({ nivelAcesso, idSetor, tipo }) {
-  const niveis = niveisPorPerfil(nivelAcesso)
-
-  return listarArquivos({ idSetor, niveis, tipo: tipo || null })
+// Lista a biblioteca do contexto (setor ativo + visibilidade), com filtro
+// opcional por tipo. `podeVerPrivados` libera os arquivos privados (capability
+// biblioteca_ler_privados). Os globais entram automaticamente — a união é feita
+// no repositório (Spec 18).
+export async function listarBiblioteca({ podeVerPrivados, idSetor, tipo }) {
+  return listarArquivos({ idSetor, podeVerPrivados: podeVerPrivados === true, tipo: tipo || null })
 }
 
 // Normaliza texto para busca: minúsculo e sem acentos.
@@ -87,19 +64,19 @@ export function ordenarPorTitulo(arquivos) {
 }
 
 // Lista arquivos de um tipo específico, ordenados alfabeticamente por título (Spec 14).
-export async function listarBibliotecaPorTipo({ nivelAcesso, idSetor, tipo }) {
-  const lista = await listarBiblioteca({ nivelAcesso, idSetor, tipo })
+export async function listarBibliotecaPorTipo({ podeVerPrivados, idSetor, tipo }) {
+  const lista = await listarBiblioteca({ podeVerPrivados, idSetor, tipo })
   return ordenarPorTitulo(lista)
 }
 
 // Busca por nome em todos os tipos visíveis do setor ativo (camada de aplicação).
 // Retorna vazio para termo em branco.
-export async function buscarBibliotecaPorNome({ nivelAcesso, idSetor, termo }) {
+export async function buscarBibliotecaPorNome({ podeVerPrivados, idSetor, termo }) {
   const alvo = normalizar(termo)
   if (!alvo) {
     return []
   }
-  const lista = await listarBiblioteca({ nivelAcesso, idSetor, tipo: null })
+  const lista = await listarBiblioteca({ podeVerPrivados, idSetor, tipo: null })
   return lista.filter((a) => normalizar(a.titulo).includes(alvo))
 }
 

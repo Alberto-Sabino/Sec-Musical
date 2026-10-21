@@ -38,21 +38,27 @@ function deduplicar(lista) {
 
 // Lista arquivos visíveis no setor ativo, incluindo os GLOBAIS (Spec 18).
 // Faz duas consultas (setor + global) porque o Firestore não permite OR entre
-// campos distintos (id_setor vs escopo). Índices: (id_setor|escopo) + nivel_acesso
-// [+ tipo] + data_atualizacao.
-export async function listarArquivos({ idSetor, niveis, tipo }) {
+// campos distintos (id_setor vs escopo). `podeVerPrivados` (Spec 23) libera os
+// privados; caso contrário, filtra arquivo_privado == false.
+// Índices: (id_setor|escopo) [+ arquivo_privado] [+ tipo] + data_atualizacao.
+export async function listarArquivos({ idSetor, podeVerPrivados, tipo }) {
   const [doSetor, globais] = await Promise.all([
-    consultarArquivos({ campo: 'id_setor', valor: idSetor, niveis, tipo }),
-    consultarArquivos({ campo: 'escopo', valor: ESCOPO_ARQUIVO.GLOBAL, niveis, tipo }),
+    consultarArquivos({ campo: 'id_setor', valor: idSetor, podeVerPrivados, tipo }),
+    consultarArquivos({ campo: 'escopo', valor: ESCOPO_ARQUIVO.GLOBAL, podeVerPrivados, tipo }),
   ])
 
   return deduplicar([...doSetor, ...globais])
 }
 
-// Consulta por um campo de recorte (id_setor OU escopo) + nível + tipo opcional.
-async function consultarArquivos({ campo, valor, niveis, tipo }) {
+// Consulta por um campo de recorte (id_setor OU escopo) + tipo opcional.
+// Sem a capability de ver privados, restringe a arquivo_privado == false.
+async function consultarArquivos({ campo, valor, podeVerPrivados, tipo }) {
   const colecao = collection(db, 'arquivos')
-  const clausulas = [where(campo, '==', valor), where('nivel_acesso', 'in', niveis)]
+  const clausulas = [where(campo, '==', valor)]
+
+  if (!podeVerPrivados) {
+    clausulas.push(where('arquivo_privado', '==', false))
+  }
 
   if (tipo) {
     clausulas.push(where('tipo', '==', tipo))
@@ -85,7 +91,7 @@ export async function criarArquivo(idArquivo, dados) {
     escopo: dados.escopo,
     tipo: dados.tipo,
     titulo: dados.titulo,
-    nivel_acesso: dados.nivel_acesso,
+    arquivo_privado: dados.arquivo_privado === true,
     id_nuvem: dados.id_nuvem,
     id_usuario: dados.id_usuario,
     extensao_arquivo: dados.extensao_arquivo,

@@ -10,7 +10,7 @@ Não registrar intenção como se fosse entrega concluída.
 ---
 
 ## Estado atual
-- Fase ativa: **Sprint 3 concluída** (Specs 13, 14, 15 e 16 aplicadas) + Analytics GA4 + **Spec 17 aplicada** (Custom Claims + hardening de rules + Cloud Functions) + **Spec 18 aplicada** (Biblioteca Global: escopo global|setor + admin_global) + **Spec 19 aplicada** (UI Motion: animações leves e padronizadas) + **Spec 20 aplicada** (primeiro acesso: troca obrigatória de senha via flag `primeiro_acesso`) + **Spec 21 aplicada** (auditoria `anexo_visualizado` após download do anexo final)
+- Fase ativa: **Sprint 3 concluída** (Specs 13, 14, 15 e 16 aplicadas) + Analytics GA4 + **Spec 17 aplicada** (Custom Claims + hardening de rules + Cloud Functions) + **Spec 18 aplicada** (Biblioteca Global: escopo global|setor + admin_global) + **Spec 19 aplicada** (UI Motion: animações leves e padronizadas) + **Spec 20 aplicada** (primeiro acesso: troca obrigatória de senha via flag `primeiro_acesso`) + **Spec 21 aplicada** (auditoria `anexo_visualizado` após download do anexo final) + **Spec 22 aplicada** (capabilities no Firestore + claim `caps[]`; autorização migrada, legado mantido) + **Spec 23 aplicada** (hard cut: legado `nivel_acesso`/`admin_global` removido; `cargo` + `arquivo_privado` + capabilities/caps como única base)
 - Ambiente de produção: **funcional** — Hosting, Firestore (regras + índices), Authentication e **regras de Storage** publicados e operando; Hosting será republicado com Analytics para o piloto
 - Sprints anteriores: Sprint 1 (Spec 09) e Sprint 2 (Spec 10) concluídas; ajustes Spec 11 e Spec 12 aplicados
 - Status geral: MVP funcional em produção
@@ -74,6 +74,36 @@ Não registrar intenção como se fosse entrega concluída.
 - Legibilidade: comentários sintetizados e escopo interno das funções separado por quebras de linha nos módulos da spec (sem mudança de comportamento).
 - Decisões: governança de UI = sem `admin_global`, os controles de escopo (checkbox + select) **não são renderizados**; exibe-se apenas um aviso de que o arquivo fica restrito ao setor ativo. Com `admin_global`, checkbox + select controlam o escopo. Global não grava `id_setor` (removido no update via `deleteField`).
 - Validação: `npm run build` OK; `npm run lint` OK; `npm run test:unit` OK; testes de regras (Docker) OK.
+- Pendências: deploy de `functions`/`storage.rules` em produção segue na pendência única (Billing/Blaze).
+
+### Spec 23 — Hard cut: capabilities como única base (remover legado) + `cargo` + `arquivo_privado`
+- Status: aplicado localmente (emulador); deploy de produção pendente de Billing (functions + storage.rules)
+- Resultado:
+  - **Contrato `usuarios`:** removidos `nivel_acesso` e `admin_global`; adicionado `cargo` (string de exibição). `capabilities` é a única fonte de autorização.
+  - **Contrato `arquivos`:** `nivel_acesso` substituído por `arquivo_privado` (boolean; false=público/nivel_1, true=privado/nivel_2; default false).
+  - **Cloud Function:** `extrairClaims` emite apenas `ativo`, `ids_setor`, `caps` (derivado só de `capabilities`); callable autoriza por caps (`biblioteca_gerenciar_setor`|`biblioteca_gerenciar_global`).
+  - **Storage Rules:** 100% por `temCap(caps)`; sem legado. Anexo final segue só do solicitante.
+  - **Firestore Rules:** removidos `ehAdmin`/`ehAdminGlobal`/fallback legado; `temCap` lê só `capabilities`; `arquivos` usa `ehPrivado(arquivo_privado)`.
+  - **Frontend:** contexto expõe `cargo` + `capabilities` (sem `ehAdmin`/`ehAdminGlobal`); `usarSessao` com derivados `pode*` + `podeVerPrivados` + `cargo`; guards por `meta.requerCapability`; biblioteca usa `arquivo_privado` (select Público/Privado) e caminhos `nivel_1|nivel_2`; `destinoDoModulo` por capability.
+  - **Seed/scripts:** `seed-emulador` grava `cargo` + `capabilities` e injeta claims `ativo`/`ids_setor`/`caps`; `clonar-arquivos-setores` e `firestore.indexes.json` migrados para `arquivo_privado`.
+  - **Testes:** unit (syncClaims caps-only, capabilities, bibliotecaCaminhos por arquivoPrivado, escopoArquivos) e regras (Firestore por capabilities + arquivo_privado, Storage por caps) atualizados; sem referências ao legado.
+- Decisões: produção com poucos usuários pode recriar contas no novo padrão (sem script de migração); matriz `capabilitiesDoLegado` permanece só como gerador do mapa inicial no seed.
+- Validação: `npm run test:unit` OK (79/79); `npm run build` OK; `eslint` limpo (src/tests/scripts/functions); testes de regras (Docker) OK (140/140); grep sem `nivel_acesso`/`admin_global` residual em código/rules/seed/testes.
+- Pendências: deploy de `functions`/`storage.rules` em produção segue na pendência única (Billing/Blaze); recriar os usuários de produção no novo contrato.
+
+### Spec 22 — Capabilities & Claims (migração compatível com legado)
+- Status: aplicado localmente (emulador); deploy de produção pendente de Billing (functions + storage.rules)
+- Resultado:
+  - **Contrato:** campo `usuarios.capabilities` (mapa booleano, 10 chaves oficiais); fonte de verdade da autorização por perfil. Ausência de chave/mapa = false.
+  - **Enums:** `src/enums/capabilities.js` (CAP, matriz `capabilitiesDoLegado` §2.2, `capabilitiesParaLista`, `resolverCapabilities`, `temCapability`) e `src/enums/claims.js` (CLAIM). Cópia espelhada da matriz em `functions/claims.js` (pacote isolado de deploy); teste de drift garante paridade.
+  - **Cloud Function:** `extrairClaims` passa a emitir `caps: string[]` (capabilities do doc quando presentes, senão derivadas do legado), junto de `ativo`/`ids_setor` + legado `nivel_acesso`/`admin_global`.
+  - **Storage Rules:** autorização por `temCap(cap)` sobre a claim `caps` (biblioteca: ler_publicos/ler_privados/gerenciar_setor; global: gerenciar_global; solicitações: agir_setor). Sem fallback legado no Storage (a Function garante `caps`). Anexo final segue legível só pelo solicitante.
+  - **Firestore Rules:** helpers `capTrue`/`capLegado`/`temCap` (usa `capabilities` do doc; fallback legado quando ausente). Migrados `arquivos` (read/create/update/delete + auditoria) e `solicitacoes` (read/create/update + auditoria) — incluindo `solicitacoes_criar` só para quem tem a capability.
+  - **Frontend:** `contexto.capabilities` via `resolverCapabilities`; derivados em `usarSessao` (`podeGerenciarBibliotecaSetor/Global`, `podeVer/AgirSolicitacoesSetor`, `podeCriarSolicitacao`); rotas admin usam `meta.requerCapability` e o guard migra de `requerAdmin` para capabilities.
+  - **Seed:** `usuarios.capabilities` e claim `caps[]` preenchidos pela matriz do legado.
+  - **Testes:** unit de capabilities (helpers + drift guard frontend↔functions) e de `caps` no `syncClaims`; storage.test em `caps[]`; arquivos/solicitacoes rules com `capabilities` no seed + bloqueio de `solicitacoes_criar` para admin.
+- Decisões: legado (`nivel_acesso`/`admin_global`) mantido nesta spec (hard cut é a Spec 23); matriz duplicada em 3 formas (frontend JS, functions JS, rules CEL) por limite de arquitetura do Firebase, com teste de drift entre as duas cópias JS.
+- Validação: `npm run test:unit` OK (87/87); `npm run build` OK; `eslint` limpo (src/tests/scripts/functions); testes de regras (Docker) OK (140/140).
 - Pendências: deploy de `functions`/`storage.rules` em produção segue na pendência única (Billing/Blaze).
 
 ### Spec 21 — Solicitações: auditoria `anexo_visualizado` (após download com sucesso)
@@ -144,16 +174,16 @@ Não registrar intenção como se fosse entrega concluída.
 - Status: concluído
 
 ### Resumo
-- Objetivo: aplicar a Spec 21 (auditoria `anexo_visualizado`) — registrar auditoria append-only quando o solicitante baixa com sucesso o anexo final de uma solicitação concluída.
-- Resultado: ação `anexo_visualizado` com fonte única em `src/enums/acoesAuditoria.js` (rótulo central usado nas duas telas); `registrarAnexoVisualizado` chamado só após download bem-sucedido, com refresh do histórico; rules endurecidas (solicitante + concluida + `id_nuvem` + status concluida→concluida); admin segue sem ler o anexo.
+- Objetivo: aplicar a Spec 23 (hard cut) — remover o legado `nivel_acesso`/`admin_global` de todo o projeto; `usuarios` ganha `cargo` (exibição); `arquivos.nivel_acesso` vira `arquivo_privado` (boolean); autorização 100% por capabilities (Firestore) e `caps` (Storage).
+- Resultado: claims finais `ativo`/`ids_setor`/`caps`; rules, Function, frontend, seed, scripts, índices e testes migrados; documentação sem o legado. Sem referência residual a `nivel_acesso`/`admin_global` em código/rules/seed/testes.
 
 ### Validação
-- `npm run test:unit` OK (72/72)
-- `npm run build` OK; `eslint src/ tests/` limpo
-- Testes de regras (Docker) OK (139/139)
+- `npm run test:unit` OK (79/79)
+- `npm run build` OK; `eslint` limpo (src/tests/scripts/functions)
+- Testes de regras (Docker) OK (140/140)
 
 ### Pendências
-- Cloud Storage em produção + Billing/Blaze (deploy de `functions` e publicação de `storage.rules`) — pendência única pré-existente, não afetada pela Spec 21
+- Cloud Storage em produção + Billing/Blaze (deploy de `functions` e publicação de `storage.rules`); recriar os usuários de produção no novo contrato (`cargo` + `capabilities`)
 
 ### Bloqueios
 - Ativação de Billing/Blaze depende do responsável (fora do alcance do agente)

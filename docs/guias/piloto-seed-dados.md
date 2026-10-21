@@ -20,9 +20,10 @@ Coleção `setores`, doc id = `id_setor`.
 
 ## usuarios
 Coleção `usuarios`, doc id = UID do Auth.
-`nivel_acesso`: 1 = usuário, 2 = admin. `ids_setor`: array.
-`primeiro_acesso` (opcional, Spec 20): usar `true` para usuários novos com senha
-padrão (força a troca no primeiro login); ausência é tratada como `false`.
+`cargo`: rótulo de exibição (ex.: "Secretário Musical", "Encarregado Local"); não
+autoriza. `capabilities`: mapa booleano que define a autorização (Spec 22/23).
+`ids_setor`: array. `primeiro_acesso` (opcional, Spec 20): `true` para usuários
+novos com senha padrão (força a troca no primeiro login); ausência = `false`.
 ```json
 {
   "id_usuario": "<uid_auth>",
@@ -30,9 +31,21 @@ padrão (força a troca no primeiro login); ausência é tratada como `false`.
   "email": "responsavel@exemplo.com",
   "celular": "",
   "comum_congregacao": "Quilombo",
-  "nivel_acesso": 2,
+  "cargo": "Secretário Musical",
   "ativo": true,
   "ids_setor": ["setorA"],
+  "capabilities": {
+    "biblioteca_ler_publicos": true,
+    "biblioteca_ler_privados": true,
+    "biblioteca_gerenciar_setor": true,
+    "biblioteca_gerenciar_global": false,
+    "solicitacoes_criar": false,
+    "solicitacoes_ver_proprias": true,
+    "solicitacoes_ver_setor": true,
+    "solicitacoes_agir_setor": true,
+    "usuarios_ver": false,
+    "usuarios_gerenciar": false
+  },
   "primeiro_acesso": true,
   "data_criacao": "<timestamp>",
   "data_atualizacao": "<timestamp>"
@@ -42,12 +55,14 @@ padrão (força a troca no primeiro login); ausência é tratada como `false`.
 ## arquivos (primeiros documentos da Biblioteca)
 Coleção `arquivos`, doc id = `id_arquivo`.
 `id_nuvem`: `biblioteca/{id_setor}/nivel_1|nivel_2/{id_arquivo}.pdf`.
+`arquivo_privado`: `false` = público (nivel_1); `true` = privado (nivel_2).
 ```json
 {
   "id_setor": "setorA",
+  "escopo": "setor",
   "tipo": "circulares",
   "titulo": "Circular inicial",
-  "nivel_acesso": 1,
+  "arquivo_privado": false,
   "id_nuvem": "biblioteca/setorA/nivel_1/<id_arquivo>.pdf",
   "id_usuario": "<uid_admin>",
   "data_inclusao": "<timestamp>",

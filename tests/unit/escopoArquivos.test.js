@@ -37,7 +37,7 @@ test('ehGlobal reconhece apenas o valor global', () => {
   assert.equal(ehGlobal('setor'), false)
 })
 
-test('podeGerenciarArquivo: setor liberado para qualquer admin; global exige admin_global', () => {
+test('podeGerenciarArquivo: setor liberado a quem gerencia o setor; global exige gerenciar_global', () => {
   // arquivo de setor
   assert.equal(podeGerenciarArquivo({ escopo: 'setor' }, false), true)
   assert.equal(podeGerenciarArquivo({ escopo: 'setor' }, true), true)
@@ -46,6 +46,6 @@ test('podeGerenciarArquivo: setor liberado para qualquer admin; global exige adm
   assert.equal(podeGerenciarArquivo({ escopo: 'global' }, false), false)
   // legado (sem escopo) = setor
   assert.equal(podeGerenciarArquivo({}, false), true)
-  // valor de admin_global não-booleano é tratado como não elegível para global
+  // valor não-booleano é tratado como não elegível para global
   assert.equal(podeGerenciarArquivo({ escopo: 'global' }, undefined), false)
 })

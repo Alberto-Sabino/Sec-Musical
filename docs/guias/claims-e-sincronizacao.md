@@ -11,30 +11,34 @@ do Firebase Auth, como provisioná-los e como depurar.
 
 ## 1) Quais claims existem
 
-Fonte de verdade: documento `usuarios/{uid}`. As claims espelham três campos:
+Fonte de verdade: documento `usuarios/{uid}`. As claims espelham:
 
-| Claim          | Tipo            | Origem (`usuarios/{uid}`) | Significado                         |
-| -------------- | --------------- | ------------------------- | ----------------------------------- |
-| `ativo`        | `boolean`       | `ativo`                   | `false` → nega tudo no Storage      |
-| `nivel_acesso` | `number`        | `nivel_acesso`            | `1` = usuário comum, `2` = admin    |
+| Claim          | Tipo            | Origem (`usuarios/{uid}`) | Significado                          |
+| -------------- | --------------- | ------------------------- | ------------------------------------ |
+| `ativo`        | `boolean`       | `ativo`                   | `false` → nega tudo no Storage       |
 | `ids_setor`    | `array<string>` | `ids_setor`               | setores aos quais o usuário pertence |
-| `admin_global` | `boolean`       | `admin_global`            | governança de arquivos globais (Spec 18) |
+| `caps`         | `array<string>` | `capabilities`            | capabilities concedidas (Spec 22/23) |
 
-As Storage Rules (`storage.rules`) usam esses claims:
+A claim `caps` é a lista de strings derivada **exclusivamente** do mapa
+`usuarios/{uid}.capabilities` (ausente => `[]`). Capabilities oficiais:
+`biblioteca_ler_publicos`, `biblioteca_ler_privados`, `biblioteca_gerenciar_setor`,
+`biblioteca_gerenciar_global`, `solicitacoes_criar`, `solicitacoes_ver_proprias`,
+`solicitacoes_ver_setor`, `solicitacoes_agir_setor`, `usuarios_ver`,
+`usuarios_gerenciar`. Ausência de uma capability = não permitido. Não há mais
+`nivel_acesso`/`admin_global` no token (removidos no hard cut da Spec 23).
+
+As Storage Rules (`storage.rules`) usam esses claims via `temCap(cap)` (membership
+em `caps`):
 
 - **Biblioteca por setor** (`biblioteca/{id_setor}/nivel_1|nivel_2/...`):
-  - leitura: usuário `ativo` cujo `ids_setor` contém o setor; `nivel_2` exige admin;
-  - escrita/remoção: admin (`nivel_acesso == 2`) do setor.
-- **Biblioteca global** (`biblioteca_global/nivel_1|nivel_2/...`) — Spec 18:
-  - leitura: qualquer usuário `ativo`; `nivel_2` exige admin;
-  - escrita/remoção: somente `admin_global` (necessariamente admin).
+  - leitura: `biblioteca_ler_publicos` (nivel_1) / `biblioteca_ler_privados` (nivel_2) + pertencer ao setor;
+  - escrita/remoção: `biblioteca_gerenciar_setor` + pertencer ao setor.
+- **Biblioteca global** (`biblioteca_global/nivel_1|nivel_2/...`):
+  - leitura: `biblioteca_ler_publicos` (nivel_1) / `biblioteca_ler_privados` (nivel_2);
+  - escrita/remoção: `biblioteca_gerenciar_global`.
 - **Solicitações** (`solicitacoes/{id_setor}/{id_solicitante}/{id}/resposta.pdf`):
   - leitura: **somente o solicitante** (`request.auth.uid == id_solicitante`) — nem admin lê;
-  - escrita/remoção: admin do setor.
-
-Consistência obrigatória (Spec 18): `admin_global` só pode ser `true` quando
-`nivel_acesso == 2`. A Cloud Function força `admin_global = false` para quem não é
-admin, mesmo que o documento diga o contrário.
+  - escrita/remoção: `solicitacoes_agir_setor` + pertencer ao setor.
 
 Limites: claims têm limite de tamanho no token; manter apenas os campos acima.
 Não usar nomes reservados de OIDC (`sub`, `iat`, `iss`, etc.).
@@ -51,8 +55,8 @@ Contrato:
 - Entrada: `{ uid: string }`
 - Saída: `{ ok: true }` (ou erro padronizado `HttpsError`)
 - Autorização: **qualquer admin ativo** pode executar (ver §5, melhoria futura).
-- Efeito: lê `usuarios/{uid}` e grava os claims `ativo`, `nivel_acesso`, `ids_setor`
-  e `admin_global` (este último forçado a `false` quando `nivel_acesso != 2`).
+- Efeito: lê `usuarios/{uid}` e grava os claims `ativo`, `ids_setor` e `caps`
+  (lista de capabilities derivada do mapa `capabilities`).
 
 ### Deploy (requer Billing/Blaze)
 
@@ -80,7 +84,7 @@ await sincronizarClaimsUsuario(uidAlvo) // chama a Function
 await forcarAtualizacaoToken() // renova o token do usuário atual
 ```
 
-Quando sincronizar: ao criar o usuário, ao mudar `nivel_acesso`/`ids_setor`/`ativo`,
+Quando sincronizar: ao criar o usuário, ao mudar `capabilities`/`ids_setor`/`ativo`,
 ou ao revogar acesso (`ativo = false`).
 
 ---
@@ -96,7 +100,7 @@ await forcarAtualizacaoToken() // getIdTokenResult(user, true) por baixo
 ```
 
 A sessão (`src/composables/usarSessao.js`) observa `onIdTokenChanged`, então após o
-refresh os derivados `claims`, `ehAdminClaim`, `idsSetorClaim`, `ativoClaim` se
+refresh os derivados `claims`, `idsSetorClaim`, `ativoClaim` se
 atualizam sozinhos.
 
 ---
@@ -108,7 +112,7 @@ No console do navegador, com o usuário logado:
 ```js
 import { getAuth } from 'firebase/auth'
 const r = await getAuth().currentUser.getIdTokenResult(true)
-console.log(r.claims) // { ativo, nivel_acesso, ids_setor, ... }
+console.log(r.claims) // { ativo, ids_setor, caps, ... }
 ```
 
 Ou inspecione `usarSessao().estado.claims` no app.
@@ -122,7 +126,7 @@ claims). Por isso o seeder injeta os claims:
 
 ```bash
 docker compose up -d emuladores
-npm run seed:emulador   # cria usuários + setores E injeta claims (ativo/nivel_acesso/ids_setor)
+npm run seed:emulador   # cria usuários + setores E injeta claims (ativo/ids_setor/caps)
 ```
 
 O seeder chama o endpoint REST `accounts:update` do Auth emulator (o mesmo que o

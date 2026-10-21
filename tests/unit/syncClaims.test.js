@@ -1,10 +1,11 @@
-// Testes de extrairClaims (Spec 17 + Spec 18). Rodar: npm run test:unit
+// Testes de extrairClaims (Spec 23 — hard cut). Rodar: npm run test:unit
+// Claims finais: ativo, ids_setor, caps. Sem legado (nivel_acesso/admin_global).
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { NIVEL_USUARIO, NIVEL_ADMIN, ErroClaims, extrairClaims } from '../../functions/claims.js'
+import { CAP, ErroClaims, extrairClaims, capabilitiesParaLista } from '../../functions/claims.js'
 
-function docAdmin(extra = {}) {
-  return { ativo: true, nivel_acesso: NIVEL_ADMIN, ids_setor: ['cachoeira'], ...extra }
+function docBase(extra = {}) {
+  return { ativo: true, ids_setor: ['cachoeira'], ...extra }
 }
 
 test('documento ausente lança not-found', () => {
@@ -21,16 +22,7 @@ test('documento ausente lança not-found', () => {
 test('ativo ausente ou não-booleano lança invalid-argument', () => {
   for (const ativo of [undefined, 'true', 1, null]) {
     assert.throws(
-      () => extrairClaims(docAdmin({ ativo })),
-      (e) => e instanceof ErroClaims && e.code === 'invalid-argument',
-    )
-  }
-})
-
-test('nivel_acesso fora de {1,2} lança invalid-argument', () => {
-  for (const nivel of [undefined, 0, 3, '2', null]) {
-    assert.throws(
-      () => extrairClaims(docAdmin({ nivel_acesso: nivel })),
+      () => extrairClaims(docBase({ ativo })),
       (e) => e instanceof ErroClaims && e.code === 'invalid-argument',
     )
   }
@@ -39,7 +31,7 @@ test('nivel_acesso fora de {1,2} lança invalid-argument', () => {
 test('ids_setor ausente, vazio ou não-array lança invalid-argument', () => {
   for (const ids of [undefined, [], 'cachoeira', null, {}]) {
     assert.throws(
-      () => extrairClaims(docAdmin({ ids_setor: ids })),
+      () => extrairClaims(docBase({ ids_setor: ids })),
       (e) => e instanceof ErroClaims && e.code === 'invalid-argument',
     )
   }
@@ -48,44 +40,49 @@ test('ids_setor ausente, vazio ou não-array lança invalid-argument', () => {
 test('ids_setor com item inválido (não-string ou vazio) lança invalid-argument', () => {
   for (const ids of [['cachoeira', ''], ['cachoeira', 123], ['']]) {
     assert.throws(
-      () => extrairClaims(docAdmin({ ids_setor: ids })),
+      () => extrairClaims(docBase({ ids_setor: ids })),
       (e) => e instanceof ErroClaims && e.code === 'invalid-argument',
     )
   }
 })
 
-test('usuário comum (nível 1) válido: admin_global sempre false', () => {
-  const claims = extrairClaims({
-    ativo: true,
-    nivel_acesso: NIVEL_USUARIO,
-    ids_setor: ['cachoeira'],
-    admin_global: true,
-  })
-  assert.deepEqual(claims, {
-    ativo: true,
-    nivel_acesso: 1,
-    ids_setor: ['cachoeira'],
-    admin_global: false,
-  })
+test('claims finais contêm apenas ativo, ids_setor e caps', () => {
+  const claims = extrairClaims(
+    docBase({ capabilities: { [CAP.BIBLIOTECA_LER_PUBLICOS]: true } }),
+  )
+  assert.deepEqual(Object.keys(claims).sort(), ['ativo', 'caps', 'ids_setor'])
+  assert.equal(claims.ativo, true)
+  assert.deepEqual(claims.ids_setor, ['cachoeira'])
 })
 
-test('admin (nível 2) sem admin_global: default false', () => {
-  const claims = extrairClaims(docAdmin())
-  assert.equal(claims.admin_global, false)
+test('caps deriva exclusivamente de capabilities (true entra, false/ausente não)', () => {
+  const claims = extrairClaims(
+    docBase({
+      capabilities: {
+        [CAP.BIBLIOTECA_LER_PUBLICOS]: true,
+        [CAP.BIBLIOTECA_GERENCIAR_SETOR]: true,
+        [CAP.BIBLIOTECA_LER_PRIVADOS]: false,
+      },
+    }),
+  )
+  assert.deepEqual(claims.caps, [CAP.BIBLIOTECA_LER_PUBLICOS, CAP.BIBLIOTECA_GERENCIAR_SETOR])
 })
 
-test('admin (nível 2) com admin_global=true: preserva true', () => {
-  const claims = extrairClaims(docAdmin({ admin_global: true, ids_setor: ['a', 'b'] }))
-  assert.deepEqual(claims, {
-    ativo: true,
-    nivel_acesso: 2,
-    ids_setor: ['a', 'b'],
-    admin_global: true,
-  })
+test('capabilities ausente => caps vazio', () => {
+  assert.deepEqual(extrairClaims(docBase()).caps, [])
 })
 
-test('admin_global só vira true com o booleano literal true (não truthy)', () => {
-  for (const v of [1, 'true', {}]) {
-    assert.equal(extrairClaims(docAdmin({ admin_global: v })).admin_global, false)
-  }
+test('capability desconhecida não entra em caps (filtra pelo enum)', () => {
+  const claims = extrairClaims(
+    docBase({ capabilities: { capability_inexistente: true, [CAP.USUARIOS_VER]: true } }),
+  )
+  assert.deepEqual(claims.caps, [CAP.USUARIOS_VER])
+})
+
+test('capabilitiesParaLista ignora entradas não-true', () => {
+  assert.deepEqual(capabilitiesParaLista({ [CAP.USUARIOS_VER]: 1, [CAP.USUARIOS_GERENCIAR]: true }), [
+    CAP.USUARIOS_GERENCIAR,
+  ])
+  assert.deepEqual(capabilitiesParaLista(null), [])
+  assert.deepEqual(capabilitiesParaLista(undefined), [])
 })

@@ -70,8 +70,6 @@ const destinos = SETORES_DESTINO.length
   ? SETORES_DESTINO
   : TODOS_SETORES.filter((s) => s !== SETOR_ORIGEM)
 
-const NIVEL_RESTRITO = 2
-
 // Credenciais do seed para autenticar no emulador (storage.rules exigem auth).
 const SEED_EMAIL = process.env.SEED_EMAIL || 'alberto@exemplo.com'
 const SEED_SENHA = process.env.SEED_SENHA || 'senha123'
@@ -87,8 +85,8 @@ function mimeDeExtensao(ext) {
 }
 
 // Recalcula o id_nuvem para o setor/arquivo de destino (contrato oficial).
-function montarIdNuvem({ idSetor, nivelAcesso, idArquivo, extensao }) {
-  const segmentoNivel = nivelAcesso === NIVEL_RESTRITO ? 'nivel_2' : 'nivel_1'
+function montarIdNuvem({ idSetor, arquivoPrivado, idArquivo, extensao }) {
+  const segmentoNivel = arquivoPrivado === true ? 'nivel_2' : 'nivel_1'
   return `biblioteca/${idSetor}/${segmentoNivel}/${idArquivo}.${extensao}`
 }
 
@@ -193,7 +191,7 @@ async function main() {
         const extensao = extensaoDoArquivo(arq)
         const idNuvemDestino = montarIdNuvem({
           idSetor: idSetorDestino,
-          nivelAcesso: arq.nivel_acesso,
+          arquivoPrivado: arq.arquivo_privado,
           idArquivo: idArquivoNovo,
           extensao,
         })
@@ -206,7 +204,7 @@ async function main() {
           id_setor: idSetorDestino,
           tipo: arq.tipo,
           titulo: arq.titulo,
-          nivel_acesso: arq.nivel_acesso,
+          arquivo_privado: arq.arquivo_privado === true,
           id_nuvem: idNuvemDestino,
           id_usuario: arq.id_usuario,
           extensao_arquivo: extensao,

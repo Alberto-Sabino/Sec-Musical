@@ -29,11 +29,11 @@
                 aria-label="Arquivo global"
               />
               <span
-                v-if="ehAdmin"
+                v-if="podeVerPrivados"
                 class="item__nivel"
-                :class="ehRestrito(arquivo) ? 'item__nivel--restrito' : 'item__nivel--publico'"
+                :class="ehPrivado(arquivo) ? 'item__nivel--restrito' : 'item__nivel--publico'"
               >
-                {{ rotuloNivelArquivo(arquivo.nivel_acesso) }}
+                {{ rotuloArquivoPrivado(arquivo.arquivo_privado) }}
               </span>
             </span>
             <span class="item__meta">
@@ -48,7 +48,7 @@
 
     <DetalheArquivo
       :arquivo="arquivoSelecionado"
-      :mostrar-nivel="ehAdmin"
+      :mostrar-nivel="podeVerPrivados"
       @fechar="arquivoSelecionado = null"
     />
   </ContainerPagina>
@@ -67,8 +67,7 @@ import IconeGlobal from '@/componentes/icones/IconeGlobal.vue'
 import DetalheArquivo from './DetalheArquivo.vue'
 import { usarSessao } from '@/composables/usarSessao'
 import {
-  NIVEL_ARQUIVO,
-  rotuloNivelArquivo,
+  rotuloArquivoPrivado,
   rotuloTipoArquivo,
   buscarBibliotecaPorNome,
 } from '@/servicos/casos_de_uso/biblioteca'
@@ -79,7 +78,7 @@ import { dispararEvento } from '@/servicos/firebase/analytics'
 import { ACOES } from '@/enums/eventosAnalytics'
 
 const route = useRoute()
-const { estado, ehAdmin } = usarSessao()
+const { estado, podeVerPrivados } = usarSessao()
 
 const arquivos = ref([])
 const carregando = ref(false)
@@ -89,8 +88,8 @@ const arquivoSelecionado = ref(null)
 const termo = computed(() => String(route.query.q || '').trim())
 const subtitulo = computed(() => (termo.value ? `Resultados para “${termo.value}”` : ''))
 
-function ehRestrito(arquivo) {
-  return arquivo.nivel_acesso === NIVEL_ARQUIVO.RESTRITO
+function ehPrivado(arquivo) {
+  return arquivo.arquivo_privado === true
 }
 
 // Indicador visual: arquivo global (Spec 18 — continuação).
@@ -109,7 +108,7 @@ async function carregar() {
 
   try {
     arquivos.value = await buscarBibliotecaPorNome({
-      nivelAcesso: estado.contexto.nivel_acesso,
+      podeVerPrivados: podeVerPrivados.value,
       idSetor: estado.setorAtivo,
       termo: termo.value,
     })

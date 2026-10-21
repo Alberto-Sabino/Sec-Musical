@@ -12,6 +12,8 @@ import { initializeApp } from 'firebase/app'
 import { getAuth, connectAuthEmulator, createUserWithEmailAndPassword } from 'firebase/auth'
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { initializeTestEnvironment } from '@firebase/rules-unit-testing'
+import { capabilitiesDoLegado, capabilitiesParaLista } from '../src/enums/capabilities.js'
+import { CLAIM } from '../src/enums/claims.js'
 
 const PROJETO = 'sec-musical-mvp'
 const EMU_HOST = process.env.EMULATOR_HOST || '127.0.0.1'
@@ -121,8 +123,8 @@ async function criarUsuarioAuth(email) {
   return cred.user.uid
 }
 
-// Injeta custom claims no usuário do Auth emulator (Spec 17), espelhando o
-// cadastro: { ativo, nivel_acesso, ids_setor }. Usa o endpoint REST
+// Injeta custom claims no usuário do Auth emulator (Spec 23), espelhando o
+// cadastro: { ativo, ids_setor, caps }. Usa o endpoint REST
 // `accounts:update` do emulador (o mesmo que o Admin SDK usa internamente),
 // autenticado com o bearer "owner" aceito pelos emuladores — sem Admin SDK e
 // sem dependências novas. Assim o ambiente local roda com as MESMAS Storage
@@ -177,17 +179,19 @@ async function main() {
 
     // Usuários
     for (const u of comUid) {
+      const adminGlobal = u.nivel === 2 && u.admin_global === true
       await setDoc(doc(db, 'usuarios', u.uid), {
         id_usuario: u.uid,
         nome_completo: u.nome,
         email: u.email,
         celular: u.celular || '',
         comum_congregacao: u.comum || '',
-        nivel_acesso: u.nivel,
+        // cargo (Spec 23): exibição do perfil; não autoriza.
+        cargo: u.nivel === 2 ? 'Secretário Musical' : 'Encarregado Local',
         ativo: true,
         ids_setor: u.setores,
-        // admin_global (Spec 18): só vale para admin (nivel 2); default false.
-        admin_global: u.nivel === 2 && u.admin_global === true,
+        // capabilities (Spec 23): fonte única de autorização, derivada do perfil.
+        capabilities: capabilitiesDoLegado(u.nivel, adminGlobal),
         data_criacao: serverTimestamp(),
         data_atualizacao: serverTimestamp(),
       })
@@ -196,14 +200,14 @@ async function main() {
 
   await testEnv.cleanup()
 
-  // Injeta os custom claims espelhando o cadastro (Spec 17). Feito após gravar
-  // os documentos para refletir exatamente ativo/nivel_acesso/ids_setor.
+  // Injeta os custom claims espelhando o cadastro (Spec 23): ativo, ids_setor e
+  // caps (lista) derivada do mesmo mapa de capabilities. Sem legado no token.
   for (const u of comUid) {
+    const adminGlobal = u.nivel === 2 && u.admin_global === true
     await definirClaimsEmulador(u.uid, {
-      ativo: true,
-      nivel_acesso: u.nivel,
-      ids_setor: u.setores,
-      admin_global: u.nivel === 2 && u.admin_global === true,
+      [CLAIM.ATIVO]: true,
+      [CLAIM.IDS_SETOR]: u.setores,
+      [CLAIM.CAPS]: capabilitiesParaLista(capabilitiesDoLegado(u.nivel, adminGlobal)),
     })
   }
 

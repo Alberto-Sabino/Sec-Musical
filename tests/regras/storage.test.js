@@ -1,5 +1,5 @@
-// Testes das regras de Storage (Specs 14/15 + hardening com claims da Spec 17).
-// Autorização por custom claims (request.auth.token): ativo, nivel_acesso, ids_setor.
+// Testes das regras de Storage (Specs 14/15 + capabilities da Spec 22).
+// Autorização por custom claims (request.auth.token): ativo, ids_setor, caps[].
 // Biblioteca: PDF/XLSX até 50 MB (teto); Solicitações: PDF até 2 MB.
 // Executar com o emulador de Storage: npm run test:rules
 import { test, before, after } from 'node:test'
@@ -20,10 +20,22 @@ const MIME_XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.s
 const SETOR_A = 'setorA'
 const SETOR_B = 'setorB'
 
+// Caps por perfil (Spec 22 §2.2). Mantidos aqui explícitos para clareza do teste.
+const CAPS_ENCARREGADO = ['biblioteca_ler_publicos', 'solicitacoes_criar', 'solicitacoes_ver_proprias']
+const CAPS_ADMIN_SETOR = [
+  'biblioteca_ler_publicos',
+  'biblioteca_ler_privados',
+  'biblioteca_gerenciar_setor',
+  'solicitacoes_ver_proprias',
+  'solicitacoes_ver_setor',
+  'solicitacoes_agir_setor',
+]
+const CAPS_ADMIN_GLOBAL = [...CAPS_ADMIN_SETOR, 'biblioteca_gerenciar_global']
+
 // UIDs de teste
-const UID_COMUM = 'user_comum' // nivel_acesso 1, setorA
-const UID_ADMIN = 'admin_a' // nivel_acesso 2, setorA
-const UID_ADMIN_GLOBAL = 'admin_global_a' // nivel_acesso 2, setorA, admin_global
+const UID_COMUM = 'user_comum' // encarregado, setorA
+const UID_ADMIN = 'admin_a' // admin setorial, setorA
+const UID_ADMIN_GLOBAL = 'admin_global_a' // admin global, setorA
 const UID_SOLICITANTE = 'solicitante_1' // dono da resposta final
 const UID_INATIVO = 'user_inativo' // ativo=false
 
@@ -50,32 +62,35 @@ after(async () => {
 // Contextos com custom claims (segundo argumento = tokenOptions).
 function ctxComum() {
   return testEnv
-    .authenticatedContext(UID_COMUM, { ativo: true, nivel_acesso: 1, ids_setor: [SETOR_A] })
+    .authenticatedContext(UID_COMUM, { ativo: true, ids_setor: [SETOR_A], caps: CAPS_ENCARREGADO })
     .storage()
 }
 function ctxAdmin() {
   return testEnv
-    .authenticatedContext(UID_ADMIN, { ativo: true, nivel_acesso: 2, ids_setor: [SETOR_A] })
+    .authenticatedContext(UID_ADMIN, { ativo: true, ids_setor: [SETOR_A], caps: CAPS_ADMIN_SETOR })
     .storage()
 }
 function ctxAdminGlobal() {
   return testEnv
     .authenticatedContext(UID_ADMIN_GLOBAL, {
       ativo: true,
-      nivel_acesso: 2,
       ids_setor: [SETOR_A],
-      admin_global: true,
+      caps: CAPS_ADMIN_GLOBAL,
     })
     .storage()
 }
 function ctxSolicitante() {
   return testEnv
-    .authenticatedContext(UID_SOLICITANTE, { ativo: true, nivel_acesso: 1, ids_setor: [SETOR_A] })
+    .authenticatedContext(UID_SOLICITANTE, {
+      ativo: true,
+      ids_setor: [SETOR_A],
+      caps: CAPS_ENCARREGADO,
+    })
     .storage()
 }
 function ctxInativo() {
   return testEnv
-    .authenticatedContext(UID_INATIVO, { ativo: false, nivel_acesso: 2, ids_setor: [SETOR_A] })
+    .authenticatedContext(UID_INATIVO, { ativo: false, ids_setor: [SETOR_A], caps: CAPS_ADMIN_SETOR })
     .storage()
 }
 function anonimo() {
@@ -225,18 +240,10 @@ test('global: usuário comum NÃO escreve global (bloqueado)', async () => {
   await assertFails(enviar(ctxComum(), `biblioteca_global/nivel_1/gw4.pdf`, 1 * MB, MIME_PDF))
 })
 
-// Consistência de claims (Spec 18): mesmo que o token traga admin_global=true,
-// se nivel_acesso != 2 a rule nega (ehAdminGlobal exige nivel_acesso == 2).
-test('global: claim forjado admin_global=true com nivel_acesso=1 NÃO escreve (bloqueado)', async () => {
-  const ctxForjado = testEnv
-    .authenticatedContext('user_forjado', {
-      ativo: true,
-      nivel_acesso: 1,
-      ids_setor: [SETOR_A],
-      admin_global: true,
-    })
-    .storage()
-  await assertFails(enviar(ctxForjado, `biblioteca_global/nivel_1/gwforj.pdf`, 1 * MB, MIME_PDF))
+// Consistência de capabilities (Spec 22): sem a cap biblioteca_gerenciar_global,
+// mesmo um admin setorial não escreve na biblioteca global.
+test('global: usuário sem cap gerenciar_global NÃO escreve global (bloqueado)', async () => {
+  await assertFails(enviar(ctxAdmin(), `biblioteca_global/nivel_1/gwcap.pdf`, 1 * MB, MIME_PDF))
 })
 
 test('global: formato não aceito (imagem) é bloqueado', async () => {

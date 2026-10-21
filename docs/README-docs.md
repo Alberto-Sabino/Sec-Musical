@@ -96,6 +96,8 @@ evoluções.
 | 19 | UI Motion (animações leves e padronizadas) |
 | 20 | Primeiro acesso — troca obrigatória de senha (flag `primeiro_acesso`) |
 | 21 | Solicitações — auditoria `anexo_visualizado` (após download com sucesso) |
+| 22 | Capabilities & Claims — `usuarios.capabilities` + claim `caps[]` (legado mantido) |
+| 23 | Hard cut — remove `nivel_acesso`/`admin_global`; `cargo` + `arquivo_privado`; capabilities/caps como única base |
 
 ## guias/
 

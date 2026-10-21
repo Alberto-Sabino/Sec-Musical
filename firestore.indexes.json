@@ -5,7 +5,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "id_setor", "order": "ASCENDING" },
-        { "fieldPath": "nivel_acesso", "order": "ASCENDING" },
+        { "fieldPath": "arquivo_privado", "order": "ASCENDING" },
         { "fieldPath": "data_atualizacao", "order": "DESCENDING" }
       ]
     },
@@ -14,7 +14,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "id_setor", "order": "ASCENDING" },
-        { "fieldPath": "nivel_acesso", "order": "ASCENDING" },
+        { "fieldPath": "arquivo_privado", "order": "ASCENDING" },
         { "fieldPath": "tipo", "order": "ASCENDING" },
         { "fieldPath": "data_atualizacao", "order": "DESCENDING" }
       ]
@@ -24,7 +24,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "escopo", "order": "ASCENDING" },
-        { "fieldPath": "nivel_acesso", "order": "ASCENDING" },
+        { "fieldPath": "arquivo_privado", "order": "ASCENDING" },
         { "fieldPath": "data_atualizacao", "order": "DESCENDING" }
       ]
     },
@@ -33,7 +33,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "escopo", "order": "ASCENDING" },
-        { "fieldPath": "nivel_acesso", "order": "ASCENDING" },
+        { "fieldPath": "arquivo_privado", "order": "ASCENDING" },
         { "fieldPath": "tipo", "order": "ASCENDING" },
         { "fieldPath": "data_atualizacao", "order": "DESCENDING" }
       ]

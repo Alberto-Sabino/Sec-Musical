@@ -1,21 +1,31 @@
-// Cloud Functions (Spec 17 + Spec 18): sincroniza Custom Claims a partir de
+// Cloud Functions (Spec 23 — hard cut): sincroniza Custom Claims a partir de
 // usuarios/{uid}. Callable manual (não-trigger). Ver docs/guias/claims-e-sincronizacao.md.
 import { initializeApp } from 'firebase-admin/app'
 import { getAuth } from 'firebase-admin/auth'
 import { getFirestore } from 'firebase-admin/firestore'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { logger } from 'firebase-functions'
-import { NIVEL_ADMIN, ErroClaims, extrairClaims } from './claims.js'
+import { CAP, ErroClaims, extrairClaims } from './claims.js'
 
 initializeApp()
 
-// Autorização (política A): qualquer admin ativo sincroniza qualquer uid.
+// Capabilities que caracterizam um administrador (setor ou global). Enquanto não
+// existe UI de gestão de usuários (capability usuarios_gerenciar), a callable é
+// autorizada por estas capabilities, presentes nos perfis admin atuais.
+const CAPS_ADMIN = [CAP.BIBLIOTECA_GERENCIAR_SETOR, CAP.BIBLIOTECA_GERENCIAR_GLOBAL]
+
+function ehAdminPorCaps(token) {
+  const caps = Array.isArray(token?.caps) ? token.caps : []
+  return token?.ativo === true && CAPS_ADMIN.some((cap) => caps.includes(cap))
+}
+
+// Autorização: admin ativo (por capability) sincroniza qualquer uid.
 export const syncClaimsFromUsuario = onCall(async (request) => {
   const auth = request.auth
   if (!auth) {
     throw new HttpsError('unauthenticated', 'É necessário estar autenticado.')
   }
-  if (auth.token.nivel_acesso !== NIVEL_ADMIN || auth.token.ativo !== true) {
+  if (!ehAdminPorCaps(auth.token)) {
     throw new HttpsError(
       'permission-denied',
       'Apenas administradores ativos podem sincronizar claims.',
@@ -49,10 +59,9 @@ export const syncClaimsFromUsuario = onCall(async (request) => {
   logger.info('syncClaimsFromUsuario', {
     uid_alvo: uid,
     uid_executor: auth.uid,
-    nivel_acesso: claims.nivel_acesso,
-    qtd_setores: claims.ids_setor.length,
     ativo: claims.ativo,
-    admin_global: claims.admin_global,
+    qtd_setores: claims.ids_setor.length,
+    qtd_caps: claims.caps.length,
   })
 
   return { ok: true }

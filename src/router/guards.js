@@ -1,7 +1,9 @@
-// Guardas de rota do app. Cuidam de três coisas antes de cada navegação:
+// Guardas de rota do app. Cuidam de quatro coisas antes de cada navegação:
 // (1) se há formulário com alteração pendente, pede confirmação para sair;
 // (2) espera a sessão terminar de inicializar (o observador do Auth);
-// (3) barra acesso a rotas que exigem login ou papel de admin.
+// (3) barra acesso a rotas que exigem login; durante o primeiro acesso, só libera
+//     alterar-senha e perfil (Spec 20);
+// (4) barra rotas que exigem uma capability que o usuário não tem (Spec 22).
 import { watch } from 'vue'
 import { usarSessao } from '@/composables/usarSessao'
 import { existeFormularioSujo, pedirConfirmacaoSaida } from '@/composables/usarGuardaFormulario'
@@ -9,6 +11,7 @@ import { dispararEvento } from '@/servicos/firebase/analytics'
 import { EVENTO_ACESSO_TELA } from '@/enums/eventosAnalytics'
 import { parametrosEventoTela } from '@/servicos/casos_de_uso/analyticsNavegacao'
 import { avaliarPrimeiroAcesso } from './primeiroAcesso'
+import { temCapability } from '@/enums/capabilities'
 
 const { estado, iniciarObservadorSessao } = usarSessao()
 
@@ -47,7 +50,7 @@ export function registrarGuards(router) {
     await aguardarInicializacao()
 
     const requerAuth = para.meta?.requerAuth === true
-    const requerAdmin = para.meta?.requerAdmin === true
+    const requerCapability = para.meta?.requerCapability || null
 
     // Rota de login: se já autenticado com contexto válido, redireciona ao início.
     if (para.name === 'login') {
@@ -67,8 +70,8 @@ export function registrarGuards(router) {
       }
     }
 
-    if (requerAdmin && estado.contexto?.ehAdmin !== true) {
-      // Usuário sem papel de admin não acessa rota administrativa.
+    if (requerCapability && !temCapability(estado.contexto?.capabilities, requerCapability)) {
+      // Sem a capability exigida pela rota: volta ao início (Spec 22).
       return { name: 'inicio' }
     }
 

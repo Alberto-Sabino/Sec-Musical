@@ -30,15 +30,15 @@
         />
 
         <BaseSelect
-          v-model="form.nivel_acesso"
-          rotulo="Nível de acesso"
-          :opcoes="opcoesNivel"
-          :erro="erros.nivel_acesso"
+          v-model="form.arquivo_privado"
+          rotulo="Visibilidade"
+          :opcoes="opcoesVisibilidade"
+          :erro="erros.arquivo_privado"
         />
 
         <!-- Escopo do arquivo (Spec 18). Governança de UI:
-             - admin_global: controla o escopo (checkbox + select de setor);
-             - demais admins: sem controles (escopo sempre = setor ativo), apenas um aviso. -->
+             - quem gerencia global: controla o escopo (checkbox + select de setor);
+             - demais: sem controles (escopo sempre = setor ativo), apenas um aviso. -->
         <div v-if="podeGlobal" class="escopo">
           <label class="escopo__check">
             <input
@@ -117,8 +117,7 @@ import { usarSessao } from '@/composables/usarSessao'
 import { registrarGuardaFormulario } from '@/composables/usarGuardaFormulario'
 import {
   TIPOS_ARQUIVO,
-  NIVEL_ARQUIVO,
-  NIVEL_ARQUIVO_OPCOES,
+  ARQUIVO_PRIVADO_OPCOES,
 } from '@/servicos/casos_de_uso/biblioteca'
 import {
   cadastrarArquivo,
@@ -136,14 +135,15 @@ import { ERROS, PARAMS_ERRO_FORMULARIO } from '@/enums/eventosAnalytics'
 
 const route = useRoute()
 const router = useRouter()
-const { estado, nomeSetorAtivo, opcoesSetor, ehAdminGlobal } = usarSessao()
+const { estado, nomeSetorAtivo, opcoesSetor, podeGerenciarBibliotecaGlobal } = usarSessao()
 
 const opcoesTipo = TIPOS_ARQUIVO
-const opcoesNivel = NIVEL_ARQUIVO_OPCOES
+const opcoesVisibilidade = ARQUIVO_PRIVADO_OPCOES
 
-// Governança (Spec 18): só admin_global controla o escopo. Para os demais, os
-// controles não são renderizados e o escopo é sempre 'setor' (setor ativo).
-const podeGlobal = computed(() => ehAdminGlobal.value === true)
+// Governança (Spec 18): só quem tem biblioteca_gerenciar_global controla o
+// escopo. Para os demais, os controles não são renderizados e o escopo é sempre
+// 'setor' (setor ativo).
+const podeGlobal = computed(() => podeGerenciarBibliotecaGlobal.value === true)
 
 const accept = acceptBiblioteca()
 const hint = computed(() => hintBiblioteca(form.tipo))
@@ -163,9 +163,9 @@ const arquivoSelecionado = ref(null)
 const form = reactive({
   titulo: '',
   tipo: '',
-  nivel_acesso: NIVEL_ARQUIVO.PUBLICO,
+  arquivo_privado: false,
   // restringir = true  → escopo 'setor' (id_setor obrigatório)
-  // restringir = false → escopo 'global' (só admin_global)
+  // restringir = false → escopo 'global' (só gerenciar_global)
   restringir: true,
   id_setor: estado.setorAtivo || '',
 })
@@ -175,7 +175,7 @@ const erros = reactive({})
 const formInicial = ref({
   titulo: '',
   tipo: '',
-  nivel_acesso: NIVEL_ARQUIVO.PUBLICO,
+  arquivo_privado: false,
   restringir: true,
   id_setor: estado.setorAtivo || '',
 })
@@ -200,7 +200,7 @@ function estaSujo() {
   return (
     form.titulo !== formInicial.value.titulo ||
     form.tipo !== formInicial.value.tipo ||
-    Number(form.nivel_acesso) !== Number(formInicial.value.nivel_acesso) ||
+    form.arquivo_privado !== formInicial.value.arquivo_privado ||
     form.restringir !== formInicial.value.restringir ||
     form.id_setor !== formInicial.value.id_setor
   )
@@ -234,8 +234,6 @@ watch(
   () => validarArquivoSelecionado(),
 )
 
-const NIVEIS_VALIDOS = [NIVEL_ARQUIVO.PUBLICO, NIVEL_ARQUIVO.RESTRITO]
-
 function validar() {
   Object.keys(erros).forEach((campo) => delete erros[campo])
 
@@ -247,11 +245,7 @@ function validar() {
     erros.tipo = 'Selecione o tipo.'
   }
 
-  if (!NIVEIS_VALIDOS.includes(Number(form.nivel_acesso))) {
-    erros.nivel_acesso = 'Selecione o nível.'
-  }
-
-  // Escopo: só validamos o setor quando os controles são exibidos (admin_global)
+  // Escopo: só validamos o setor quando os controles são exibidos (gerenciar_global)
   // e o arquivo está restrito ao setor. Caso contrário, o escopo é derivado no
   // submit (setor ativo). Exige setor dentre os setores do admin.
   if (podeGlobal.value && form.restringir && !estado.contexto?.ids_setor?.includes(form.id_setor)) {
@@ -289,8 +283,8 @@ async function salvar() {
   salvando.value = true
 
   try {
-    // Sem admin_global o escopo é sempre 'setor' no setor ativo; com admin_global
-    // deriva da checkbox.
+    // Sem a capability gerenciar_global o escopo é sempre 'setor' no setor ativo;
+    // com ela, deriva da checkbox.
     const escopo =
       podeGlobal.value && !form.restringir ? ESCOPO_ARQUIVO.GLOBAL : ESCOPO_ARQUIVO.SETOR
     const idSetor =
@@ -300,7 +294,7 @@ async function salvar() {
       id_setor: idSetor,
       tipo: form.tipo,
       titulo: form.titulo.trim(),
-      nivel_acesso: Number(form.nivel_acesso),
+      arquivo_privado: form.arquivo_privado === true,
       id_usuario: estado.contexto.id_usuario,
     }
 
@@ -341,9 +335,9 @@ onMounted(async () => {
 
     arquivoAtual.value = doc
 
-    // Guard (Spec 18 — continuação): edição de arquivo global exige admin_global.
+    // Guard (Spec 18): edição de arquivo global exige gerenciar_global.
     // Impede acesso direto por URL de quem não é elegível.
-    if (escopoDoArquivo(doc) === ESCOPO_ARQUIVO.GLOBAL && !ehAdminGlobal.value) {
+    if (escopoDoArquivo(doc) === ESCOPO_ARQUIVO.GLOBAL && !podeGerenciarBibliotecaGlobal.value) {
       bloqueado.value = true
       setTimeout(() => router.push({ name: 'biblioteca' }), 1200)
       return
@@ -351,7 +345,7 @@ onMounted(async () => {
 
     form.titulo = doc.titulo || ''
     form.tipo = doc.tipo || ''
-    form.nivel_acesso = doc.nivel_acesso || NIVEL_ARQUIVO.PUBLICO
+    form.arquivo_privado = doc.arquivo_privado === true
     // Legados sem escopo são tratados como 'setor'.
     const escopo = escopoDoArquivo(doc)
     form.restringir = escopo === ESCOPO_ARQUIVO.SETOR
@@ -359,7 +353,7 @@ onMounted(async () => {
     formInicial.value = {
       titulo: form.titulo,
       tipo: form.tipo,
-      nivel_acesso: form.nivel_acesso,
+      arquivo_privado: form.arquivo_privado,
       restringir: form.restringir,
       id_setor: form.id_setor,
     }

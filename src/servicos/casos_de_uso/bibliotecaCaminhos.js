@@ -1,17 +1,16 @@
-// Lógica pura de caminho/extensão da Biblioteca (Specs 14/18). Sem firebase/vue.
+// Lógica pura de caminho/extensão da Biblioteca (Specs 14/18/23). Sem firebase/vue.
 // Importado por testes de unidade via caminho relativo (node:test, sem alias "@"),
 // por isso não importa de "@/enums": ESCOPO_GLOBAL espelha ESCOPO_ARQUIVO.GLOBAL.
 
-// Nível de acesso restrito do arquivo (contrato: 1 = público, 2 = restrito).
-const NIVEL_RESTRITO = 2
 const ESCOPO_GLOBAL = 'global'
 
-// Monta o id_nuvem oficial conforme o escopo (Spec 18):
+// Monta o id_nuvem oficial conforme o escopo (Spec 18) e a visibilidade (Spec 23):
 //   setor  → biblioteca/{id_setor}/nivel_1|nivel_2/{id_arquivo}.{ext}
 //   global → biblioteca_global/nivel_1|nivel_2/{id_arquivo}.{ext}
+// arquivoPrivado=true usa nivel_2; false (ou ausente) usa nivel_1.
 // Escopo ausente é tratado como 'setor' (legados).
-export function montarIdNuvem({ escopo, idSetor, nivelAcesso, idArquivo, extensao }) {
-  const segmentoNivel = nivelAcesso === NIVEL_RESTRITO ? 'nivel_2' : 'nivel_1'
+export function montarIdNuvem({ escopo, idSetor, arquivoPrivado, idArquivo, extensao }) {
+  const segmentoNivel = arquivoPrivado === true ? 'nivel_2' : 'nivel_1'
 
   if (escopo === ESCOPO_GLOBAL) {
     return `biblioteca_global/${segmentoNivel}/${idArquivo}.${extensao}`

@@ -177,17 +177,25 @@ Campos principais:
 - `email`
 - `celular`
 - `comum_congregacao`
-- `nivel_acesso`
-- `admin_global`
+- `cargo`
 - `ativo`
 - `ids_setor`
+- `capabilities`
 - `primeiro_acesso`
 - `data_criacao`
 - `data_atualizacao`
 
-> `admin_global` (booleano) habilita a governança da Biblioteca Global. Só é
-> válido para admin (`nivel_acesso == 2`); para qualquer outro perfil o valor é
-> tratado como `false`. A sincronização de claims força essa consistência.
+> `capabilities` (mapa booleano, Spec 22/23) é a **única** fonte de autorização
+> por perfil. Chaves oficiais: `biblioteca_ler_publicos`, `biblioteca_ler_privados`,
+> `biblioteca_gerenciar_setor`, `biblioteca_gerenciar_global`, `solicitacoes_criar`,
+> `solicitacoes_ver_proprias`, `solicitacoes_ver_setor`, `solicitacoes_agir_setor`,
+> `usuarios_ver`, `usuarios_gerenciar`. Ausência de chave/mapa = `false`. As
+> Firestore Rules autorizam lendo `capabilities`; as Storage Rules autorizam pela
+> claim `caps` (lista de strings derivada do mesmo mapa) + `ids_setor` + `ativo`.
+> Não há mais `nivel_acesso`/`admin_global` (removidos no hard cut da Spec 23).
+
+> `cargo` (string, Spec 23) é apenas rótulo de exibição do perfil (ex.: "Secretário
+> Musical", "Encarregado Local"); **não autoriza** nada.
 
 > `primeiro_acesso` (booleano, Spec 20) força a troca da senha padrão no primeiro
 > login. Enquanto `true`, o usuário só acessa `/alterar-senha` e `/perfil`, sem
@@ -213,7 +221,7 @@ Campos principais:
 - `escopo`
 - `tipo`
 - `titulo`
-- `nivel_acesso`
+- `arquivo_privado`
 - `id_nuvem`
 - `id_usuario`
 - `data_inclusao`
@@ -221,8 +229,14 @@ Campos principais:
 
 > `escopo` define o alcance do arquivo: `setor` (recortado por `id_setor`) ou
 > `global` (visível em todos os setores, do sistema). Arquivos globais não gravam
-> `id_setor` e só podem ser criados, alterados ou removidos por admin com
-> `admin_global`. Arquivos sem o campo são tratados como `setor`.
+> `id_setor` e só podem ser criados, alterados ou removidos por quem tem a
+> capability `biblioteca_gerenciar_global`. Arquivos sem o campo são tratados como
+> `setor`.
+
+> `arquivo_privado` (booleano, Spec 23) define a visibilidade: `false` = público
+> (caminho `nivel_1`, exige `biblioteca_ler_publicos`); `true` = privado (caminho
+> `nivel_2`, exige `biblioteca_ler_privados`). Default operacional `false`.
+> Substitui o antigo `nivel_acesso` do arquivo.
 
 ### Coleção `solicitacoes`
 Campos principais:
@@ -337,20 +351,21 @@ Permitir avanço do desenvolvimento com operações de arquivo reais (via emulad
 
 ### Fontes de autorização
 - o Firestore autoriza pelo documento `usuarios/{uid}`, lido pelas próprias
-  regras do Firestore;
-- o Storage autoriza por Custom Claims no token (`ativo`, `nivel_acesso`,
-  `ids_setor`, `admin_global`), porque as regras de Storage não leem o Firestore;
-- os claims espelham o documento `usuarios/{uid}` e são provisionados pela
-  sincronização oficial; em ambiente local, injetados pelo seeder.
+  regras, usando o mapa `capabilities`;
+- o Storage autoriza por Custom Claims no token (`ativo`, `ids_setor`, `caps` —
+  lista de capabilities), porque as regras de Storage não leem o Firestore;
+- os claims espelham o documento `usuarios/{uid}` (a Function deriva `caps` do
+  mapa `capabilities`) e são provisionados pela sincronização oficial; em ambiente
+  local, injetados pelo seeder.
 
 ### Regras essenciais
 - autenticado lê apenas o próprio documento em `usuarios`;
 - leitura de `setores` permitida a usuário ativo que pertence ao setor (apenas para exibir o nome; sem escrita pelo cliente);
-- cliente não altera `nivel_acesso`, `ids_setor`, `ativo` nem `admin_global`;
-- Usuário vê apenas a biblioteca pública do próprio setor e as globais públicas;
-- Admin vê a biblioteca pública e restrita dos próprios setores e as globais;
-- arquivos globais só podem ser criados, alterados ou removidos por admin com `admin_global`;
-- arquivos de setor só podem ser mantidos por admin do próprio setor;
+- cliente não altera `capabilities`, `ids_setor` nem `ativo` (escrita em `usuarios` negada, exceto `primeiro_acesso` true→false pelo próprio);
+- quem tem `biblioteca_ler_publicos` vê a biblioteca pública do próprio setor e as globais públicas;
+- quem tem `biblioteca_ler_privados` vê também os arquivos privados;
+- arquivos globais só podem ser criados, alterados ou removidos por quem tem `biblioteca_gerenciar_global`;
+- arquivos de setor só podem ser mantidos por quem tem `biblioteca_gerenciar_setor` no próprio setor;
 - Usuário vê apenas as próprias solicitações;
 - Admin vê e trata solicitações dos setores em que atua;
 - o anexo final da solicitação é legível apenas pelo próprio solicitante (nem o admin lê); apenas o admin do setor o envia;
@@ -401,12 +416,12 @@ Permitir avanço do desenvolvimento com operações de arquivo reais (via emulad
 ### Consultas principais
 #### Biblioteca — usuário
 - `id_setor = setor do usuário`
-- `nivel_acesso = 1`
+- `arquivo_privado = false`
 - filtro opcional por `tipo`
 
 #### Biblioteca — admin
 - `id_setor = setor ativo`
-- filtro opcional por `nivel_acesso`
+- filtro opcional por `arquivo_privado`
 - filtro opcional por `tipo`
 
 #### Solicitações — usuário
@@ -418,8 +433,8 @@ Permitir avanço do desenvolvimento com operações de arquivo reais (via emulad
 
 ### Índices recomendados
 #### `arquivos`
-- `id_setor + nivel_acesso + data_atualizacao`
-- `id_setor + nivel_acesso + tipo + data_atualizacao`
+- `id_setor + arquivo_privado + data_atualizacao`
+- `id_setor + arquivo_privado + tipo + data_atualizacao`
 
 #### `solicitacoes`
 - `id_solicitante + data_solicitacao`

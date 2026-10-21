@@ -10,6 +10,7 @@ import {
   carregarContextoUsuario,
 } from '@/servicos/casos_de_uso/autenticacao'
 import { obterNomesSetores } from '@/servicos/repositorios/repositorioSetores'
+import { CAP, temCapability } from '@/enums/capabilities'
 
 const CHAVE_SETOR_ATIVO = 'portal_musical:setor_ativo'
 
@@ -21,7 +22,7 @@ const estado = reactive({
   // dados
   usuarioAuth: null, // usuário do Firebase Auth
   contexto: null, // contexto operacional resolvido (ou null)
-  claims: {}, // custom claims do ID token (Spec 17): nivel_acesso, ids_setor, ativo
+  claims: {}, // custom claims do ID token: ativo, ids_setor, caps (Spec 22)
   setorAtivo: null,
   nomesSetores: {}, // mapa { id_setor: nome } dos setores do usuário
   // erros de sessão
@@ -51,11 +52,17 @@ function persistirSetor(idSetor) {
 }
 
 // Resolve o setor ativo:
+// Quem pode alternar o setor ativo: perfis que gerenciam a biblioteca do setor
+// (capability biblioteca_gerenciar_setor). Encarregado tem um único setor.
+function podeTrocarSetor(contexto) {
+  return temCapability(contexto?.capabilities, CAP.BIBLIOTECA_GERENCIAR_SETOR)
+}
+
 // - usuário comum: sempre o seu único setor;
 // - admin: setor persistido se ainda válido, senão o primeiro da lista.
 function resolverSetorAtivo(contexto) {
   const setores = contexto.ids_setor
-  if (!contexto.ehAdmin) {
+  if (!podeTrocarSetor(contexto)) {
     return setores[0]
   }
   const persistido = lerSetorPersistido()
@@ -150,7 +157,7 @@ async function logout() {
 // Define o setor ativo do admin (um por vez), validando contra os setores permitidos.
 function definirSetorAtivo(idSetor) {
   const contexto = estado.contexto
-  if (!contexto || !contexto.ehAdmin) {
+  if (!contexto || !podeTrocarSetor(contexto)) {
     return false
   }
   if (!contexto.ids_setor.includes(idSetor)) {
@@ -166,22 +173,34 @@ export function usarSessao() {
 
   return {
     estado: readonly(estado),
-    // derivados (contexto do Firestore — fonte do fluxo operacional)
-    ehAdmin: computed(() => estado.contexto?.ehAdmin === true),
+    // Cargo (Spec 23): rótulo de exibição do perfil; não autoriza nada.
+    cargo: computed(() => estado.contexto?.cargo || ''),
     // Primeiro acesso (Spec 20): true enquanto a troca obrigatória de senha não
     // foi concluída. Fonte: contexto do Firestore (ausência = false).
     primeiroAcesso: computed(() => estado.contexto?.primeiro_acesso === true),
-    // Governança global (Spec 18): prioriza o claim (fonte das rules); cai para o
-    // contexto do Firestore quando o claim ainda não foi sincronizado.
-    ehAdminGlobal: computed(
-      () =>
-        (estado.claims?.nivel_acesso === 2 && estado.claims?.admin_global === true) ||
-        estado.contexto?.admin_global === true,
-    ),
     setoresDisponiveis: computed(() => estado.contexto?.ids_setor || []),
-    // derivados dos custom claims (Spec 17) — fonte usada pelas Storage Rules
+    // Gating de UI por capabilities (Spec 22/23). Fonte: contexto do Firestore
+    // (capabilities), não os claims — claims são para as Storage Rules.
+    podeGerenciarBibliotecaSetor: computed(() =>
+      temCapability(estado.contexto?.capabilities, CAP.BIBLIOTECA_GERENCIAR_SETOR),
+    ),
+    podeGerenciarBibliotecaGlobal: computed(() =>
+      temCapability(estado.contexto?.capabilities, CAP.BIBLIOTECA_GERENCIAR_GLOBAL),
+    ),
+    podeVerPrivados: computed(() =>
+      temCapability(estado.contexto?.capabilities, CAP.BIBLIOTECA_LER_PRIVADOS),
+    ),
+    podeVerSolicitacoesSetor: computed(() =>
+      temCapability(estado.contexto?.capabilities, CAP.SOLICITACOES_VER_SETOR),
+    ),
+    podeAgirSolicitacoesSetor: computed(() =>
+      temCapability(estado.contexto?.capabilities, CAP.SOLICITACOES_AGIR_SETOR),
+    ),
+    podeCriarSolicitacao: computed(() =>
+      temCapability(estado.contexto?.capabilities, CAP.SOLICITACOES_CRIAR),
+    ),
+    // derivados dos custom claims (Spec 23) — fonte usada pelas Storage Rules
     claims: computed(() => estado.claims || {}),
-    ehAdminClaim: computed(() => estado.claims?.nivel_acesso === 2),
     idsSetorClaim: computed(() => estado.claims?.ids_setor || []),
     ativoClaim: computed(() => estado.claims?.ativo === true),
     // opções { valor, rotulo } para selects de setor (rótulo = nome do setor)

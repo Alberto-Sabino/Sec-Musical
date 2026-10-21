@@ -114,7 +114,7 @@ firebase deploy --only storage
 ```
 
 ### B.3 Deploy das Cloud Functions
-As Storage Rules dependem dos claims (`ativo`, `nivel_acesso`, `ids_setor`),
+As Storage Rules dependem dos claims (`ativo`, `ids_setor`, `caps`),
 provisionados por `syncClaimsFromUsuario`.
 ```bash
 cd functions && npm install && cd ..
@@ -134,15 +134,17 @@ cada usuário (um admin ativo chama a Function por uid). Opções:
   UI dedicada para isso, expor temporariamente um acionador no painel admin ou
   chamar a callable `syncClaimsFromUsuario` autenticado como admin.
 - O **primeiro admin** é o caso especial: ele precisa de claims para poder chamar a
-  Function (que exige `nivel_acesso==2` e `ativo==true` no token). Fazer o bootstrap
-  do primeiro admin **uma vez** via Console (Cloud Shell) com o Admin SDK:
+  Function (que exige `ativo==true` e `caps` contendo `biblioteca_gerenciar_setor`
+  ou `biblioteca_gerenciar_global`). Fazer o bootstrap do primeiro admin **uma vez**
+  via Console (Cloud Shell) com o Admin SDK, espelhando o mapa `capabilities` do
+  documento `usuarios/{uid}`:
   ```bash
-  # Cloud Shell do projeto, Node:
-  node -e "const a=require('firebase-admin');a.initializeApp();a.auth().setCustomUserClaims('<uid-admin>',{ativo:true,nivel_acesso:2,ids_setor:['<setor>']}).then(()=>console.log('ok'))"
+  # Cloud Shell do projeto, Node (caps = lista de capabilities do admin):
+  node -e "const a=require('firebase-admin');a.initializeApp();a.auth().setCustomUserClaims('<uid-admin>',{ativo:true,ids_setor:['<setor>'],caps:['biblioteca_ler_publicos','biblioteca_ler_privados','biblioteca_gerenciar_setor','biblioteca_gerenciar_global','solicitacoes_ver_proprias','solicitacoes_ver_setor','solicitacoes_agir_setor']}).then(()=>console.log('ok'))"
   ```
   Em seguida, esse admin sincroniza os demais pela Function.
 
-> Refazer a sincronização sempre que mudar `nivel_acesso`, `ids_setor` ou `ativo`
+> Refazer a sincronização sempre que mudar `capabilities`, `ids_setor` ou `ativo`
 > de um usuário. Detalhes e depuração em `docs/guias/claims-e-sincronizacao.md`.
 
 ### B.5 Configurar CORS do bucket (necessário para download no navegador)
@@ -209,7 +211,8 @@ Seguir `docs/guias/piloto-seed-dados.md` (estrutura exata dos documentos).
 2. **Usuários**:
    - criar cada pessoa em Authentication (e-mail/senha);
    - criar o documento em `usuarios` com doc id = UID do Auth, definindo
-     `nivel_acesso` (1 usuário / 2 admin), `ativo: true` e `ids_setor`;
+     `cargo` (exibição), `ativo: true`, `ids_setor` e o mapa `capabilities`
+     (ver `docs/guias/piloto-seed-dados.md`);
    - **sincronizar os claims** desse usuário (§B.4) quando o Storage real estiver ativo.
 3. **Biblioteca**: cadastrar os primeiros arquivos.
    - Com Storage de produção: usar a própria tela de admin (upload real).

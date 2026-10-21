@@ -22,7 +22,7 @@
             <dd>{{ estado.contexto?.celular || '—' }}</dd>
           </div>
           <div class="dados__item">
-            <dt>Nível de acesso</dt>
+            <dt>Cargo</dt>
             <dd>{{ rotuloPerfil }}</dd>
           </div>
         </dl>
@@ -58,11 +58,11 @@ import { dispararEvento } from '@/servicos/firebase/analytics'
 import { ACOES, PARAMS_PERFIL_ACAO } from '@/enums/eventosAnalytics'
 
 const router = useRouter()
-const { estado, ehAdmin, logout, primeiroAcesso } = usarSessao()
+const { estado, cargo, logout, primeiroAcesso } = usarSessao()
 
 const saindo = ref(false)
 
-const rotuloPerfil = computed(() => (ehAdmin.value ? 'Secretário Musical' : 'Encarregado Local'))
+const rotuloPerfil = computed(() => cargo.value || '—')
 
 function irAlterarSenha() {
   dispararEvento(ACOES.PERFIL_ACAO, { acao: PARAMS_PERFIL_ACAO.ALTERAR_SENHA })

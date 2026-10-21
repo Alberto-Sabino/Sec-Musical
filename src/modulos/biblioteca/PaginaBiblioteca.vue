@@ -1,7 +1,7 @@
 <template>
   <ContainerPagina>
     <CabecalhoPagina titulo="Biblioteca" :subtitulo="`Setor ativo: ${nomeSetorAtivo}`">
-      <template v-if="ehAdmin" #acoes>
+      <template v-if="podeGerenciarBibliotecaSetor" #acoes>
         <BaseBotao variante="secundario" @click="irParaNovo">Novo arquivo</BaseBotao>
       </template>
     </CabecalhoPagina>
@@ -48,7 +48,7 @@ import { dispararEvento } from '@/servicos/firebase/analytics'
 import { ACOES } from '@/enums/eventosAnalytics'
 
 const router = useRouter()
-const { ehAdmin, nomeSetorAtivo } = usarSessao()
+const { podeGerenciarBibliotecaSetor, nomeSetorAtivo } = usarSessao()
 
 const termo = ref('')
 

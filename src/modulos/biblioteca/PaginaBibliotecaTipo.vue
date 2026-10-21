@@ -29,11 +29,11 @@
                 aria-label="Arquivo global"
               />
               <span
-                v-if="ehAdmin"
+                v-if="podeVerPrivados"
                 class="item__nivel"
-                :class="ehRestrito(arquivo) ? 'item__nivel--restrito' : 'item__nivel--publico'"
+                :class="ehPrivado(arquivo) ? 'item__nivel--restrito' : 'item__nivel--publico'"
               >
-                {{ rotuloNivelArquivo(arquivo.nivel_acesso) }}
+                {{ rotuloArquivoPrivado(arquivo.arquivo_privado) }}
               </span>
             </span>
             <span class="item__meta">
@@ -42,7 +42,7 @@
             </span>
           </button>
 
-          <div v-if="ehAdmin && podeGerenciar(arquivo)" class="item__acoes">
+          <div v-if="podeGerenciarBibliotecaSetor && podeGerenciar(arquivo)" class="item__acoes">
             <BaseBotao variante="secundario" @click="irParaEdicao(arquivo)">Editar</BaseBotao>
             <BaseBotao variante="destrutivo-sutil" @click="pedirRemocao(arquivo)">
               Remover
@@ -54,7 +54,7 @@
 
     <DetalheArquivo
       :arquivo="arquivoSelecionado"
-      :mostrar-nivel="ehAdmin"
+      :mostrar-nivel="podeVerPrivados"
       @fechar="arquivoSelecionado = null"
     />
 
@@ -87,8 +87,7 @@ import DetalheArquivo from './DetalheArquivo.vue'
 import { usarSessao } from '@/composables/usarSessao'
 import {
   TIPOS_ARQUIVO,
-  NIVEL_ARQUIVO,
-  rotuloNivelArquivo,
+  rotuloArquivoPrivado,
   rotuloTipoArquivo,
   listarBibliotecaPorTipo,
 } from '@/servicos/casos_de_uso/biblioteca'
@@ -101,7 +100,13 @@ import { ACOES } from '@/enums/eventosAnalytics'
 
 const route = useRoute()
 const router = useRouter()
-const { estado, ehAdmin, ehAdminGlobal, nomeSetorAtivo } = usarSessao()
+const {
+  estado,
+  podeVerPrivados,
+  podeGerenciarBibliotecaSetor,
+  podeGerenciarBibliotecaGlobal,
+  nomeSetorAtivo,
+} = usarSessao()
 
 const arquivos = ref([])
 const carregandoInicial = ref(true)
@@ -115,8 +120,8 @@ const tipoValido = computed(() => TIPOS_ARQUIVO.some((t) => t.valor === tipo.val
 const iconeTipo = computed(() => iconeTipoArquivo(tipo.value))
 const subtitulo = computed(() => `${nomeSetorAtivo.value} · Tipo: ${rotuloTipoArquivo(tipo.value)}`)
 
-function ehRestrito(arquivo) {
-  return arquivo.nivel_acesso === NIVEL_ARQUIVO.RESTRITO
+function ehPrivado(arquivo) {
+  return arquivo.arquivo_privado === true
 }
 
 // Indicador visual: arquivo global (Spec 18 — continuação).
@@ -126,7 +131,7 @@ function ehArquivoGlobal(arquivo) {
 
 // Elegibilidade de UI para Editar/Remover (defesa em profundidade; rules são a barreira real).
 function podeGerenciar(arquivo) {
-  return podeGerenciarArquivo(arquivo, ehAdminGlobal.value)
+  return podeGerenciarArquivo(arquivo, podeGerenciarBibliotecaGlobal.value)
 }
 
 async function carregar() {
@@ -144,7 +149,7 @@ async function carregar() {
 
   try {
     arquivos.value = await listarBibliotecaPorTipo({
-      nivelAcesso: estado.contexto.nivel_acesso,
+      podeVerPrivados: podeVerPrivados.value,
       idSetor: estado.setorAtivo,
       tipo: tipo.value,
     })

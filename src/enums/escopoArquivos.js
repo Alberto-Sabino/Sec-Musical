@@ -1,6 +1,7 @@
 // Fonte única do ESCOPO de arquivos da Biblioteca (Spec 18).
-// escopo ∈ { 'global', 'setor' } (onde o arquivo é visível) é distinto de
-// nivel_acesso ∈ { 1, 2 } (quem vê). Não hardcodar 'global'/'setor' fora daqui.
+// escopo ∈ { 'global', 'setor' } define onde o arquivo é visível; é distinto de
+// arquivo_privado (booleano, Spec 23), que define quem vê (público/privado).
+// Não hardcodar 'global'/'setor' fora daqui.
 
 export const ESCOPO_ARQUIVO = {
   GLOBAL: 'global',
@@ -25,7 +26,8 @@ export function ehGlobal(escopo) {
 }
 
 // Elegibilidade de UI para editar/remover (defesa em profundidade; rules são a
-// barreira real): arquivo global exige admin_global; setor é liberado ao admin.
-export function podeGerenciarArquivo(arquivo, ehAdminGlobal) {
-  return ehGlobal(escopoDoArquivo(arquivo)) ? ehAdminGlobal === true : true
+// barreira real): arquivo global exige a capability biblioteca_gerenciar_global;
+// arquivo de setor é liberado a quem gerencia a biblioteca do setor.
+export function podeGerenciarArquivo(arquivo, podeGerenciarGlobal) {
+  return ehGlobal(escopoDoArquivo(arquivo)) ? podeGerenciarGlobal === true : true
 }

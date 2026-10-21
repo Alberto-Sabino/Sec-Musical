@@ -16,10 +16,6 @@ import {
   validarNovaSenha,
 } from '@/servicos/casos_de_uso/senha'
 
-// Valores oficiais de nivel_acesso: 1 = usuário, 2 = admin.
-export const NIVEL_USUARIO = 1
-export const NIVEL_ADMIN = 2
-
 // Realiza o login via Firebase Auth.
 // Não carrega o contexto aqui; a restauração/observação de sessão dispara o carregamento.
 export async function fazerLogin(email, senha) {
@@ -47,14 +43,8 @@ export async function carregarContextoUsuario(idUsuario) {
     return { ok: false, motivo: 'inativo', contexto: null }
   }
 
-  const nivelAcesso = documento.nivel_acesso
   const idsSetor = Array.isArray(documento.ids_setor) ? documento.ids_setor : []
-  const ehAdmin = nivelAcesso === NIVEL_ADMIN
-  // Governança global (Spec 18): só vale para admin. Consistência: admin_global
-  // nunca é verdadeiro para nivel_acesso != 2.
-  const adminGlobal = ehAdmin && documento.admin_global === true
 
-  // Usuário comum precisa de exatamente um setor; admin precisa de ao menos um.
   if (idsSetor.length === 0) {
     return { ok: false, motivo: 'sem_setor', contexto: null }
   }
@@ -65,13 +55,13 @@ export async function carregarContextoUsuario(idUsuario) {
     email: documento.email || '',
     celular: documento.celular || '',
     comum_congregacao: documento.comum_congregacao || '',
-    nivel_acesso: nivelAcesso,
+    // Cargo (Spec 23): exibição do perfil; não autoriza.
+    cargo: documento.cargo || '',
     ativo: documento.ativo,
     ids_setor: idsSetor,
-    ehAdmin,
-    admin_global: adminGlobal,
-    // Primeiro acesso (Spec 20): ausência em legados é tratada como false
-    // (não bloqueia usuários antigos).
+    // Capabilities (Spec 23): fonte única do gating de UI. Ausência = {}.
+    capabilities: documento.capabilities || {},
+    // Primeiro acesso (Spec 20): ausência é tratada como false.
     primeiro_acesso: documento.primeiro_acesso === true,
   }
 

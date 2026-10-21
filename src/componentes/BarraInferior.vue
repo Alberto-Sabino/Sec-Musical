@@ -37,7 +37,7 @@ import { ACOES } from '@/enums/eventosAnalytics'
 
 const route = useRoute()
 const router = useRouter()
-const { ehAdmin } = usarSessao()
+const { podeVerSolicitacoesSetor } = usarSessao()
 
 const itens = [
   { modulo: MODULO.INICIO, rotulo: 'Início', icone: IconeInicio },
@@ -50,7 +50,7 @@ const indiceAtivo = computed(() => itens.findIndex((i) => i.modulo === moduloAti
 
 function navegar(modulo) {
   dispararEvento(ACOES.NAVEGACAO_MENU, { alvo: modulo })
-  const destino = destinoDoModulo(modulo, ehAdmin.value)
+  const destino = destinoDoModulo(modulo, podeVerSolicitacoesSetor.value)
   // Evita navegação redundante para a própria rota inicial do módulo.
   if (destino.name !== route.name) {
     router.push(destino)

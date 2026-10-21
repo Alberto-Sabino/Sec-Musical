@@ -20,6 +20,24 @@ const UID_ADMIN2 = 'admin_2'
 const SETOR_A = 'setorA'
 const SETOR_B = 'setorB'
 
+// Capabilities por perfil (Spec 22 §2.2) para o seed dos usuários de teste.
+function capabilitiesPorPerfil(nivel, adminGlobal = false) {
+  const ehAdmin = nivel === 2
+  const ehAdminGlobal = ehAdmin && adminGlobal
+  return {
+    biblioteca_ler_publicos: true,
+    biblioteca_ler_privados: ehAdmin,
+    biblioteca_gerenciar_setor: ehAdmin,
+    biblioteca_gerenciar_global: ehAdminGlobal,
+    solicitacoes_criar: !ehAdmin,
+    solicitacoes_ver_proprias: true,
+    solicitacoes_ver_setor: ehAdmin,
+    solicitacoes_agir_setor: ehAdmin,
+    usuarios_ver: false,
+    usuarios_gerenciar: false,
+  }
+}
+
 let testEnv
 
 before(async () => {
@@ -61,32 +79,32 @@ beforeEach(async () => {
   await testEnv.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore()
     await setDoc(doc(db, 'usuarios', UID_USUARIO), {
-      nivel_acesso: 1,
       ativo: true,
       ids_setor: [SETOR_A],
       nome_completo: 'Encarregado Um',
       comum_congregacao: 'Quilombo',
+      capabilities: capabilitiesPorPerfil(1),
     })
     await setDoc(doc(db, 'usuarios', UID_OUTRO), {
-      nivel_acesso: 1,
       ativo: true,
       ids_setor: [SETOR_A],
       nome_completo: 'Encarregado Dois',
       comum_congregacao: 'Capela do Jacú',
+      capabilities: capabilitiesPorPerfil(1),
     })
     await setDoc(doc(db, 'usuarios', UID_ADMIN), {
-      nivel_acesso: 2,
       ativo: true,
       ids_setor: [SETOR_A],
       nome_completo: 'Secretário Um',
       comum_congregacao: 'Sede',
+      capabilities: capabilitiesPorPerfil(2),
     })
     await setDoc(doc(db, 'usuarios', UID_ADMIN2), {
-      nivel_acesso: 2,
       ativo: true,
       ids_setor: [SETOR_A],
       nome_completo: 'Secretário Dois',
       comum_congregacao: 'Sede',
+      capabilities: capabilitiesPorPerfil(2),
     })
     // Solicitação em aberto do usuário comum no setor A.
     await setDoc(doc(db, 'solicitacoes', 'sol1'), solEmAberto())
@@ -145,6 +163,15 @@ test('solicitacoes: admin do setor lê (permitido)', async () => {
 // ---- criação ----
 test('solicitacoes: usuário cria no próprio setor com estado inicial correto (permitido)', async () => {
   await assertSucceeds(setDoc(doc(cUsuario(), 'solicitacoes', 'nova1'), solEmAberto()))
+})
+
+// Capability solicitacoes_criar (Spec 22): admin (cap false) NÃO cria solicitação.
+test('solicitacoes: admin SEM solicitacoes_criar NÃO cria (bloqueado)', async () => {
+  await assertFails(
+    setDoc(doc(cAdmin(), 'solicitacoes', 'nova_admin'), {
+      ...solEmAberto(UID_ADMIN, SETOR_A, 'Sede'),
+    }),
+  )
 })
 
 test('solicitacoes: usuário NÃO cria já em_andamento (bloqueado)', async () => {

@@ -19,23 +19,22 @@ service cloud.firestore {
       return docUsuario().ativo == true;
     }
 
-    function ehAdmin() {
-      return estaAtivo() && docUsuario().nivel_acesso == 2;
-    }
-
-    // Governança global (Spec 18): admin com admin_global=true no documento.
-    // Consistência: admin_global só vale para admin (nivel_acesso == 2), por isso
-    // depende de ehAdmin(). Nunca verdadeiro para usuário comum.
-    function ehAdminGlobal() {
-      return ehAdmin() && docUsuario().admin_global == true;
-    }
-
     function setoresDoUsuario() {
       return docUsuario().ids_setor;
     }
 
     function pertenceAoSetor(idSetor) {
       return idSetor in setoresDoUsuario();
+    }
+
+    // ---- Capabilities (Spec 23) ----
+    // Autorização exclusivamente por capabilities do documento usuarios/{uid}.
+    // Ausência de mapa/chave = false (sem legado).
+    function temCap(chave) {
+      return estaAtivo()
+        && ('capabilities' in docUsuario())
+        && (chave in docUsuario().capabilities)
+        && docUsuario().capabilities[chave] == true;
     }
 
     // Escopo de um documento de arquivo. Legados sem campo = 'setor' (Spec 18 §3.1).
@@ -45,11 +44,16 @@ service cloud.firestore {
     function ehGlobal(dados) {
       return escopoDe(dados) == 'global';
     }
+    // Privacidade do arquivo (Spec 23): arquivo_privado=true é restrito; ausência
+    // em legados é tratada como público (false).
+    function ehPrivado(dados) {
+      return ('arquivo_privado' in dados) && dados.arquivo_privado == true;
+    }
 
     // ---- usuarios ----
     // Autenticado lê apenas o próprio documento.
     // Gestão de usuários fica fora do MVP por interface, o que impede elevação de
-    // privilégio (nivel_acesso, ids_setor, ativo e admin_global — Spec 18).
+    // privilégio (capabilities, ids_setor, ativo).
     //
     // Única exceção de escrita (Spec 20 — primeiro acesso): o próprio usuário pode
     // concluir o primeiro acesso, trocando APENAS primeiro_acesso de true → false.
@@ -79,68 +83,77 @@ service cloud.firestore {
 
     // ---- arquivos ----
     // Escopo (Spec 18): 'setor' (recorte por id_setor) ou 'global' (do sistema).
+    // Visibilidade (Spec 23): arquivo_privado (false=público, true=privado).
+    // Autorização exclusivamente por capabilities (Spec 23).
     match /arquivos/{idArquivo} {
       // Leitura:
-      // - escopo 'setor': usuário ativo do setor; nível 2 só admin;
-      // - escopo 'global': qualquer usuário ativo; nível 2 só admin
-      //   (global é do sistema, visível em todos os setores).
+      // - público (arquivo_privado=false): exige biblioteca_ler_publicos;
+      // - privado (arquivo_privado=true): exige biblioteca_ler_privados;
+      // e (escopo global OU pertence ao setor do arquivo).
       allow read: if estaAutenticado()
         && estaAtivo()
         && (
-          (ehGlobal(resource.data)
-            && (resource.data.nivel_acesso == 1 || (ehAdmin() && resource.data.nivel_acesso == 2)))
-          || (!ehGlobal(resource.data)
-            && pertenceAoSetor(resource.data.id_setor)
-            && (resource.data.nivel_acesso == 1 || (ehAdmin() && resource.data.nivel_acesso == 2)))
-        );
+          (!ehPrivado(resource.data) && temCap('biblioteca_ler_publicos'))
+          || (ehPrivado(resource.data) && temCap('biblioteca_ler_privados'))
+        )
+        && (ehGlobal(resource.data) || pertenceAoSetor(resource.data.id_setor));
 
       // Criação:
-      // - global: somente admin_global; id_setor ausente;
-      // - setor: admin do próprio setor.
-      // Sempre: id_usuario == próprio uid e nivel_acesso ∈ [1,2].
-      allow create: if ehAdmin()
+      // - global: biblioteca_gerenciar_global + id_setor ausente;
+      // - setor: biblioteca_gerenciar_setor + pertence ao setor.
+      // Sempre: id_usuario == próprio uid.
+      allow create: if estaAutenticado()
         && request.resource.data.id_usuario == request.auth.uid
-        && request.resource.data.nivel_acesso in [1, 2]
         && (
           (ehGlobal(request.resource.data)
-            && ehAdminGlobal()
+            && temCap('biblioteca_gerenciar_global')
             && !('id_setor' in request.resource.data))
           || (!ehGlobal(request.resource.data)
+            && temCap('biblioteca_gerenciar_setor')
             && pertenceAoSetor(request.resource.data.id_setor))
         );
 
       // Atualização:
-      // - destino global: exige admin_global e id_setor ausente;
-      // - destino setor: admin do setor destino.
-      // Origem global exige admin_global; origem setor exige admin do setor de origem.
-      allow update: if ehAdmin()
-        && request.resource.data.nivel_acesso in [1, 2]
+      // - origem e destino global exigem gerenciar_global (destino sem id_setor);
+      // - origem e destino setor exigem gerenciar_setor + pertencer ao setor.
+      allow update: if estaAutenticado()
         && (
-          (ehGlobal(resource.data) && ehAdminGlobal())
-          || (!ehGlobal(resource.data) && pertenceAoSetor(resource.data.id_setor))
+          (ehGlobal(resource.data) && temCap('biblioteca_gerenciar_global'))
+          || (!ehGlobal(resource.data)
+            && temCap('biblioteca_gerenciar_setor')
+            && pertenceAoSetor(resource.data.id_setor))
         )
         && (
           (ehGlobal(request.resource.data)
-            && ehAdminGlobal()
+            && temCap('biblioteca_gerenciar_global')
             && !('id_setor' in request.resource.data))
           || (!ehGlobal(request.resource.data)
+            && temCap('biblioteca_gerenciar_setor')
             && pertenceAoSetor(request.resource.data.id_setor))
         );
 
       // Remoção:
-      // - global: somente admin_global;
-      // - setor: admin do setor.
-      allow delete: if ehAdmin()
+      // - global: biblioteca_gerenciar_global;
+      // - setor: biblioteca_gerenciar_setor + pertence ao setor.
+      allow delete: if estaAutenticado()
         && (
-          (ehGlobal(resource.data) && ehAdminGlobal())
-          || (!ehGlobal(resource.data) && pertenceAoSetor(resource.data.id_setor))
+          (ehGlobal(resource.data) && temCap('biblioteca_gerenciar_global'))
+          || (!ehGlobal(resource.data)
+            && temCap('biblioteca_gerenciar_setor')
+            && pertenceAoSetor(resource.data.id_setor))
         );
 
-      // Auditoria: apenas admin lê e escreve (do setor do arquivo ou admin_global
-      // no caso de arquivo global).
+      // Auditoria: apenas quem gerencia a biblioteca do arquivo lê e escreve
+      // (setor do arquivo ou global).
       match /auditoria/{idAuditoria} {
-        allow read: if ehAdmin();
-        allow create: if ehAdmin()
+        function podeGerenciarArquivoPai() {
+          return ehGlobal(get(/databases/$(database)/documents/arquivos/$(idArquivo)).data)
+            ? temCap('biblioteca_gerenciar_global')
+            : (temCap('biblioteca_gerenciar_setor')
+              && pertenceAoSetor(get(/databases/$(database)/documents/arquivos/$(idArquivo)).data.id_setor));
+        }
+        allow read: if podeGerenciarArquivoPai();
+        allow create: if podeGerenciarArquivoPai()
           && request.resource.data.id_usuario == request.auth.uid;
         allow update, delete: if false;
       }
@@ -148,15 +161,18 @@ service cloud.firestore {
 
     // ---- solicitacoes ----
     match /solicitacoes/{idSolicitacao} {
-      // Leitura: solicitante lê a própria; admin lê as do próprio setor.
+      // Leitura: solicitante (ver_proprias) lê a própria; admin do setor
+      // (ver_setor) lê as do próprio setor.
       allow read: if estaAutenticado() && estaAtivo() && (
-        resource.data.id_solicitante == request.auth.uid
-        || (ehAdmin() && pertenceAoSetor(resource.data.id_setor))
+        (resource.data.id_solicitante == request.auth.uid && temCap('solicitacoes_ver_proprias'))
+        || (temCap('solicitacoes_ver_setor') && pertenceAoSetor(resource.data.id_setor))
       );
 
-      // Criação: apenas o próprio solicitante, no próprio setor, com estado inicial correto.
+      // Criação: solicitante com capability solicitacoes_criar, no próprio setor,
+      // com estado inicial correto.
       // nome_beneficiario e descricao são obrigatórios (string não-vazia); conclusao nasce vazia.
       allow create: if estaAutenticado() && estaAtivo()
+        && temCap('solicitacoes_criar')
         && request.resource.data.id_solicitante == request.auth.uid
         && pertenceAoSetor(request.resource.data.id_setor)
         && request.resource.data.status == 'em_aberto'
@@ -177,6 +193,7 @@ service cloud.firestore {
       // - não altera setor, solicitante, responsável (id/nome), beneficiário, conclusao nem anexo.
       allow update: if estaAutenticado() && estaAtivo()
         && resource.data.id_solicitante == request.auth.uid
+        && temCap('solicitacoes_ver_proprias')
         && resource.data.status == 'em_aberto'
         && request.resource.data.status in ['em_aberto', 'cancelada']
         && request.resource.data.id_setor == resource.data.id_setor
@@ -203,7 +220,7 @@ service cloud.firestore {
       // Decisão de segurança (Spec 17 §2.1): uma vez ASSUMIDA (status em_andamento),
       // somente o responsável que assumiu pode alterá-la. Por isso toda transição
       // cuja ORIGEM é em_andamento exige request.auth.uid == id_responsavel.
-      allow update: if ehAdmin()
+      allow update: if temCap('solicitacoes_agir_setor')
         && pertenceAoSetor(resource.data.id_setor)
         && request.resource.data.id_setor == resource.data.id_setor
         && request.resource.data.id_solicitante == resource.data.id_solicitante
@@ -256,14 +273,14 @@ service cloud.firestore {
         }
         allow read: if estaAutenticado() && estaAtivo() && (
           ehSolicitante()
-          || (ehAdmin() && pertenceAoSetor(solPai().id_setor))
+          || (temCap('solicitacoes_ver_setor') && pertenceAoSetor(solPai().id_setor))
         );
         allow create: if estaAutenticado() && estaAtivo()
           && request.resource.data.id_usuario == request.auth.uid
           && (
             request.resource.data.acao == 'anexo_visualizado'
               ? anexoVisualizadoValido()
-              : (ehSolicitante() || (ehAdmin() && pertenceAoSetor(solPai().id_setor)))
+              : (ehSolicitante() || (temCap('solicitacoes_ver_setor') && pertenceAoSetor(solPai().id_setor)))
           );
         allow update, delete: if false;
       }

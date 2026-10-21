@@ -36,8 +36,8 @@
         </dl>
       </BaseCard>
 
-      <!-- 2. Seletor de setor (admin com mais de um setor) -->
-      <BaseCard v-if="ehAdmin">
+      <!-- 2. Seletor de setor (perfis que gerenciam o setor, com mais de um) -->
+      <BaseCard v-if="podeGerenciarBibliotecaSetor">
         <BaseSelect
           v-model="setorSelecionado"
           rotulo="Setor ativo"
@@ -82,7 +82,15 @@ import { dispararEvento } from '@/servicos/firebase/analytics'
 import { ACOES } from '@/enums/eventosAnalytics'
 
 const router = useRouter()
-const { estado, ehAdmin, opcoesSetor, nomeSetorAtivo, definirSetorAtivo } = usarSessao()
+const {
+  estado,
+  cargo,
+  podeGerenciarBibliotecaSetor,
+  podeVerSolicitacoesSetor,
+  opcoesSetor,
+  nomeSetorAtivo,
+  definirSetorAtivo,
+} = usarSessao()
 
 const setorSelecionado = ref(estado.setorAtivo)
 
@@ -91,7 +99,7 @@ const saudacao = computed(() => {
   return nome ? `A paz de Deus, ${nome}.` : 'Sessão ativa'
 })
 
-const rotuloPerfil = computed(() => (ehAdmin.value ? 'Secretário Musical' : 'Encarregado Local'))
+const rotuloPerfil = computed(() => cargo.value || '—')
 
 // Cards de módulos da home. Descrições curtas e funcionais.
 const modulos = computed(() => [
@@ -104,7 +112,7 @@ const modulos = computed(() => [
   {
     modulo: MODULO.SOLICITACOES,
     titulo: 'Solicitações',
-    descricao: ehAdmin.value
+    descricao: podeVerSolicitacoesSetor.value
       ? 'Acompanhe e trate solicitações do setor.'
       : 'Abra e acompanhe solicitações do seu setor.',
     icone: IconeSolicitacoes,
@@ -130,7 +138,7 @@ function abrirModulo(modulo) {
       ? ACOES.INICIO_ABRIR_BIBLIOTECA
       : ACOES.INICIO_ABRIR_SOLICITACOES
   dispararEvento(evento)
-  router.push(destinoDoModulo(modulo, ehAdmin.value))
+  router.push(destinoDoModulo(modulo, podeVerSolicitacoesSetor.value))
 }
 
 function irPerfil() {

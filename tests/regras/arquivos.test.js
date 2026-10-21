@@ -19,6 +19,25 @@ const UID_INATIVO = 'user_inativo'
 const SETOR_A = 'setorA'
 const SETOR_B = 'setorB'
 
+// Capabilities por perfil (Spec 22 §2.2). Usadas no seed dos usuários de teste
+// para exercitar a autorização por capabilities (não o fallback legado).
+function capabilitiesPorPerfil(nivel, adminGlobal = false) {
+  const ehAdmin = nivel === 2
+  const ehAdminGlobal = ehAdmin && adminGlobal
+  return {
+    biblioteca_ler_publicos: true,
+    biblioteca_ler_privados: ehAdmin,
+    biblioteca_gerenciar_setor: ehAdmin,
+    biblioteca_gerenciar_global: ehAdminGlobal,
+    solicitacoes_criar: !ehAdmin,
+    solicitacoes_ver_proprias: true,
+    solicitacoes_ver_setor: ehAdmin,
+    solicitacoes_agir_setor: ehAdmin,
+    usuarios_ver: false,
+    usuarios_gerenciar: false,
+  }
+}
+
 let testEnv
 
 before(async () => {
@@ -42,27 +61,26 @@ beforeEach(async () => {
   await testEnv.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore()
     await setDoc(doc(db, 'usuarios', UID_USUARIO), {
-      nivel_acesso: 1,
       ativo: true,
       ids_setor: [SETOR_A],
       primeiro_acesso: true,
+      capabilities: capabilitiesPorPerfil(1),
     })
     await setDoc(doc(db, 'usuarios', UID_ADMIN), {
-      nivel_acesso: 2,
       ativo: true,
       ids_setor: [SETOR_A],
+      capabilities: capabilitiesPorPerfil(2),
     })
-    // Admin com governança global (Spec 18).
+    // Admin com governança global (biblioteca_gerenciar_global).
     await setDoc(doc(db, 'usuarios', UID_ADMIN_GLOBAL), {
-      nivel_acesso: 2,
       ativo: true,
       ids_setor: [SETOR_A],
-      admin_global: true,
+      capabilities: capabilitiesPorPerfil(2, true),
     })
     await setDoc(doc(db, 'usuarios', UID_INATIVO), {
-      nivel_acesso: 1,
       ativo: false,
       ids_setor: [SETOR_A],
+      capabilities: capabilitiesPorPerfil(1),
     })
     // Setores (para leitura de nome).
     await setDoc(doc(db, 'setores', SETOR_A), { id_setor: SETOR_A, nome: 'Setor A', ativo: true })
@@ -73,7 +91,7 @@ beforeEach(async () => {
       id_setor: SETOR_A,
       tipo: 'circulares',
       titulo: 'Público A',
-      nivel_acesso: 1,
+      arquivo_privado: false,
       id_nuvem: `biblioteca/${SETOR_A}/nivel_1/arq_pub_A.pdf`,
       id_usuario: UID_ADMIN,
     })
@@ -82,7 +100,7 @@ beforeEach(async () => {
       id_setor: SETOR_A,
       tipo: 'circulares',
       titulo: 'Restrito A',
-      nivel_acesso: 2,
+      arquivo_privado: true,
       id_nuvem: `biblioteca/${SETOR_A}/nivel_2/arq_rest_A.pdf`,
       id_usuario: UID_ADMIN,
     })
@@ -92,7 +110,7 @@ beforeEach(async () => {
       id_setor: SETOR_B,
       tipo: 'circulares',
       titulo: 'Público B',
-      nivel_acesso: 1,
+      arquivo_privado: false,
       id_nuvem: `biblioteca/${SETOR_B}/nivel_1/arq_pub_B.pdf`,
       id_usuario: UID_ADMIN,
     })
@@ -101,7 +119,7 @@ beforeEach(async () => {
       escopo: 'global',
       tipo: 'circulares',
       titulo: 'Global Público',
-      nivel_acesso: 1,
+      arquivo_privado: false,
       id_nuvem: 'biblioteca_global/nivel_1/arq_glob_pub.pdf',
       id_usuario: UID_ADMIN_GLOBAL,
     })
@@ -109,7 +127,7 @@ beforeEach(async () => {
       escopo: 'global',
       tipo: 'circulares',
       titulo: 'Global Restrito',
-      nivel_acesso: 2,
+      arquivo_privado: true,
       id_nuvem: 'biblioteca_global/nivel_2/arq_glob_rest.pdf',
       id_usuario: UID_ADMIN_GLOBAL,
     })
@@ -118,7 +136,7 @@ beforeEach(async () => {
       id_setor: SETOR_A,
       tipo: 'circulares',
       titulo: 'Legado A',
-      nivel_acesso: 1,
+      arquivo_privado: false,
       id_nuvem: `biblioteca/${SETOR_A}/nivel_1/arq_legado_A.pdf`,
       id_usuario: UID_ADMIN,
     })
@@ -155,14 +173,22 @@ test('usuarios: não autenticado não lê (bloqueado)', async () => {
 })
 
 test('usuarios: cliente não altera o próprio documento (bloqueado)', async () => {
-  await assertFails(updateDoc(doc(ctxUsuario(), 'usuarios', UID_USUARIO), { nivel_acesso: 2 }))
+  await assertFails(updateDoc(doc(ctxUsuario(), 'usuarios', UID_USUARIO), { ids_setor: [SETOR_B] }))
 })
 
-test('usuarios: cliente NÃO grava admin_global=true (consistência Spec 18) (bloqueado)', async () => {
-  // Escrita de usuarios é totalmente negada ao cliente; isto impede elevação de
-  // privilégio por admin_global diretamente no documento.
-  await assertFails(updateDoc(doc(ctxUsuario(), 'usuarios', UID_USUARIO), { admin_global: true }))
-  await assertFails(updateDoc(doc(ctxAdmin(), 'usuarios', UID_ADMIN), { admin_global: true }))
+test('usuarios: cliente NÃO altera capabilities (anti-elevação de privilégio) (bloqueado)', async () => {
+  // Escrita de usuarios é negada ao cliente (exceto primeiro_acesso true→false),
+  // o que impede elevação de privilégio editando o mapa capabilities.
+  await assertFails(
+    updateDoc(doc(ctxUsuario(), 'usuarios', UID_USUARIO), {
+      capabilities: { biblioteca_gerenciar_global: true },
+    }),
+  )
+  await assertFails(
+    updateDoc(doc(ctxAdmin(), 'usuarios', UID_ADMIN), {
+      capabilities: { usuarios_gerenciar: true },
+    }),
+  )
 })
 
 // ---- usuarios: primeiro_acesso (Spec 20) ----
@@ -231,7 +257,7 @@ const NOVO = {
   id_setor: SETOR_A,
   tipo: 'circulares',
   titulo: 'Novo',
-  nivel_acesso: 1,
+  arquivo_privado: false,
   id_nuvem: `biblioteca/${SETOR_A}/nivel_1/arq_novo.pdf`,
   id_usuario: UID_ADMIN,
   // Campos adicionados na Sprint 3 (Spec 14).
@@ -297,7 +323,7 @@ const GLOBAL_NOVO = {
   escopo: 'global',
   tipo: 'circulares',
   titulo: 'Global Novo',
-  nivel_acesso: 1,
+  arquivo_privado: false,
   id_nuvem: 'biblioteca_global/nivel_1/arq_glob_novo.pdf',
   id_usuario: UID_ADMIN_GLOBAL,
   extensao_arquivo: 'pdf',

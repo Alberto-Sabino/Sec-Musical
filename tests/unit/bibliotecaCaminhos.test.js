@@ -7,36 +7,36 @@ import {
   inferirExtensao,
 } from '../../src/servicos/casos_de_uso/bibliotecaCaminhos.js'
 
-test('montarIdNuvem usa nivel_1 para público e nivel_2 para restrito', () => {
+test('montarIdNuvem usa nivel_1 para público e nivel_2 para privado', () => {
   assert.equal(
-    montarIdNuvem({ idSetor: 'cachoeira', nivelAcesso: 1, idArquivo: 'a1', extensao: 'pdf' }),
+    montarIdNuvem({ idSetor: 'cachoeira', arquivoPrivado: false, idArquivo: 'a1', extensao: 'pdf' }),
     'biblioteca/cachoeira/nivel_1/a1.pdf',
   )
   assert.equal(
-    montarIdNuvem({ idSetor: 'queluz', nivelAcesso: 2, idArquivo: 'a2', extensao: 'xlsx' }),
+    montarIdNuvem({ idSetor: 'queluz', arquivoPrivado: true, idArquivo: 'a2', extensao: 'xlsx' }),
     'biblioteca/queluz/nivel_2/a2.xlsx',
   )
 })
 
 test('montarIdNuvem usa biblioteca_global para escopo global (Spec 18)', () => {
   assert.equal(
-    montarIdNuvem({ escopo: 'global', nivelAcesso: 1, idArquivo: 'g1', extensao: 'pdf' }),
+    montarIdNuvem({ escopo: 'global', arquivoPrivado: false, idArquivo: 'g1', extensao: 'pdf' }),
     'biblioteca_global/nivel_1/g1.pdf',
   )
   assert.equal(
-    montarIdNuvem({ escopo: 'global', nivelAcesso: 2, idArquivo: 'g2', extensao: 'xlsx' }),
+    montarIdNuvem({ escopo: 'global', arquivoPrivado: true, idArquivo: 'g2', extensao: 'xlsx' }),
     'biblioteca_global/nivel_2/g2.xlsx',
   )
 })
 
 test('montarIdNuvem com escopo setor (ou ausente) usa o caminho por setor', () => {
   assert.equal(
-    montarIdNuvem({ escopo: 'setor', idSetor: 's', nivelAcesso: 1, idArquivo: 'a', extensao: 'pdf' }),
+    montarIdNuvem({ escopo: 'setor', idSetor: 's', arquivoPrivado: false, idArquivo: 'a', extensao: 'pdf' }),
     'biblioteca/s/nivel_1/a.pdf',
   )
   // Ausência de escopo = legado = setor.
   assert.equal(
-    montarIdNuvem({ idSetor: 's', nivelAcesso: 1, idArquivo: 'a', extensao: 'pdf' }),
+    montarIdNuvem({ idSetor: 's', arquivoPrivado: false, idArquivo: 'a', extensao: 'pdf' }),
     'biblioteca/s/nivel_1/a.pdf',
   )
 })
@@ -44,7 +44,7 @@ test('montarIdNuvem com escopo setor (ou ausente) usa o caminho por setor', () =
 test('montarIdNuvem respeita a extensão real informada', () => {
   const caminho = montarIdNuvem({
     idSetor: 's',
-    nivelAcesso: 1,
+    arquivoPrivado: false,
     idArquivo: 'id',
     extensao: 'xlsx',
   })

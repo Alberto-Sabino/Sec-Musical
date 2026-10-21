@@ -10,7 +10,7 @@
         <span
           v-if="mostrarNivel"
           class="detalhe__nivel"
-          :class="ehRestrito ? 'detalhe__nivel--restrito' : 'detalhe__nivel--publico'"
+          :class="ehPrivado ? 'detalhe__nivel--restrito' : 'detalhe__nivel--publico'"
         >
           {{ rotuloNivel }}
         </span>
@@ -49,8 +49,7 @@ import BaseBotao from '@/componentes/BaseBotao.vue'
 import MensagemFeedback from '@/componentes/MensagemFeedback.vue'
 import IconeGlobal from '@/componentes/icones/IconeGlobal.vue'
 import {
-  NIVEL_ARQUIVO,
-  rotuloNivelArquivo,
+  rotuloArquivoPrivado,
   rotuloTipoArquivo,
   baixarArquivoBiblioteca,
 } from '@/servicos/casos_de_uso/biblioteca'
@@ -76,11 +75,11 @@ usarModalAcessivel(aberto, caixa, () => emit('fechar'))
 const baixando = ref(false)
 const erroDownload = ref('')
 
-const ehRestrito = computed(() => props.arquivo?.nivel_acesso === NIVEL_ARQUIVO.RESTRITO)
+const ehPrivado = computed(() => props.arquivo?.arquivo_privado === true)
 const ehArquivoGlobal = computed(
   () => escopoDoArquivo(props.arquivo || {}) === ESCOPO_ARQUIVO.GLOBAL,
 )
-const rotuloNivel = computed(() => rotuloNivelArquivo(props.arquivo?.nivel_acesso))
+const rotuloNivel = computed(() => rotuloArquivoPrivado(props.arquivo?.arquivo_privado))
 const rotuloTipo = computed(() => rotuloTipoArquivo(props.arquivo?.tipo) || '—')
 const dataFormatada = computed(() => formatarData(props.arquivo?.data_atualizacao))
 const tamanhoFormatado = computed(() => formatarTamanho(props.arquivo?.tamanho_bytes))

@@ -82,10 +82,19 @@ Se precisar mudar uma regra de negócio, o lugar é o caso de uso — não a tel
 
 Antes de criar uma constante ou repetir um valor, veja se já não existe:
 
+- **Autorização (capabilities)**: `enums/capabilities.js` (`CAP`,
+  `TODAS_CAPABILITIES`, `temCapability`, `capabilitiesParaLista`). É a **única**
+  base de autorização por perfil. Nunca hardcode string de capability fora daqui.
+- **Nomes de claims**: `enums/claims.js` (`CLAIM`: `ativo`, `ids_setor`, `caps`).
 - **Tipos e status**: `servicos/casos_de_uso/solicitacoes.js`
   (`STATUS`, `STATUS_ROTULOS`, `TIPOS_SOLICITACAO`) e
-  `servicos/casos_de_uso/biblioteca.js` (`TIPOS_ARQUIVO`, `NIVEL_ARQUIVO`).
-  Nunca faça array/enum paralelo.
+  `servicos/casos_de_uso/biblioteca.js` (`TIPOS_ARQUIVO`, `ARQUIVO_PRIVADO_OPCOES`,
+  `rotuloArquivoPrivado`). Nunca faça array/enum paralelo.
+- **Escopo e visibilidade do arquivo**: `enums/escopoArquivos.js` (`ESCOPO_ARQUIVO`,
+  `podeGerenciarArquivo`). Visibilidade é `arquivo_privado` (boolean): `false` =
+  público, `true` = privado. Não existe mais `nivel_acesso`.
+- **Ações de auditoria**: `enums/acoesAuditoria.js` (`ACAO_AUDITORIA`,
+  `rotuloAcaoAuditoria`).
 - **Regras de upload** (formatos, limites, exceção de Métodos): só em
   `servicos/casos_de_uso/regrasUpload.js`.
 - **Navegação por módulos** (destino de cada módulo, mapa rota → módulo ativo,
@@ -94,7 +103,8 @@ Antes de criar uma constante ou repetir um valor, veja se já não existe:
   `componentes/tokens.css`.
 - **Caminho do arquivo no Storage** (`id_nuvem`): montado em
   `servicos/casos_de_uso/bibliotecaCaminhos.js`. Formato oficial:
-  `biblioteca/{id_setor}/nivel_1|nivel_2/{id_arquivo}.{extensao}`.
+  `biblioteca/{id_setor}/nivel_1|nivel_2/{id_arquivo}.{extensao}`
+  (`nivel_2` quando `arquivo_privado === true`).
 
 ## Convenções que já estão no código
 
@@ -133,17 +143,73 @@ Coisas que você vai encontrar e é bom seguir para manter a consistência:
 - **Regras de segurança** (`firestore.rules`, `storage.rules`) impõem o isolamento
   por setor/perfil e as transições de status válidas. Mudou regra? Rode os testes
   de regras (comando acima) antes de confiar.
-- **Storage não lê o Firestore.** Por isso o controle fino (só admin envia,
-  isolamento por setor) fica na camada de casos de uso/UI e nas regras do
-  Firestore; o `storage.rules` valida o básico (autenticado, tipo, tamanho).
+- **Autorização por capabilities (Spec 23).** O Firestore autoriza lendo o mapa
+  `usuarios/{uid}.capabilities`. O Storage **não lê o Firestore**, então autoriza
+  por Custom Claims no token: `ativo`, `ids_setor` e `caps` (lista de capabilities),
+  provisionados pela Cloud Function `syncClaimsFromUsuario` (e injetados pelo seeder
+  no emulador). Não há mais `nivel_acesso`/`admin_global`. Capability ausente =
+  negado (fail-closed).
 - **Bucket**: o seeder e o app têm que usar o mesmo bucket
   (`VITE_FIREBASE_STORAGE_BUCKET`). Se divergirem, o arquivo é gravado num bucket
   que o app não consulta e você vê 404 no download/remoção.
 - **Emulador é persistente**: os dados ficam num volume Docker (exporta ao
   derrubar, importa ao subir). Para começar limpo, remova o volume — ver
   `docs/guias/setup-local.md`.
-- **Produção do Storage** depende de Billing e ainda não foi validada; trate como
-  pendente.
+- **Produção do Storage + Cloud Functions** dependem de Billing (Blaze) e ainda não
+  foram validadas; trate como pendente. Runbook em
+  `docs/guias/guia-publicacao-piloto.md` (§B).
+
+## Como evoluir (autorização e novos recursos)
+
+A autorização é 100% baseada em **capabilities** (Spec 22/23). Isso torna a maior
+parte da evolução declarativa. Regras práticas:
+
+### Adicionar uma nova capability (permissão)
+Capability é a unidade de autorização. Para introduzir uma:
+
+1. Declare a chave em `enums/capabilities.js` (`CAP`) — fonte única; sem magic
+   strings fora daqui.
+2. Reflita a chave na **cópia espelhada** da Cloud Function
+   (`functions/claims.js`): `functions/` é um pacote de deploy isolado e **não
+   importa de `src/`**, então a lista de capabilities oficiais é mantida nas duas.
+   Mantenha-as idênticas.
+3. Aplique o gate nas regras onde fizer sentido:
+   - Firestore: `temCap('<cap>')` em `firestore.rules`.
+   - Storage: `temCap('<cap>')` em `storage.rules` (lê a claim `caps`).
+4. Exponha um derivado em `composables/usarSessao.js` (`pode*`) para gating de UI
+   (defesa em profundidade — a barreira real são as regras).
+5. Proteja rotas com `meta.requerCapability` em `router/index.js` (o guard já lê).
+6. Preencha a capability no seed (`scripts/seed-emulador.mjs`) e, em produção, no
+   mapa `capabilities` do documento `usuarios/{uid}` + ressincronizar claims.
+7. Cubra com teste: unit em `tests/unit/capabilities.test.js` e cenários de regra
+   em `tests/regras/`.
+
+> Capability ausente = **negado**. Nunca dependa só do gate de UI; a regra é quem
+> protege.
+
+### Mudar o que um perfil pode fazer
+Não crie "papéis" no código. Ajuste o mapa `capabilities` do usuário (no seed e no
+documento). O perfil (`cargo`) é só rótulo de exibição e **não autoriza nada**.
+
+### Visibilidade de arquivo
+Use `arquivo_privado` (boolean). `false` = público (`biblioteca_ler_publicos`,
+caminho `nivel_1`); `true` = privado (`biblioteca_ler_privados`, caminho `nivel_2`).
+Não reintroduza `nivel_acesso`.
+
+### Onde cada mudança "dói"
+- **Baixo esforço**: nova tela/listagem (padrão tela → caso de uso → repositório);
+  nova capability puramente de UI.
+- **Médio / cuidado**: mudar a matriz de capabilities (ela vive em 3 formas —
+  `src/enums` JS, `functions/claims.js` JS e as regras CEL — por limite do
+  Firebase; alinhe as três). Qualquer mudança de contrato de dados ou de regra de
+  segurança exige atualizar **rules + testes + docs na mesma entrega**.
+- **Fora do escopo atual**: gestão de usuários por UI (as capabilities
+  `usuarios_ver`/`usuarios_gerenciar` já estão reservadas no enum); hierarquia
+  Administração/Regional e novos perfis (Ancião/Regional).
+
+### Antes de adicionar dependência
+Pense duas vezes. O projeto é propositalmente enxuto (sem lib de UI, estado ou
+ícones). Dependência nova relevante é decisão que pede confirmação (ver README).
 
 ## Ao terminar
 
@@ -157,3 +223,6 @@ Coisas que você vai encontrar e é bom seguir para manter a consistência:
 - Master: manter o código em produção - iniciou somente com as funcionalidades base mas sem aprimoramento de UI.
 - feature/v0.1.0: CTA, UX, aprimoramento visual (ícones, navigation, reset/update de senha) + rules, indexes e hosting.
 - feature/v0.2.0: Google Analytics, eventos de negócio.
+- feature/v0.3.0: Spec 19 — UI Motion (animações leves e padronizadas).
+- feature/v0.4.0: Spec 20 (primeiro acesso: troca obrigatória de senha) + Spec 21 (auditoria `anexo_visualizado`).
+- feature/v0.5.0: Spec 22 (capabilities + claim `caps[]`, migração compatível) + Spec 23 (hard cut: remoção de `nivel_acesso`/`admin_global`; `cargo` + `arquivo_privado`; autorização 100% por capabilities/caps).

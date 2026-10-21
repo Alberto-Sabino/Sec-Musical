@@ -1,35 +1,31 @@
 rules_version = '2';
 
-// Regras de Storage do MVP — endurecidas com Custom Claims (Spec 17).
+// Regras de Storage do MVP — autorização por capabilities (Spec 22).
 //
 // Fonte de autorização: custom claims no ID token (request.auth.token):
-//   - ativo:        boolean  (se false, nega tudo)
-//   - nivel_acesso: number   (1 = usuário comum, 2 = admin)
-//   - ids_setor:    array<string> (setores aos quais o usuário pertence)
+//   - ativo:     boolean        (se false, nega tudo)
+//   - ids_setor: array<string>  (setores aos quais o usuário pertence)
+//   - caps:      array<string>  (capabilities concedidas — Spec 22)
 //
 // Os claims são provisionados pela Cloud Function `syncClaimsFromUsuario`, que
-// espelha `usuarios/{uid}` (ver docs/guias/claims-e-sincronizacao.md). Em ambiente
-// local, o seeder injeta os mesmos claims — assim dev e produção usam UMA única
-// versão de regra.
+// espelha `usuarios/{uid}` (capabilities → `caps`). Em ambiente local, o seeder
+// injeta os mesmos claims — dev e produção usam UMA versão de regra. Autorização
+// 100% por capabilities (Spec 23); não há mais legado de perfil no token.
 //
 // Produção: pendente de publicação até ativação de Billing/Blaze (Storage real).
 service firebase.storage {
   match /b/{bucket}/o {
 
-    // ---- Helpers de claims ----
+    // ---- Helpers de claims/capabilities ----
     function autenticado() {
       return request.auth != null;
     }
     function ativo() {
       return autenticado() && request.auth.token.ativo == true;
     }
-    function ehAdmin() {
-      return ativo() && request.auth.token.nivel_acesso == 2;
-    }
-    // Governança global (Spec 18): claim admin_global. Consistência: só vale para
-    // admin (nivel_acesso == 2). Nunca verdadeiro para usuário comum.
-    function ehAdminGlobal() {
-      return ehAdmin() && request.auth.token.admin_global == true;
+    // Capability concedida: usuário ativo cujo claim `caps` contém a capability.
+    function temCap(cap) {
+      return ativo() && (cap in request.auth.token.caps);
     }
     function pertenceAoSetor(idSetor) {
       return ativo() && idSetor in request.auth.token.ids_setor;
@@ -52,49 +48,53 @@ service firebase.storage {
     // Caminho oficial da Biblioteca:
     // biblioteca/{id_setor}/nivel_1|nivel_2/{id_arquivo}.{pdf|xlsx}
     match /biblioteca/{idSetor}/{nivel}/{arquivo} {
-      // Leitura: usuário ativo do setor. Nível 2 (restrito) exige admin.
+      // Leitura: pertence ao setor; nivel_1 exige ler_publicos, nivel_2 exige ler_privados.
       allow read: if pertenceAoSetor(idSetor)
-        && (nivel == 'nivel_1' || (nivel == 'nivel_2' && ehAdmin()));
+        && (
+          (nivel == 'nivel_1' && temCap('biblioteca_ler_publicos'))
+          || (nivel == 'nivel_2' && temCap('biblioteca_ler_privados'))
+        );
 
-      // Escrita (create/update): somente admin do setor; valida MIME e teto.
-      allow create, update: if ehAdmin()
+      // Escrita (create/update): gerenciar_setor + pertence ao setor; valida MIME e teto.
+      allow create, update: if temCap('biblioteca_gerenciar_setor')
         && pertenceAoSetor(idSetor)
         && (ehPdf() || ehXlsx())
         && dentroTetoBiblioteca();
 
-      // Remoção: somente admin do setor (delete não possui request.resource).
-      allow delete: if ehAdmin() && pertenceAoSetor(idSetor);
+      // Remoção: gerenciar_setor + pertence ao setor (delete não possui request.resource).
+      allow delete: if temCap('biblioteca_gerenciar_setor') && pertenceAoSetor(idSetor);
     }
 
     // Caminho oficial da Biblioteca GLOBAL (Spec 18):
     // biblioteca_global/nivel_1|nivel_2/{id_arquivo}.{pdf|xlsx}
     match /biblioteca_global/{nivel}/{arquivo} {
-      // Leitura: usuário ativo (global é do sistema). Nível 2 (restrito) exige admin.
-      allow read: if ativo()
-        && (nivel == 'nivel_1' || (nivel == 'nivel_2' && ehAdmin()));
+      // Leitura: nivel_1 exige ler_publicos, nivel_2 exige ler_privados.
+      allow read: if (nivel == 'nivel_1' && temCap('biblioteca_ler_publicos'))
+        || (nivel == 'nivel_2' && temCap('biblioteca_ler_privados'));
 
-      // Escrita (create/update): somente admin_global; valida MIME e teto.
-      allow create, update: if ehAdminGlobal()
+      // Escrita (create/update): gerenciar_global; valida MIME e teto.
+      allow create, update: if temCap('biblioteca_gerenciar_global')
         && (ehPdf() || ehXlsx())
         && dentroTetoBiblioteca();
 
-      // Remoção: somente admin_global (delete não possui request.resource).
-      allow delete: if ehAdminGlobal();
+      // Remoção: gerenciar_global (delete não possui request.resource).
+      allow delete: if temCap('biblioteca_gerenciar_global');
     }
+
     // solicitacoes/{id_setor}/{id_solicitante}/{id_solicitacao}/resposta.pdf
     match /solicitacoes/{idSetor}/{idSolicitante}/{idSolicitacao}/{arquivo} {
       // Leitura: SOMENTE o solicitante que criou a solicitação (Spec 17 §2.2),
       // independentemente de perfil. Admin NÃO lê a resposta final.
       allow read: if ativo() && request.auth.uid == idSolicitante;
 
-      // Escrita (create/update): somente admin do setor; PDF até 2 MB (Spec 15).
-      allow create, update: if ehAdmin()
+      // Escrita (create/update): agir_setor + pertence ao setor; PDF até 2 MB (Spec 15).
+      allow create, update: if temCap('solicitacoes_agir_setor')
         && pertenceAoSetor(idSetor)
         && ehPdf()
         && request.resource.size <= 2 * 1024 * 1024;
 
-      // Remoção: somente admin do setor (delete não possui request.resource).
-      allow delete: if ehAdmin() && pertenceAoSetor(idSetor);
+      // Remoção: agir_setor + pertence ao setor (delete não possui request.resource).
+      allow delete: if temCap('solicitacoes_agir_setor') && pertenceAoSetor(idSetor);
     }
 
     // Negar todo o restante por padrão.

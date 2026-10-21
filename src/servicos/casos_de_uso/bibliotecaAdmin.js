@@ -19,7 +19,7 @@ import { montarIdNuvem, inferirExtensao } from '@/servicos/casos_de_uso/bibliote
 import { escopoDoArquivo, ehGlobal } from '@/enums/escopoArquivos'
 
 // Cadastra um novo arquivo.
-// dados: { escopo, id_setor?, tipo, titulo, nivel_acesso, id_usuario }
+// dados: { escopo, id_setor?, tipo, titulo, arquivo_privado, id_usuario }
 // (escopo 'global' ignora id_setor).
 export async function cadastrarArquivo(dados, arquivo) {
   if (!arquivo) {
@@ -33,7 +33,7 @@ export async function cadastrarArquivo(dados, arquivo) {
   const idNuvem = montarIdNuvem({
     escopo,
     idSetor,
-    nivelAcesso: dados.nivel_acesso,
+    arquivoPrivado: dados.arquivo_privado,
     idArquivo,
     extensao,
   })
@@ -45,7 +45,7 @@ export async function cadastrarArquivo(dados, arquivo) {
     id_setor: idSetor,
     tipo: dados.tipo,
     titulo: dados.titulo,
-    nivel_acesso: dados.nivel_acesso,
+    arquivo_privado: dados.arquivo_privado === true,
     id_nuvem: idNuvem,
     id_usuario: dados.id_usuario,
     extensao_arquivo: extensao,
@@ -69,7 +69,7 @@ export async function atualizarArquivoExistente(arquivoAtual, dados, novoArquivo
   const idNuvem = montarIdNuvem({
     escopo,
     idSetor,
-    nivelAcesso: dados.nivel_acesso,
+    arquivoPrivado: dados.arquivo_privado,
     idArquivo,
     extensao,
   })
@@ -87,7 +87,7 @@ export async function atualizarArquivoExistente(arquivoAtual, dados, novoArquivo
     id_setor: ehGlobal(escopo) ? null : idSetor,
     tipo: dados.tipo,
     titulo: dados.titulo,
-    nivel_acesso: dados.nivel_acesso,
+    arquivo_privado: dados.arquivo_privado === true,
     id_nuvem: idNuvem,
     extensao_arquivo: extensao,
   }

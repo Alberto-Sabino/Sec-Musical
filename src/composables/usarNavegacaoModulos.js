@@ -45,14 +45,15 @@ export function ehRotaInicialDeModulo(nomeRota) {
   return ROTAS_INICIAIS_DE_MODULO.has(nomeRota)
 }
 
-// Solicitações depende do perfil: admin cai na fila; encarregado, nas próprias.
-export function destinoDoModulo(modulo, ehAdmin) {
+// Solicitações depende da capability: quem vê a fila do setor cai na fila; os
+// demais, nas próprias solicitações.
+export function destinoDoModulo(modulo, podeVerFila) {
   if (modulo === MODULO.BIBLIOTECA) {
     return { name: 'biblioteca' }
   }
 
   if (modulo === MODULO.SOLICITACOES) {
-    return { name: ehAdmin ? 'fila-solicitacoes' : 'minhas-solicitacoes' }
+    return { name: podeVerFila ? 'fila-solicitacoes' : 'minhas-solicitacoes' }
   }
 
   return { name: 'inicio' }

@@ -1,6 +1,6 @@
 // Mapa de rotas do app. Cada rota tem um `name` estável — é por esse nome que a
 // navegação e o mapa de módulo ativo (usarNavegacaoModulos) se orientam, então
-// evite renomear sem necessidade. `meta.requerAuth`/`requerAdmin` são lidos pelas
+// evite renomear sem necessidade. `meta.requerAuth`/`requerCapability` são lidos pelas
 // guardas em guards.js.
 import { createRouter, createWebHistory } from 'vue-router'
 import { registrarGuards } from './guards'
@@ -65,13 +65,21 @@ const routes = [
     path: '/biblioteca/novo',
     name: 'arquivo-novo',
     component: () => import('@/modulos/admin/PaginaArquivoForm.vue'),
-    meta: { requerAuth: true, requerAdmin: true, tela: TELAS.ARQUIVO_NOVO },
+    meta: {
+      requerAuth: true,
+      requerCapability: 'biblioteca_gerenciar_setor',
+      tela: TELAS.ARQUIVO_NOVO,
+    },
   },
   {
     path: '/biblioteca/:id/editar',
     name: 'arquivo-editar',
     component: () => import('@/modulos/admin/PaginaArquivoForm.vue'),
-    meta: { requerAuth: true, requerAdmin: true, tela: TELAS.ARQUIVO_EDITAR },
+    meta: {
+      requerAuth: true,
+      requerCapability: 'biblioteca_gerenciar_setor',
+      tela: TELAS.ARQUIVO_EDITAR,
+    },
   },
   {
     path: '/solicitacoes',
@@ -101,13 +109,21 @@ const routes = [
     path: '/fila',
     name: 'fila-solicitacoes',
     component: () => import('@/modulos/admin/PaginaFilaSolicitacoes.vue'),
-    meta: { requerAuth: true, requerAdmin: true, tela: TELAS.FILA_SOLICITACOES },
+    meta: {
+      requerAuth: true,
+      requerCapability: 'solicitacoes_ver_setor',
+      tela: TELAS.FILA_SOLICITACOES,
+    },
   },
   {
     path: '/fila/:id',
     name: 'fila-detalhe',
     component: () => import('@/modulos/admin/PaginaFilaDetalhe.vue'),
-    meta: { requerAuth: true, requerAdmin: true, tela: TELAS.FILA_DETALHE },
+    meta: {
+      requerAuth: true,
+      requerCapability: 'solicitacoes_ver_setor',
+      tela: TELAS.FILA_DETALHE,
+    },
   },
 ]
 

@@ -34,10 +34,10 @@ Usar como referência principal:
 - `email`
 - `celular`
 - `comum_congregacao`
-- `nivel_acesso`
-- `admin_global`
+- `cargo`
 - `ativo`
 - `ids_setor`
+- `capabilities`
 - `primeiro_acesso`
 - `data_criacao`
 - `data_atualizacao`
@@ -48,7 +48,7 @@ Usar como referência principal:
 - `escopo`
 - `tipo`
 - `titulo`
-- `nivel_acesso`
+- `arquivo_privado`
 - `id_nuvem`
 - `id_usuario`
 - `data_inclusao`
@@ -72,7 +72,8 @@ Usar como referência principal:
 - `data_atualizacao`
 
 ## Valores técnicos oficiais
-### `nivel_acesso` - `1` = usuário - `2` = admin ### `status` - `em_aberto`
+### `capabilities` (autorização) - chaves booleanas: `biblioteca_ler_publicos`, `biblioteca_ler_privados`, `biblioteca_gerenciar_setor`, `biblioteca_gerenciar_global`, `solicitacoes_criar`, `solicitacoes_ver_proprias`, `solicitacoes_ver_setor`, `solicitacoes_agir_setor`, `usuarios_ver`, `usuarios_gerenciar`
+### `arquivo_privado` - `false` = público - `true` = privado ### `status` - `em_aberto`
 - `em_andamento`
 - `concluida`
 - `cancelada`
@@ -99,7 +100,7 @@ Usar como referência principal:
 - lê apenas o próprio documento de usuário;
 - opera apenas nos setores presentes em `ids_setor`;
 - cria, atualiza e remove arquivos de setor do próprio contexto;
-- cria, atualiza e remove arquivos globais apenas com `admin_global`;
+- cria, atualiza e remove arquivos globais apenas com `biblioteca_gerenciar_global`;
 - vê a fila de solicitações do setor ativo;
 - assume, responde, anexa e conclui solicitações do próprio setor;
 - uma vez assumida a solicitação, apenas o responsável que a assumiu pode alterá-la;
@@ -117,12 +118,14 @@ Usar como referência principal:
 - `solicitacoes/{id_setor}/{id_solicitante}/{id_solicitacao}/resposta.pdf`
 
 ## Autorização por camada
-O Firestore autoriza pelo documento `usuarios/{uid}`, lido pelas próprias regras.
-O Storage autoriza por Custom Claims no token (`ativo`, `nivel_acesso`,
-`ids_setor`, `admin_global`), porque as regras de Storage não leem o Firestore.
-Os claims espelham o documento `usuarios/{uid}`: provisionados pela sincronização
-oficial em produção e injetados pelo seeder no ambiente local, de modo que
-desenvolvimento e produção usam a mesma versão de regra.
+O Firestore autoriza pelo documento `usuarios/{uid}`, lido pelas próprias regras,
+usando exclusivamente o mapa `capabilities` (Spec 23). Ausência de chave/mapa =
+não permitido. O Storage autoriza por Custom Claims no token (`ativo`, `ids_setor`,
+`caps` — lista de strings de capabilities), porque as regras de Storage não leem o
+Firestore. Os claims espelham o documento `usuarios/{uid}` (a Cloud Function deriva
+`caps` do mapa `capabilities`): provisionados pela sincronização oficial em
+produção e injetados pelo seeder no ambiente local, de modo que desenvolvimento e
+produção usam a mesma versão de regra. Não há mais `nivel_acesso`/`admin_global`.
 
 O Storage de **produção** e suas regras permanecem pendentes de Cloud Billing e
 não devem ser declarados concluídos. Em desenvolvimento, as operações de arquivo
