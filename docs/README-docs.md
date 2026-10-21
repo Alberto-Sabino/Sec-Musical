@@ -94,6 +94,8 @@ evoluções.
 | 17 | Custom Claims + hardening de rules + sync via Cloud Functions |
 | 18 | Biblioteca Global (escopo global\|setor) + `admin_global` |
 | 19 | UI Motion (animações leves e padronizadas) |
+| 20 | Primeiro acesso — troca obrigatória de senha (flag `primeiro_acesso`) |
+| 21 | Solicitações — auditoria `anexo_visualizado` (após download com sucesso) |
 
 ## guias/
 

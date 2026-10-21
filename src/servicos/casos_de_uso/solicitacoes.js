@@ -10,6 +10,11 @@ import {
   listarAuditoria,
 } from '@/servicos/repositorios/repositorioSolicitacoes'
 import { baixarArquivo } from '@/servicos/infraestrutura_arquivos'
+import {
+  ACAO_AUDITORIA,
+  ROTULOS_ACAO_AUDITORIA,
+  rotuloAcaoAuditoria,
+} from '@/enums/acoesAuditoria'
 
 // Tipos oficiais de solicitação (contrato do MVP).
 export const TIPOS_SOLICITACAO = [
@@ -44,15 +49,8 @@ export const STATUS_OPCOES = Object.entries(STATUS_ROTULOS).map(([valor, rotulo]
 }))
 
 // Ações oficiais registradas na auditoria de solicitações.
-export const ACAO_AUDITORIA = {
-  CRIADA: 'criada',
-  EDITADA: 'editada',
-  CANCELADA: 'cancelada',
-  ASSUMIDA: 'assumida',
-  RESPONDIDA: 'respondida',
-  ANEXO_FINAL: 'anexo_final',
-  CONCLUIDA: 'concluida',
-}
+// Fonte única em @/enums/acoesAuditoria (módulo puro, testável e reusado nas telas).
+export { ACAO_AUDITORIA, ROTULOS_ACAO_AUDITORIA, rotuloAcaoAuditoria }
 
 export function rotuloTipo(tipo) {
   const t = TIPOS_SOLICITACAO.find((x) => x.valor === tipo)
@@ -172,4 +170,20 @@ export async function baixarAnexoFinal(solicitacao) {
     throw new Error('Esta solicitação não possui anexo final.')
   }
   return baixarArquivo(solicitacao.id_nuvem)
+}
+
+// Registra auditoria append-only de que o solicitante visualizou (baixou com
+// sucesso) o anexo final. Só registra quando a solicitação está concluída e
+// possui id_nuvem — as mesmas garantias impostas pelas Firestore Rules.
+export async function registrarAnexoVisualizado(solicitacao, idUsuario) {
+  if (solicitacao.status !== STATUS.CONCLUIDA || !solicitacao.id_nuvem) {
+    return
+  }
+
+  await registrarAuditoria(solicitacao.id_solicitacao, {
+    acao: ACAO_AUDITORIA.ANEXO_VISUALIZADO,
+    id_usuario: idUsuario,
+    status_anterior: solicitacao.status,
+    status_novo: solicitacao.status,
+  })
 }

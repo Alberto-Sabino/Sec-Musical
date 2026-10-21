@@ -51,9 +51,14 @@ import { usarModalAcessivel } from '@/composables/usarModalAcessivel'
 const route = useRoute()
 const { estado } = usarSessao()
 
-// A barra aparece em toda a área autenticada; nunca na tela de login.
+// A barra aparece em toda a área autenticada; nunca na tela de login nem
+// durante o primeiro acesso (Spec 20), em que a navegação global é bloqueada.
 const mostrarBarra = computed(
-  () => estado.autenticado && route.name !== 'login' && route.meta?.requerAuth === true,
+  () =>
+    estado.autenticado &&
+    route.name !== 'login' &&
+    route.meta?.requerAuth === true &&
+    estado.contexto?.primeiro_acesso !== true,
 )
 
 function responder(sair) {

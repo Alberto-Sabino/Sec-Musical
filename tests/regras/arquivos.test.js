@@ -45,6 +45,7 @@ beforeEach(async () => {
       nivel_acesso: 1,
       ativo: true,
       ids_setor: [SETOR_A],
+      primeiro_acesso: true,
     })
     await setDoc(doc(db, 'usuarios', UID_ADMIN), {
       nivel_acesso: 2,
@@ -162,6 +163,41 @@ test('usuarios: cliente NÃO grava admin_global=true (consistência Spec 18) (bl
   // privilégio por admin_global diretamente no documento.
   await assertFails(updateDoc(doc(ctxUsuario(), 'usuarios', UID_USUARIO), { admin_global: true }))
   await assertFails(updateDoc(doc(ctxAdmin(), 'usuarios', UID_ADMIN), { admin_global: true }))
+})
+
+// ---- usuarios: primeiro_acesso (Spec 20) ----
+test('primeiro_acesso: usuário conclui o próprio (true → false) (permitido)', async () => {
+  await assertSucceeds(
+    updateDoc(doc(ctxUsuario(), 'usuarios', UID_USUARIO), { primeiro_acesso: false }),
+  )
+})
+
+test('primeiro_acesso: NÃO volta de false → true (bloqueado)', async () => {
+  await testEnv.withSecurityRulesDisabled(async (ctx) => {
+    await updateDoc(doc(ctx.firestore(), 'usuarios', UID_USUARIO), { primeiro_acesso: false })
+  })
+  await assertFails(
+    updateDoc(doc(ctxUsuario(), 'usuarios', UID_USUARIO), { primeiro_acesso: true }),
+  )
+})
+
+test('primeiro_acesso: NÃO muda junto com outro campo (bloqueado)', async () => {
+  await assertFails(
+    updateDoc(doc(ctxUsuario(), 'usuarios', UID_USUARIO), {
+      primeiro_acesso: false,
+      celular: '11999990000',
+    }),
+  )
+})
+
+test('primeiro_acesso: NÃO altera o doc de outro usuário (bloqueado)', async () => {
+  await assertFails(
+    updateDoc(doc(ctxUsuario(), 'usuarios', UID_ADMIN), { primeiro_acesso: false }),
+  )
+})
+
+test('primeiro_acesso: NÃO altera outro campo (garantia antiga mantida) (bloqueado)', async () => {
+  await assertFails(updateDoc(doc(ctxUsuario(), 'usuarios', UID_USUARIO), { celular: 'x' }))
 })
 
 // ---- arquivos: leitura ----

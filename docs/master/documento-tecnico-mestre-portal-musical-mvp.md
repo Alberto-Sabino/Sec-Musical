@@ -181,12 +181,22 @@ Campos principais:
 - `admin_global`
 - `ativo`
 - `ids_setor`
+- `primeiro_acesso`
 - `data_criacao`
 - `data_atualizacao`
 
 > `admin_global` (booleano) habilita a governança da Biblioteca Global. Só é
 > válido para admin (`nivel_acesso == 2`); para qualquer outro perfil o valor é
 > tratado como `false`. A sincronização de claims força essa consistência.
+
+> `primeiro_acesso` (booleano, Spec 20) força a troca da senha padrão no primeiro
+> login. Enquanto `true`, o usuário só acessa `/alterar-senha` e `/perfil`, sem
+> barra inferior nem botão "← Voltar"; qualquer outra rota autenticada redireciona
+> para `/alterar-senha`. Ao trocar a senha com sucesso, o próprio usuário marca
+> `primeiro_acesso = false`, a sessão é encerrada e ele volta ao login. Ausência
+> do campo em legados é tratada como `false`. As regras do Firestore permitem ao
+> usuário apenas a transição `true → false` do próprio documento (nenhum outro
+> campo), mantendo bloqueada toda a demais escrita em `usuarios`.
 
 ### Coleção `setores`
 Campos principais:
@@ -256,6 +266,15 @@ Campos principais:
 ### Subcoleções de auditoria
 - `arquivos/{id_arquivo}/auditoria`
 - `solicitacoes/{id_solicitacao}/auditoria`
+
+> A auditoria de solicitações é append-only (`acao`, `id_usuario`,
+> `status_anterior`, `status_novo`, `data`) e registra os eventos do fluxo
+> (`criada`, `editada`, `assumida`, `respondida`, `anexo_final`, `concluida`,
+> `cancelada`). Inclui também `anexo_visualizado` (Spec 21): gravado pelo próprio
+> solicitante **após** baixar com sucesso o anexo final, apenas quando a
+> solicitação está `concluida` e possui `id_nuvem`. As Firestore Rules restringem
+> esse registro ao solicitante e bloqueiam status incompatível, `id_nuvem` vazio
+> ou `id_usuario` forjado.
 
 ---
 

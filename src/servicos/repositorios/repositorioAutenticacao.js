@@ -14,7 +14,7 @@ import {
   updatePassword,
   EmailAuthProvider,
 } from 'firebase/auth'
-import { doc, getDoc } from 'firebase/firestore'
+import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { httpsCallable } from 'firebase/functions'
 import { auth, db, functions } from '@/servicos/firebase'
 
@@ -118,4 +118,12 @@ export async function obterDocumentoUsuario(idUsuario) {
     return null
   }
   return { id_usuario: snap.id, ...snap.data() }
+}
+
+// Conclui o primeiro acesso (Spec 20): troca primeiro_acesso true → false no
+// próprio documento `usuarios/{uid}`. A regra do Firestore só permite esta única
+// transição e nenhuma outra alteração de campo.
+export function marcarPrimeiroAcessoConcluido(idUsuario) {
+  const referencia = doc(db, 'usuarios', idUsuario)
+  return updateDoc(referencia, { primeiro_acesso: false })
 }

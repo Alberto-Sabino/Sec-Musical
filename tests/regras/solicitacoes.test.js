@@ -96,6 +96,23 @@ beforeEach(async () => {
       status: 'em_andamento',
       id_responsavel: UID_ADMIN,
     })
+    // Solicitação concluída com anexo final (para auditoria anexo_visualizado — Spec 21).
+    await setDoc(doc(db, 'solicitacoes', 'sol_concluida'), {
+      ...solEmAberto(),
+      status: 'concluida',
+      id_responsavel: UID_ADMIN,
+      nome_responsavel: 'Secretário Um',
+      conclusao: 'Resposta final',
+      id_nuvem: `solicitacoes/${SETOR_A}/${UID_USUARIO}/sol_concluida/resposta.pdf`,
+    })
+    // Solicitação concluída SEM anexo (id_nuvem vazio).
+    await setDoc(doc(db, 'solicitacoes', 'sol_concluida_sem_anexo'), {
+      ...solEmAberto(),
+      status: 'concluida',
+      id_responsavel: UID_ADMIN,
+      nome_responsavel: 'Secretário Um',
+      conclusao: 'Resposta final',
+    })
   })
 })
 
@@ -397,5 +414,64 @@ test('auditoria solicitacoes: registro com autor falso (bloqueado)', async () =>
       id_usuario: UID_ADMIN,
       data: new Date(),
     }),
+  )
+})
+
+// ---- auditoria anexo_visualizado (Spec 21) ----
+function anexoVisualizado(idUsuario = UID_USUARIO) {
+  return {
+    acao: 'anexo_visualizado',
+    id_usuario: idUsuario,
+    status_anterior: 'concluida',
+    status_novo: 'concluida',
+    data: new Date(),
+  }
+}
+
+test('anexo_visualizado: solicitante registra em concluída com anexo (permitido)', async () => {
+  await assertSucceeds(
+    setDoc(doc(cUsuario(), 'solicitacoes', 'sol_concluida', 'auditoria', 'av1'), anexoVisualizado()),
+  )
+})
+
+test('anexo_visualizado: NÃO registra se status != concluida (bloqueado)', async () => {
+  await assertFails(
+    setDoc(doc(cUsuario(), 'solicitacoes', 'sol1', 'auditoria', 'av2'), anexoVisualizado()),
+  )
+})
+
+test('anexo_visualizado: NÃO registra com id_nuvem vazio (bloqueado)', async () => {
+  await assertFails(
+    setDoc(
+      doc(cUsuario(), 'solicitacoes', 'sol_concluida_sem_anexo', 'auditoria', 'av3'),
+      anexoVisualizado(),
+    ),
+  )
+})
+
+test('anexo_visualizado: outro usuário NÃO registra em solicitação alheia (bloqueado)', async () => {
+  await assertFails(
+    setDoc(
+      doc(cOutro(), 'solicitacoes', 'sol_concluida', 'auditoria', 'av4'),
+      anexoVisualizado(UID_OUTRO),
+    ),
+  )
+})
+
+test('anexo_visualizado: admin NÃO registra (não é solicitante) (bloqueado)', async () => {
+  await assertFails(
+    setDoc(
+      doc(cAdmin(), 'solicitacoes', 'sol_concluida', 'auditoria', 'av5'),
+      anexoVisualizado(UID_ADMIN),
+    ),
+  )
+})
+
+test('anexo_visualizado: solicitante NÃO forja id_usuario diferente do próprio (bloqueado)', async () => {
+  await assertFails(
+    setDoc(
+      doc(cUsuario(), 'solicitacoes', 'sol_concluida', 'auditoria', 'av6'),
+      anexoVisualizado(UID_ADMIN),
+    ),
   )
 })

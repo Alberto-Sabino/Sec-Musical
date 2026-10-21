@@ -1,6 +1,6 @@
 <template>
   <ContainerPagina>
-    <CabecalhoPagina :voltar="true" titulo="Minhas informações" />
+    <CabecalhoPagina :voltar="!primeiroAcesso" titulo="Minhas informações" />
 
     <div class="perfil">
       <BaseCard>
@@ -58,7 +58,7 @@ import { dispararEvento } from '@/servicos/firebase/analytics'
 import { ACOES, PARAMS_PERFIL_ACAO } from '@/enums/eventosAnalytics'
 
 const router = useRouter()
-const { estado, ehAdmin, logout } = usarSessao()
+const { estado, ehAdmin, logout, primeiroAcesso } = usarSessao()
 
 const saindo = ref(false)
 

@@ -38,6 +38,7 @@ Usar como referência principal:
 - `admin_global`
 - `ativo`
 - `ids_setor`
+- `primeiro_acesso`
 - `data_criacao`
 - `data_atualizacao`
 
@@ -84,13 +85,15 @@ Usar como referência principal:
 
 ### Usuário
 - lê apenas o próprio documento em `usuarios`;
+- no primeiro acesso, conclui a troca obrigatória de senha marcando `primeiro_acesso` de `true` para `false` no próprio documento — única escrita permitida em `usuarios`, sem alterar nenhum outro campo;
 - lê os arquivos públicos do próprio setor e os arquivos públicos globais;
 - cria solicitação apenas no próprio setor;
 - lê apenas as próprias solicitações;
 - edita ou cancela apenas enquanto `em_aberto`;
 - não define `id_responsavel`;
 - não grava `id_nuvem` na solicitação;
-- baixa o anexo final apenas das próprias solicitações; ninguém mais o lê.
+- baixa o anexo final apenas das próprias solicitações; ninguém mais o lê;
+- registra a auditoria `anexo_visualizado` (append-only) após baixar com sucesso o anexo final da própria solicitação `concluida` com `id_nuvem` — nenhum outro perfil pode gravar esse evento.
 
 ### Admin
 - lê apenas o próprio documento de usuário;

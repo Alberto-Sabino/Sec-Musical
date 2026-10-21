@@ -8,6 +8,7 @@ import { existeFormularioSujo, pedirConfirmacaoSaida } from '@/composables/usarG
 import { dispararEvento } from '@/servicos/firebase/analytics'
 import { EVENTO_ACESSO_TELA } from '@/enums/eventosAnalytics'
 import { parametrosEventoTela } from '@/servicos/casos_de_uso/analyticsNavegacao'
+import { avaliarPrimeiroAcesso } from './primeiroAcesso'
 
 const { estado, iniciarObservadorSessao } = usarSessao()
 
@@ -55,6 +56,15 @@ export function registrarGuards(router) {
 
     if (requerAuth && !estado.autenticado) {
       return { name: 'login' }
+    }
+
+    // Primeiro acesso (Spec 20): enquanto primeiro_acesso == true, só libera
+    // alterar-senha e perfil; qualquer outra rota autenticada vai para alterar-senha.
+    if (estado.autenticado && estado.contexto?.primeiro_acesso === true) {
+      const decisao = avaliarPrimeiroAcesso(para.name, true)
+      if (!decisao.permitido) {
+        return { name: decisao.redirect }
+      }
     }
 
     if (requerAdmin && estado.contexto?.ehAdmin !== true) {

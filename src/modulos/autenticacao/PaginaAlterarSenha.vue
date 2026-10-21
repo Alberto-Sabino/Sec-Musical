@@ -1,6 +1,14 @@
 <template>
   <ContainerPagina>
-    <CabecalhoPagina :voltar="true" titulo="Alterar senha" subtitulo="Atualize a senha da sua conta" />
+    <CabecalhoPagina
+      :voltar="!primeiroAcesso"
+      titulo="Alterar senha"
+      :subtitulo="
+        primeiroAcesso
+          ? 'Por segurança, defina uma nova senha para continuar'
+          : 'Atualize a senha da sua conta'
+      "
+    />
 
     <BaseCard>
       <form v-if="!alterado" class="alterar" @submit.prevent="enviar">
@@ -35,7 +43,10 @@
 
       <div v-else class="alterar">
         <MensagemFeedback tipo="sucesso"> Senha alterada com sucesso. </MensagemFeedback>
-        <BaseBotao variante="secundario" bloco @click="voltar"> Voltar ao início </BaseBotao>
+        <MensagemFeedback v-if="primeiroAcesso" tipo="info">
+          Encerrando a sessão. Entre novamente com a nova senha.
+        </MensagemFeedback>
+        <BaseBotao v-else variante="secundario" bloco @click="voltar"> Voltar ao início </BaseBotao>
       </div>
     </BaseCard>
   </ContainerPagina>
@@ -50,11 +61,13 @@ import BaseCard from '@/componentes/BaseCard.vue'
 import BaseInput from '@/componentes/BaseInput.vue'
 import BaseBotao from '@/componentes/BaseBotao.vue'
 import MensagemFeedback from '@/componentes/MensagemFeedback.vue'
-import { alterarSenha } from '@/servicos/casos_de_uso/autenticacao'
+import { alterarSenha, concluirPrimeiroAcesso } from '@/servicos/casos_de_uso/autenticacao'
+import { usarSessao } from '@/composables/usarSessao'
 import { dispararEvento } from '@/servicos/firebase/analytics'
 import { ERROS, PARAMS_ERRO_FORMULARIO } from '@/enums/eventosAnalytics'
 
 const router = useRouter()
+const { estado, primeiroAcesso, logout } = usarSessao()
 
 const senhaAtual = ref('')
 const novaSenha = ref('')
@@ -73,19 +86,30 @@ async function enviar() {
     confirmacao: confirmacao.value,
   })
 
-  enviando.value = false
-
-  if (resultado.ok) {
-    alterado.value = true
-    senhaAtual.value = ''
-    novaSenha.value = ''
-    confirmacao.value = ''
+  if (!resultado.ok) {
+    enviando.value = false
+    dispararEvento(ERROS.ERRO_FORMULARIO, {
+      formulario: PARAMS_ERRO_FORMULARIO.ALTERAR_SENHA,
+    })
+    mensagemErro.value = resultado.erro
     return
   }
-  dispararEvento(ERROS.ERRO_FORMULARIO, {
-    formulario: PARAMS_ERRO_FORMULARIO.ALTERAR_SENHA,
-  })
-  mensagemErro.value = resultado.erro
+
+  alterado.value = true
+  senhaAtual.value = ''
+  novaSenha.value = ''
+  confirmacao.value = ''
+
+  // Primeiro acesso (Spec 20): ao trocar a senha com sucesso, concluir o
+  // primeiro acesso (primeiro_acesso=false), encerrar a sessão e voltar ao login.
+  if (primeiroAcesso.value) {
+    await concluirPrimeiroAcesso(estado.usuarioAuth?.uid)
+    await logout()
+    router.replace({ name: 'login' })
+    return
+  }
+
+  enviando.value = false
 }
 
 function voltar() {

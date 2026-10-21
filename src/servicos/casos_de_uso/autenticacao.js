@@ -8,6 +8,7 @@ import {
   verificarCodigoRedefinicao,
   confirmarRedefinicaoSenha,
   atualizarSenhaUsuario,
+  marcarPrimeiroAcessoConcluido,
 } from '@/servicos/repositorios/repositorioAutenticacao'
 import {
   validarEmailRecuperacao,
@@ -69,6 +70,9 @@ export async function carregarContextoUsuario(idUsuario) {
     ids_setor: idsSetor,
     ehAdmin,
     admin_global: adminGlobal,
+    // Primeiro acesso (Spec 20): ausência em legados é tratada como false
+    // (não bloqueia usuários antigos).
+    primeiro_acesso: documento.primeiro_acesso === true,
   }
 
   return { ok: true, motivo: null, contexto }
@@ -121,6 +125,21 @@ export async function alterarSenha({ senhaAtual, novaSenha, confirmacao } = {}) 
       return { ok: false, erro: 'Sessão expirada. Entre novamente para alterar a senha.' }
     }
     return { ok: false, erro: 'Não foi possível alterar a senha. Tente novamente.' }
+  }
+}
+
+// Conclui o primeiro acesso (Spec 20): marca primeiro_acesso=false no documento
+// do próprio usuário autenticado. Segue o padrão tela -> caso de uso ->
+// repositório -> Firestore. Requer sessão ativa. Retorna { ok, erro }.
+export async function concluirPrimeiroAcesso(idUsuario) {
+  if (!idUsuario) {
+    return { ok: false, erro: 'Sessão inválida.' }
+  }
+  try {
+    await marcarPrimeiroAcessoConcluido(idUsuario)
+    return { ok: true, erro: null }
+  } catch {
+    return { ok: false, erro: 'Não foi possível concluir o primeiro acesso. Tente novamente.' }
   }
 }
 

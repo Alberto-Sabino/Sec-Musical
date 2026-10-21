@@ -193,8 +193,8 @@ import ModalConfirmacao from '@/componentes/ModalConfirmacao.vue'
 import { usarSessao } from '@/composables/usarSessao'
 import {
   STATUS,
-  ACAO_AUDITORIA,
   rotuloTipo,
+  rotuloAcaoAuditoria,
   obterSolicitacao,
   listarHistorico,
 } from '@/servicos/casos_de_uso/solicitacoes'
@@ -267,17 +267,8 @@ const mensagemCancelamento = computed(() => {
   return `Cancelar a solicitação de ${rotuloTipo(s.tipo)}${pessoa}? Esta ação não pode ser desfeita.`
 })
 
-const rotulosAcao = {
-  [ACAO_AUDITORIA.CRIADA]: 'Criada',
-  [ACAO_AUDITORIA.EDITADA]: 'Editada',
-  [ACAO_AUDITORIA.CANCELADA]: 'Cancelada',
-  [ACAO_AUDITORIA.ASSUMIDA]: 'Assumida',
-  [ACAO_AUDITORIA.RESPONDIDA]: 'Respondida',
-  [ACAO_AUDITORIA.ANEXO_FINAL]: 'Anexo final adicionado',
-  [ACAO_AUDITORIA.CONCLUIDA]: 'Concluída',
-}
 function rotuloAcao(h) {
-  return rotulosAcao[h.acao] || h.acao
+  return rotuloAcaoAuditoria(h.acao)
 }
 
 async function carregar() {

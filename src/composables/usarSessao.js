@@ -168,6 +168,9 @@ export function usarSessao() {
     estado: readonly(estado),
     // derivados (contexto do Firestore — fonte do fluxo operacional)
     ehAdmin: computed(() => estado.contexto?.ehAdmin === true),
+    // Primeiro acesso (Spec 20): true enquanto a troca obrigatória de senha não
+    // foi concluída. Fonte: contexto do Firestore (ausência = false).
+    primeiroAcesso: computed(() => estado.contexto?.primeiro_acesso === true),
     // Governança global (Spec 18): prioriza o claim (fonte das rules); cai para o
     // contexto do Firestore quando o claim ainda não foi sincronizado.
     ehAdminGlobal: computed(

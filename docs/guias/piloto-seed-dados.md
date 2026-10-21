@@ -21,6 +21,8 @@ Coleção `setores`, doc id = `id_setor`.
 ## usuarios
 Coleção `usuarios`, doc id = UID do Auth.
 `nivel_acesso`: 1 = usuário, 2 = admin. `ids_setor`: array.
+`primeiro_acesso` (opcional, Spec 20): usar `true` para usuários novos com senha
+padrão (força a troca no primeiro login); ausência é tratada como `false`.
 ```json
 {
   "id_usuario": "<uid_auth>",
@@ -31,6 +33,7 @@ Coleção `usuarios`, doc id = UID do Auth.
   "nivel_acesso": 2,
   "ativo": true,
   "ids_setor": ["setorA"],
+  "primeiro_acesso": true,
   "data_criacao": "<timestamp>",
   "data_atualizacao": "<timestamp>"
 }

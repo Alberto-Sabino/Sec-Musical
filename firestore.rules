@@ -48,13 +48,25 @@ service cloud.firestore {
 
     // ---- usuarios ----
     // Autenticado lê apenas o próprio documento.
-    // Cliente não cria nem altera (gestão de usuários fora do MVP por interface),
-    // o que impede elevação de privilégio (nivel_acesso, ids_setor, ativo e
-    // admin_global — Spec 18). A consistência "admin_global só com nivel_acesso==2"
-    // é garantida na origem (sync de claims) e aqui pela proibição total de escrita.
+    // Gestão de usuários fica fora do MVP por interface, o que impede elevação de
+    // privilégio (nivel_acesso, ids_setor, ativo e admin_global — Spec 18).
+    //
+    // Única exceção de escrita (Spec 20 — primeiro acesso): o próprio usuário pode
+    // concluir o primeiro acesso, trocando APENAS primeiro_acesso de true → false.
+    // Nenhum outro campo pode mudar (diff.changedKeys() == ['primeiro_acesso']),
+    // não é possível setar true, nem alterar o doc de outro usuário. create e
+    // delete seguem negados.
+    function soMudaPrimeiroAcesso() {
+      return resource.data.primeiro_acesso == true
+        && request.resource.data.primeiro_acesso == false
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['primeiro_acesso']);
+    }
     match /usuarios/{idUsuario} {
       allow read: if estaAutenticado() && request.auth.uid == idUsuario;
-      allow write: if false;
+      allow update: if estaAutenticado()
+        && request.auth.uid == idUsuario
+        && soMudaPrimeiroAcesso();
+      allow create, delete: if false;
     }
 
     // ---- setores ----
@@ -230,15 +242,28 @@ service cloud.firestore {
         function solPai() {
           return get(/databases/$(database)/documents/solicitacoes/$(idSolicitacao)).data;
         }
+        function ehSolicitante() {
+          return solPai().id_solicitante == request.auth.uid;
+        }
+        // Visualização do anexo (Spec 21): só o solicitante, com a solicitação
+        // concluída e id_nuvem preenchido, registrando status concluida → concluida.
+        function anexoVisualizadoValido() {
+          return ehSolicitante()
+            && solPai().status == 'concluida'
+            && solPai().id_nuvem != ''
+            && request.resource.data.status_anterior == 'concluida'
+            && request.resource.data.status_novo == 'concluida';
+        }
         allow read: if estaAutenticado() && estaAtivo() && (
-          solPai().id_solicitante == request.auth.uid
+          ehSolicitante()
           || (ehAdmin() && pertenceAoSetor(solPai().id_setor))
         );
         allow create: if estaAutenticado() && estaAtivo()
           && request.resource.data.id_usuario == request.auth.uid
           && (
-            solPai().id_solicitante == request.auth.uid
-            || (ehAdmin() && pertenceAoSetor(solPai().id_setor))
+            request.resource.data.acao == 'anexo_visualizado'
+              ? anexoVisualizadoValido()
+              : (ehSolicitante() || (ehAdmin() && pertenceAoSetor(solPai().id_setor)))
           );
         allow update, delete: if false;
       }

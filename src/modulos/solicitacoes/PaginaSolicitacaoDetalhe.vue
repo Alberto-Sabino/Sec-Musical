@@ -136,12 +136,13 @@ import ModalConfirmacao from '@/componentes/ModalConfirmacao.vue'
 import { usarSessao } from '@/composables/usarSessao'
 import {
   STATUS,
-  ACAO_AUDITORIA,
   rotuloTipo,
+  rotuloAcaoAuditoria,
   obterSolicitacao,
   listarHistorico,
   cancelarSolicitacao,
   baixarAnexoFinal,
+  registrarAnexoVisualizado,
 } from '@/servicos/casos_de_uso/solicitacoes'
 import { formatarData, formatarDataHora } from '@/servicos/casos_de_uso/formato'
 import { baixarBlob } from '@/servicos/casos_de_uso/download'
@@ -180,17 +181,8 @@ const mensagemCancelamento = computed(() => {
   return `Cancelar a solicitação de ${rotuloTipo(s.tipo)}${pessoa}? Esta ação não pode ser desfeita.`
 })
 
-const rotulosAcao = {
-  [ACAO_AUDITORIA.CRIADA]: 'Solicitação criada',
-  [ACAO_AUDITORIA.EDITADA]: 'Solicitação editada',
-  [ACAO_AUDITORIA.CANCELADA]: 'Cancelada',
-  [ACAO_AUDITORIA.ASSUMIDA]: 'Assumida pelo responsável',
-  [ACAO_AUDITORIA.RESPONDIDA]: 'Respondida',
-  [ACAO_AUDITORIA.ANEXO_FINAL]: 'Anexo final adicionado',
-  [ACAO_AUDITORIA.CONCLUIDA]: 'Concluída',
-}
 function rotuloAcao(h) {
-  return rotulosAcao[h.acao] || h.acao
+  return rotuloAcaoAuditoria(h.acao)
 }
 
 async function carregar() {
@@ -251,6 +243,12 @@ async function baixar() {
 
   try {
     const { nome, blob } = await baixarAnexoFinal(solicitacao.value)
+    await registrarAnexoVisualizado(solicitacao.value, estado.contexto.id_usuario)
+      .then(() => listarHistorico(solicitacao.value.id_solicitacao))
+      .then((h) => {
+        historico.value = h
+      })
+      .catch(() => {})
     baixarBlob(nome, blob)
   } catch (e) {
     dispararEvento(ERROS.ERRO_INTEGRACAO_FIREBASE, { operacao: 'download_anexo_solicitacao' })

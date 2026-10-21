@@ -15,7 +15,7 @@
     "seed:emulador": "node scripts/seed-emulador.mjs",
     "seed:clonar-arquivos": "node scripts/clonar-arquivos-setores.mjs",
     "test:rules": "firebase emulators:exec --only firestore,storage \"node --test --test-concurrency=1 tests/regras\"",
-    "test:unit": "node --test tests/unit",
+    "test:unit": "node --test \"tests/unit/**/*.test.js\"",
     "lint": "eslint . --fix",
     "format": "eslint . --fix && prettier --write .",
     "format:check": "prettier --check ."
