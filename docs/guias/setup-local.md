@@ -57,12 +57,15 @@ Bucket do Storage: o seeder e a aplicação usam o mesmo bucket
 Se divergirem, os arquivos são gravados num bucket que a app não consulta (404).
 
 ## Seeds do ambiente local
-Com os emuladores no ar, popular dados de teste (nesta ordem):
+Com os emuladores no ar, popular dados de teste:
 ```bash
-npm run seed:emulador       # usuários + setores (cria contas no Auth)
-npm run seed:arquivos       # 20 arquivos na Biblioteca (PDF e XLSX)
-npm run seed:solicitacoes   # 20 solicitações (todos os status)
+npm run seed:emulador          # setores + usuários (cria contas no Auth e injeta claims)
+npm run seed:clonar-arquivos   # clona arquivos da Biblioteca entre setores (opcional)
 ```
+O `seed:emulador` cria os 4 setores do piloto e os usuários (com `cargo`,
+`capabilities` e claims `ativo`/`ids_setor`/`caps`). Não cria arquivos nem
+solicitações: arquivos entram pela UI de admin ou via `seed:clonar-arquivos`;
+solicitações nascem pelo uso na interface.
 
 ## Testes de unidade (sem emulador)
 Helpers puros (formatação, regras de upload, navegação, caminhos da Biblioteca):

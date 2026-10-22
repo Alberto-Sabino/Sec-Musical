@@ -78,6 +78,16 @@ Não registrar intenção como se fosse entrega concluída.
 - Validação: `npm run build` OK; `npm run lint` OK; `npm run test:unit` OK; testes de regras (Docker) OK.
 - Pendências: deploy de `functions`/`storage.rules` em produção segue na pendência única (Billing/Blaze).
 
+### Spec 24 — Hardening de Storage Rules + testes anti-bypass + consistência de seeds
+- Status: aplicado localmente (emulador); deploy de produção pendente de publicação das `storage.rules`
+- Resultado:
+  - **Storage Rules (defesa em profundidade):** validação da extensão no último segmento do path somada ao `contentType` — `extensaoBiblioteca` (pdf|xlsx) na biblioteca setor/global e `temExtensao(arquivo,'pdf')` em solicitações; restrição do nível ao contrato (`nivelValido` → `nivel_1|nivel_2`) no create/update/delete da biblioteca. Helpers `temExtensao`/`extensaoBiblioteca`/`nivelValido` em `storage.rules`. MIME/tamanho/capability mantidos.
+  - **Testes anti-bypass:** novos cenários em `tests/regras/storage.test.js` — MIME divergente com extensão "certa", `{allPaths=**}` negado (raiz/path arbitrário/prefixo semelhante), nível desconhecido (`nivel_3`) e extensão divergente do MIME válido (`.exe`/sem extensão/`.docx`/`.pdf.exe`).
+  - **Consistência de seeds:** `docs/guias/setup-local.md` corrigido (removidos `seed:arquivos`/`seed:solicitacoes` inexistentes; descrito o que o `seed:emulador` realmente cria — setores + usuários + claims); `docs/guias/piloto-seed-dados.md` com exemplos alinhados ao setor real do piloto (`cachoeira`).
+- Decisões: o hardening de extensão foi implementado de forma limpa (`matches()` ancorado em `$`), então não houve necessidade de registrá-lo como débito técnico. Não é correção de falha — o Storage já estava endurecido por capabilities + MIME + tamanho + `deny` por padrão.
+- Validação: testes de regras (Docker) OK (152/152).
+- Pendências: publicar `storage.rules` em produção (`firebase deploy --only storage`).
+
 ### Spec 23 — Hard cut: capabilities como única base (remover legado) + `cargo` + `arquivo_privado`
 - Status: aplicado localmente (emulador); deploy de produção pendente de Billing (functions + storage.rules)
 - Resultado:
@@ -171,24 +181,22 @@ Não registrar intenção como se fosse entrega concluída.
 ---
 
 ## Última atualização
-- Data: 2026-10-20
+- Data: 2026-10-22
 - Responsável: Kiro
 - Status: concluído
 
 ### Resumo
-- Objetivo: aplicar a Spec 23 (hard cut) — remover o legado `nivel_acesso`/`admin_global` de todo o projeto; `usuarios` ganha `cargo` (exibição); `arquivos.nivel_acesso` vira `arquivo_privado` (boolean); autorização 100% por capabilities (Firestore) e `caps` (Storage).
-- Resultado: claims finais `ativo`/`ids_setor`/`caps`; rules, Function, frontend, seed, scripts, índices e testes migrados; documentação sem o legado. Sem referência residual a `nivel_acesso`/`admin_global` em código/rules/seed/testes.
+- Objetivo: aplicar a Spec 24 — defesa em profundidade nas `storage.rules` (extensão no path + nível válido), testes anti-bypass e consistência docs×scripts de seed.
+- Resultado: helpers `temExtensao`/`extensaoBiblioteca`/`nivelValido` aplicados no create/update/delete; 12 testes anti-bypass novos; `setup-local.md` e `piloto-seed-dados.md` alinhados aos scripts reais.
 
 ### Validação
-- `npm run test:unit` OK (79/79)
-- `npm run build` OK; `eslint` limpo (src/tests/scripts/functions)
-- Testes de regras (Docker) OK (140/140)
+- Testes de regras (Docker) OK (152/152)
 
 ### Pendências
-- Cloud Storage em produção + Billing/Blaze (deploy de `functions` e publicação de `storage.rules`); recriar os usuários de produção no novo contrato (`cargo` + `capabilities`)
+- Publicar `storage.rules` em produção (`firebase deploy --only storage`)
 
 ### Bloqueios
-- Ativação de Billing/Blaze depende do responsável (fora do alcance do agente)
+- Nenhum
 
 ---
 

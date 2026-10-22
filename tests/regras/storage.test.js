@@ -335,3 +335,83 @@ test('solicitacoes: admin do setor remove anexo existente (permitido)', async ()
 test('caminho não previsto é bloqueado por padrão', async () => {
   await assertFails(enviar(ctxAdmin(), `outro/caminho/arq.pdf`, 1000, MIME_PDF))
 })
+
+// ================= Anti-bypass (Spec 24) =================
+// Reforço de malha: MIME divergente, {allPaths=**} negado e paths estruturalmente
+// inválidos. Cobrem brechas independentemente do hardening de extensão (opcional).
+
+// C) MIME divergente com "extensão certa" no path: PDF de nome, imagem de conteúdo.
+test('anti-bypass: biblioteca path .pdf com contentType de imagem é bloqueado', async () => {
+  await assertFails(
+    enviar(ctxAdmin(), `biblioteca/${SETOR_A}/nivel_1/fake.pdf`, 1000, 'image/png'),
+  )
+})
+
+test('anti-bypass: global path .pdf com contentType de imagem é bloqueado', async () => {
+  await assertFails(
+    enviar(ctxAdminGlobal(), `biblioteca_global/nivel_1/fake.pdf`, 1000, 'image/png'),
+  )
+})
+
+test('anti-bypass: solicitacoes path .pdf com contentType de imagem é bloqueado', async () => {
+  await assertFails(
+    enviar(
+      ctxAdmin(),
+      `solicitacoes/${SETOR_A}/${UID_SOLICITANTE}/solbp/resposta.pdf`,
+      1000,
+      'image/png',
+    ),
+  )
+})
+
+// D) {allPaths=**} negado: paths fora de todos os contratos, inclusive para admin_global.
+test('anti-bypass: escrita na raiz do bucket é bloqueada (allPaths=**)', async () => {
+  await assertFails(enviar(ctxAdminGlobal(), `raiz.pdf`, 1000, MIME_PDF))
+})
+
+test('anti-bypass: leitura de path arbitrário fora do contrato é bloqueada (allPaths=**)', async () => {
+  const caminho = `qualquer/coisa/x.pdf`
+  await semeadoNoStorage(caminho, MIME_PDF)
+  await assertFails(getBytes(storageRef(ctxAdminGlobal(), caminho)))
+})
+
+test('anti-bypass: escrita em prefixo semelhante mas fora do contrato é bloqueada', async () => {
+  // "bibliotecas" (plural) não casa com o match "biblioteca".
+  await assertFails(enviar(ctxAdminGlobal(), `bibliotecas/${SETOR_A}/nivel_1/x.pdf`, 1000, MIME_PDF))
+})
+
+// E) Path estruturalmente inválido: nível desconhecido na biblioteca.
+test('anti-bypass: biblioteca com nível desconhecido (nivel_3) é bloqueada', async () => {
+  await assertFails(enviar(ctxAdmin(), `biblioteca/${SETOR_A}/nivel_3/x.pdf`, 1000, MIME_PDF))
+})
+
+test('anti-bypass: biblioteca global com nível desconhecido (nivel_3) é bloqueada', async () => {
+  await assertFails(enviar(ctxAdminGlobal(), `biblioteca_global/nivel_3/x.pdf`, 1000, MIME_PDF))
+})
+
+// A/B) Extensão no path divergente do MIME válido (hardening de extensão, Spec 24 §2).
+// MIME é PDF/XLSX válido, mas o nome do objeto tem extensão incoerente → bloqueado.
+test('anti-bypass: biblioteca MIME pdf com path .exe é bloqueado (extensão)', async () => {
+  await assertFails(enviar(ctxAdmin(), `biblioteca/${SETOR_A}/nivel_1/doc.exe`, 1000, MIME_PDF))
+})
+
+test('anti-bypass: biblioteca MIME pdf sem extensão no path é bloqueado', async () => {
+  await assertFails(enviar(ctxAdmin(), `biblioteca/${SETOR_A}/nivel_1/semext`, 1000, MIME_PDF))
+})
+
+test('anti-bypass: global MIME xlsx com path .pdf.exe é bloqueado (extensão final)', async () => {
+  await assertFails(
+    enviar(ctxAdminGlobal(), `biblioteca_global/nivel_1/doc.pdf.exe`, 1000, MIME_XLSX),
+  )
+})
+
+test('anti-bypass: solicitacoes MIME pdf com path .docx é bloqueado (extensão)', async () => {
+  await assertFails(
+    enviar(
+      ctxAdmin(),
+      `solicitacoes/${SETOR_A}/${UID_SOLICITANTE}/solext/resposta.docx`,
+      1000,
+      MIME_PDF,
+    ),
+  )
+})

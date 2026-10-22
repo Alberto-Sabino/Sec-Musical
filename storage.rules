@@ -12,6 +12,11 @@ rules_version = '2';
 // injeta os mesmos claims — dev e produção usam UMA versão de regra. Autorização
 // 100% por capabilities (Spec 23); não há mais legado de perfil no token.
 //
+// Spec 24: defesa em profundidade adicional no create/update — validação da
+// extensão no último segmento do path (pdf|xlsx na biblioteca; pdf em
+// solicitações) somada ao contentType, e restrição do nível ao contrato
+// (nivel_1|nivel_2). Não substitui as validações de MIME/tamanho/capability.
+//
 // Produção: pendente de publicação até ativação de Billing/Blaze (Storage real).
 
 service firebase.storage {
@@ -57,6 +62,21 @@ service firebase.storage {
       return request.resource.size <= 50 * 1024 * 1024;
     }
 
+    // ---- Extensão coerente no último segmento do path (Spec 24) ----
+    // Defesa em profundidade: soma-se ao contentType (MIME), nunca o substitui.
+    function temExtensao(arquivo, ext) {
+      return arquivo.matches('.*[.]' + ext + '$');
+    }
+
+    function extensaoBiblioteca(arquivo) {
+      return temExtensao(arquivo, 'pdf') || temExtensao(arquivo, 'xlsx');
+    }
+
+    // Nível de biblioteca restrito ao contrato (Spec 24): nivel_1 | nivel_2.
+    function nivelValido(nivel) {
+      return nivel == 'nivel_1' || nivel == 'nivel_2';
+    }
+
     // biblioteca/{id_setor}/nivel_1|nivel_2/{id_arquivo}.{pdf|xlsx}
     match /biblioteca/{idSetor}/{nivel}/{arquivo} {
       allow read: if pertenceAoSetor(idSetor)
@@ -67,10 +87,14 @@ service firebase.storage {
 
       allow create, update: if temCap('biblioteca_gerenciar_setor')
         && pertenceAoSetor(idSetor)
+        && nivelValido(nivel)
         && (ehPdf() || ehXlsx())
+        && extensaoBiblioteca(arquivo)
         && dentroTetoBiblioteca();
 
-      allow delete: if temCap('biblioteca_gerenciar_setor') && pertenceAoSetor(idSetor);
+      allow delete: if temCap('biblioteca_gerenciar_setor')
+        && pertenceAoSetor(idSetor)
+        && nivelValido(nivel);
     }
 
     // biblioteca_global/nivel_1|nivel_2/{id_arquivo}.{pdf|xlsx}
@@ -79,10 +103,12 @@ service firebase.storage {
         || (nivel == 'nivel_2' && temCap('biblioteca_ler_privados'));
 
       allow create, update: if temCap('biblioteca_gerenciar_global')
+        && nivelValido(nivel)
         && (ehPdf() || ehXlsx())
+        && extensaoBiblioteca(arquivo)
         && dentroTetoBiblioteca();
 
-      allow delete: if temCap('biblioteca_gerenciar_global');
+      allow delete: if temCap('biblioteca_gerenciar_global') && nivelValido(nivel);
     }
 
     // solicitacoes/{id_setor}/{id_solicitante}/{id_solicitacao}/resposta.pdf
@@ -92,6 +118,7 @@ service firebase.storage {
       allow create, update: if temCap('solicitacoes_agir_setor')
         && pertenceAoSetor(idSetor)
         && ehPdf()
+        && temExtensao(arquivo, 'pdf')
         && request.resource.size <= 2 * 1024 * 1024;
 
       allow delete: if temCap('solicitacoes_agir_setor') && pertenceAoSetor(idSetor);

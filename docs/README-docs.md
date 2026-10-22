@@ -98,6 +98,7 @@ evoluções.
 | 21 | Solicitações — auditoria `anexo_visualizado` (após download com sucesso) |
 | 22 | Capabilities & Claims — `usuarios.capabilities` + claim `caps[]` (legado mantido) |
 | 23 | Hard cut — remove `nivel_acesso`/`admin_global`; `cargo` + `arquivo_privado`; capabilities/caps como única base |
+| 24 | Hardening de Storage Rules (extensão no path + nível válido) + testes anti-bypass + consistência de seeds |
 
 ## guias/
 

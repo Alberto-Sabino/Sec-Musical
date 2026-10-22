@@ -10,8 +10,8 @@ referência ao criar dados no ambiente real (Console/Firestore) ou no emulador.
 Coleção `setores`, doc id = `id_setor`.
 ```json
 {
-  "id_setor": "setorA",
-  "nome": "Setor A",
+  "id_setor": "cachoeira",
+  "nome": "Cachoeira Paulista - SP",
   "ativo": true,
   "data_criacao": "<timestamp>",
   "data_atualizacao": "<timestamp>"
@@ -33,7 +33,7 @@ novos com senha padrão (força a troca no primeiro login); ausência = `false`.
   "comum_congregacao": "Quilombo",
   "cargo": "Secretário Musical",
   "ativo": true,
-  "ids_setor": ["setorA"],
+  "ids_setor": ["cachoeira"],
   "capabilities": {
     "biblioteca_ler_publicos": true,
     "biblioteca_ler_privados": true,
@@ -58,12 +58,12 @@ Coleção `arquivos`, doc id = `id_arquivo`.
 `arquivo_privado`: `false` = público (nivel_1); `true` = privado (nivel_2).
 ```json
 {
-  "id_setor": "setorA",
+  "id_setor": "cachoeira",
   "escopo": "setor",
   "tipo": "circulares",
   "titulo": "Circular inicial",
   "arquivo_privado": false,
-  "id_nuvem": "biblioteca/setorA/nivel_1/<id_arquivo>.pdf",
+  "id_nuvem": "biblioteca/cachoeira/nivel_1/<id_arquivo>.pdf",
   "id_usuario": "<uid_admin>",
   "data_inclusao": "<timestamp>",
   "data_atualizacao": "<timestamp>"
