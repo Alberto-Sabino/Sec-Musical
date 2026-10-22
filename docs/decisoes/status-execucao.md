@@ -11,13 +11,15 @@ Não registrar intenção como se fosse entrega concluída.
 
 ## Estado atual
 - Fase ativa: **Sprint 3 concluída** (Specs 13, 14, 15 e 16 aplicadas) + Analytics GA4 + **Spec 17 aplicada** (Custom Claims + hardening de rules + Cloud Functions) + **Spec 18 aplicada** (Biblioteca Global: escopo global|setor + admin_global) + **Spec 19 aplicada** (UI Motion: animações leves e padronizadas) + **Spec 20 aplicada** (primeiro acesso: troca obrigatória de senha via flag `primeiro_acesso`) + **Spec 21 aplicada** (auditoria `anexo_visualizado` após download do anexo final) + **Spec 22 aplicada** (capabilities no Firestore + claim `caps[]`; autorização migrada, legado mantido) + **Spec 23 aplicada** (hard cut: legado `nivel_acesso`/`admin_global` removido; `cargo` + `arquivo_privado` + capabilities/caps como única base)
-- Ambiente de produção: **funcional** — Hosting, Firestore (regras + índices), Authentication e **regras de Storage** publicados e operando; Hosting será republicado com Analytics para o piloto
+- Ambiente de produção: **funcional e completo** — Hosting (v0.5.0), Firestore (regras + índices), Authentication, **Cloud Storage real** e **Cloud Functions** (`syncClaimsFromUsuario`) publicados, operando e validados; Analytics GA4 ativo
 - Sprints anteriores: Sprint 1 (Spec 09) e Sprint 2 (Spec 10) concluídas; ajustes Spec 11 e Spec 12 aplicados
-- Status geral: MVP funcional em produção
-- **Pendência aberta (Billing/Blaze):** ativar a Conta Billing para habilitar o **Cloud Storage real** (bucket) e o **deploy das Cloud Functions** (`syncClaimsFromUsuario`). Enquanto isso, operações de arquivo rodam contra o **Storage emulator** local (modo `emulador`) e os claims são injetados pelo seeder.
+- Status geral: **MVP em produção plena (dia da virada concluído)** — ver `docs/decisoes/dia-da-virada.md`
+- **Billing/Blaze:** **ativo**. Cloud Storage real (bucket `sec-musical-mvp.firebasestorage.app` em `southamerica-east1`) e Cloud Functions no ar. Não há mais pendência de Billing.
 
-### Pendência aberta (Billing/Blaze)
-- **Cloud Storage real + Cloud Functions:** ativar Billing e seguir o runbook de deploy restante em `docs/guias/guia-publicacao-piloto.md` (§B: regras de Storage, deploy de `functions`, sincronização de claims, CORS do bucket; §C: validações manuais). As `storage.rules` (endurecidas na Spec 17) já estão publicadas, mas só vigoram de fato com o bucket real + claims sincronizados. Inclui a validação do **envio real de e-mail de redefinição de senha** (template do Firebase Auth). Tudo mais já está funcional em produção.
+### Dia da virada (produção) — concluído
+- **Publicação completa:** Hosting, Firestore (regras + índices), Storage (regras + bucket real), Cloud Functions e CORS do bucket publicados; runbook executado em `docs/guias/guia-publicacao-piloto.md` (§B/§C). Registro em `docs/decisoes/dia-da-virada.md`.
+- **Correções da virada:** (1) visibilidade de arquivo privado no formulário (select booleano→token string, `biblioteca.js`/`PaginaArquivoForm.vue`); (2) índices compostos de `arquivos` para o perfil que vê privados (listagem por tipo + busca), que faltavam em produção (`firestore.indexes.json`).
+- **Pendências conhecidas (aceitas, pós-piloto):** upgrade `firebase` 11→12 (CVE transitório de `@grpc/grpc-js`, fora do bundle do browser); runtime das Cloud Functions Node 20 (descomissionamento em 2026-10-30) — reavaliar upgrade antes de novo deploy de Functions.
 
 ### Spec 13 — Shell autenticado, navegação global e orientação inicial
 - Status: aplicado (produção)

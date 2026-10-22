@@ -109,9 +109,9 @@ interface estável; a infraestrutura concentra o acesso ao Cloud Storage.
 
 ### Implementação única
 As operações de arquivo têm uma única implementação real (SDK do Storage). O
-destino — emulador em desenvolvimento, Storage de produção quando houver Billing
-— é selecionado por `VITE_APP_MODE`, de forma central, sem bifurcação espalhada
-pela UI nem contrato diferente por ambiente.
+destino — emulador em desenvolvimento, Cloud Storage real em produção (Billing
+ativo) — é selecionado por `VITE_APP_MODE`, de forma central, sem bifurcação
+espalhada pela UI nem contrato diferente por ambiente.
 
 ### Proibição
 - não espalhar seleção de ambiente dentro de componentes visuais;

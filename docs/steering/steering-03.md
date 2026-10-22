@@ -127,10 +127,10 @@ Firestore. Os claims espelham o documento `usuarios/{uid}` (a Cloud Function der
 produção e injetados pelo seeder no ambiente local, de modo que desenvolvimento e
 produção usam a mesma versão de regra. Não há mais `nivel_acesso`/`admin_global`.
 
-O Storage de **produção** e suas regras permanecem pendentes de Cloud Billing e
-não devem ser declarados concluídos. Em desenvolvimento, as operações de arquivo
-são reais contra o Storage emulator local, respeitando o mesmo contrato de dados
-e o formato oficial de `id_nuvem`.
+O Cloud Storage de **produção** e suas regras estão **ativos e validados**
+(Billing/Blaze ativo). Em desenvolvimento, as operações de arquivo são reais
+contra o Storage emulator local; em produção, contra o Cloud Storage real —
+respeitando o mesmo contrato de dados e o formato oficial de `id_nuvem`.
 
 ## Fluxos críticos obrigatórios
 ### Cadastro de arquivo

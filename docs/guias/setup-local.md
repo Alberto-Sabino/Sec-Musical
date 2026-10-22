@@ -16,8 +16,8 @@ cp .env.example .env.local   # preencher as chaves do Firebase
 ## Variáveis de ambiente
 Ver `.env.example`. Destaques:
 - `VITE_APP_MODE` — modo único da aplicação (flag única que deriva emuladores + destino dos arquivos):
-  - `emulador` — emuladores locais ligados; upload/download/remoção reais via **Storage emulator** (não exige Billing). Modo de desenvolvimento (padrão). O login e o desenvolvimento dependem dos emuladores.
-  - `producao` — sem emuladores; Storage real de **produção** (pendente de Billing; não considerar concluído enquanto Billing não estiver ativo).
+  - `emulador` — emuladores locais ligados; upload/download/remoção reais via **Storage emulator**. Modo de desenvolvimento (padrão). O login e o desenvolvimento dependem dos emuladores.
+  - `producao` — sem emuladores; **Cloud Storage real** de produção (Billing/Blaze ativo). Usado pela build `build:prod`.
 
 ## Executar a aplicação
 ```bash
@@ -81,6 +81,6 @@ Os testes ficam em `tests/regras/` e validam cenários permitidos e bloqueados d
 `storage.rules` (PDF/XLSX na Biblioteca; PDF no anexo de Solicitações).
 
 ## Estado atual
-- Arquivos (upload/download) usam o **Storage real via SDK** apontando para o **Storage emulator** local (modo `emulador`), sem exigir Billing. O Storage de **produção** segue pendente de Billing.
-- Este ambiente é de ensaio local; não substitui a validação real contra o Storage de produção.
+- Em desenvolvimento, arquivos (upload/download) usam o **Storage real via SDK** apontando para o **Storage emulator** local (modo `emulador`). Em produção, apontam para o **Cloud Storage real** (Billing/Blaze ativo).
+- Este ambiente é de ensaio local; a produção já está publicada e validada (ver `docs/decisoes/dia-da-virada.md`).
 - Acompanhar progresso por lote em `docs/decisoes/status-execucao.md`.

@@ -25,24 +25,16 @@ if (usarEmuladores) {
   connectFunctionsEmulator(functions, hostEmulador, 5001)
 }
 
-// Aviso claro do modo ativo na inicialização, tornando explícito o destino
-// da infraestrutura de arquivos (sempre SDK real).
+// Log do modo ativo na inicialização, tornando explícito o destino da
+// infraestrutura de arquivos (sempre SDK real).
 {
   const destinoArquivos = usarEmuladores
-    ? 'Storage emulator local (sem Billing)'
-    : 'Storage de PRODUÇÃO (requer Cloud Billing)'
+    ? 'Storage emulator local'
+    : 'Storage de produção'
 
   console.info(
     `[Portal Musical] Modo=${MODO_APP} | emuladores=${usarEmuladores ? 'ligados' : 'desligados'} | arquivos → ${destinoArquivos}`,
   )
-
-  // Alerta de risco: sem emuladores a infra aponta para o Storage de produção,
-  // que depende de Cloud Billing e não é considerado concluído.
-  if (!usarEmuladores) {
-    console.warn(
-      '[Portal Musical] ATENÇÃO: modo "producao" aponta para o Storage de PRODUÇÃO, que depende de Cloud Billing e não é considerado concluído.',
-    )
-  }
 }
 
 export { app }

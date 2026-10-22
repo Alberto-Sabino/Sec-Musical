@@ -1,8 +1,10 @@
 # Guia de publicação e piloto — execução manual
 
-Runbook para publicar o MVP, preparar o piloto controlado e, quando o Billing for
-ativado, concluir os deploys restantes (Cloud Storage + Cloud Functions).
-Comandos rodam a partir da raiz do projeto, com `firebase login` feito.
+Runbook de publicação do MVP e do piloto controlado. A virada para produção
+(Cloud Storage + Cloud Functions, com Billing/Blaze ativo) foi **executada e
+concluída** — ver `docs/decisoes/dia-da-virada.md`. Os comandos abaixo
+permanecem como referência para reexecução/manutenção. Comandos rodam a partir
+da raiz do projeto, com `firebase login` feito.
 
 > Repositório pronto: build gerando `dist/`, `firebase.json` (hosting + rewrites SPA
 > + functions), `firestore.rules`, `firestore.indexes.json`, `storage.rules`
@@ -12,32 +14,27 @@ Comandos rodam a partir da raiz do projeto, com `firebase login` feito.
 
 ---
 
-## Estado atual de produção (2026-10-02)
+## Estado atual de produção (dia da virada concluído)
 
-Projeto Firebase: `sec-musical-mvp`.
+Projeto Firebase: `sec-musical-mvp`. **Billing/Blaze ativo.**
 
 | Item                                   | Estado em produção                     |
 | -------------------------------------- | -------------------------------------- |
-| Hosting (frontend)                     | **Publicado** (republicar com Analytics — ver §A) |
+| Hosting (frontend)                     | **Publicado** (v0.5.0, com Analytics)  |
 | Authentication (e-mail/senha)          | **Configurado e operando**             |
 | Firestore — regras                     | **Publicadas**                         |
-| Firestore — índices                    | **Publicados**                         |
-| Storage — regras (`storage.rules`)     | **Publicadas** (arquivo da Spec 17)    |
-| Analytics (GA4)                        | Configurado com o ID do projeto; entra no ar com a nova build de Hosting |
-| **Cloud Storage (bucket real)**        | **Pendente** — requer Billing/Blaze    |
-| **Cloud Functions (`functions/`)**     | **Pendente** — requer Billing/Blaze    |
+| Firestore — índices                    | **Publicados** (inclui índices de `arquivos` para o perfil que vê privados) |
+| Storage — regras (`storage.rules`)     | **Publicadas** (Spec 17)               |
+| Analytics (GA4)                        | **Ativo** em `producao`                |
+| **Cloud Storage (bucket real)**        | **Ativo** — `sec-musical-mvp.firebasestorage.app` (`southamerica-east1`) |
+| **Cloud Functions (`functions/`)**     | **Publicadas** — `syncClaimsFromUsuario` (`us-central1`) |
+| **CORS do bucket**                     | **Configurado** (origens do Hosting)   |
 
-**Billing/Blaze:** ainda **não ativado**. Enquanto isso, upload/download/remoção
-reais rodam contra o Storage emulator local (modo `emulador`), e os claims são
-injetados pelo seeder. As Storage Rules já publicadas **só passam a vigorar de
-fato** quando o bucket real existir (Billing) e os claims forem sincronizados em
-produção pela Function.
-
-> Atenção (consistência): as `storage.rules` em produção exigem custom claims. Como
-> as Functions ainda não estão no ar, nenhum usuário de produção tem claims. Isso é
-> inofensivo hoje porque o bucket real ainda não é usado. Ao ativar o Billing,
-> seguir o §B **na ordem** (Functions → sincronizar claims → validar Storage), senão
-> o acesso a arquivos será negado por ausência de claims.
+> A virada (§B) foi executada na ordem Functions → claims → Storage/CORS, com as
+> validações do §C concluídas. Correções aplicadas durante a virada: visibilidade
+> de arquivo privado no formulário e índices compostos de `arquivos` para o perfil
+> que vê privados (listagem por tipo + busca). Detalhes em
+> `docs/decisoes/dia-da-virada.md`.
 
 ---
 
@@ -53,10 +50,14 @@ produção pela Function.
 
 ---
 
-## A. Publicar agora (sem Billing): nova build de Hosting com Analytics
+## A. Publicar o Hosting com Analytics
 
-Objetivo imediato: republicar o frontend em produção com o Analytics já
-configurado, para o piloto. Não requer Billing.
+> Fase **executada** na virada. Mantida como referência de republicação do
+> frontend em produção. (A observação original "sem Billing" refletia o momento
+> anterior à virada; hoje o Billing está ativo.)
+
+Objetivo: publicar/republicar o frontend em produção com o Analytics já
+configurado.
 
 ### A.1 Configuração de produção (`.env.prod`)
 A build de produção usa o arquivo **`.env.prod`** (modo Vite `prod`), carregado
@@ -147,6 +148,12 @@ cada usuário (um admin ativo chama a Function por uid). Opções:
 > Refazer a sincronização sempre que mudar `capabilities`, `ids_setor` ou `ativo`
 > de um usuário. Detalhes e depuração em `docs/guias/claims-e-sincronizacao.md`.
 
+> Alternativa usada na virada: o script `scripts/seed-producao.mjs` (Admin SDK, no
+> Cloud Shell) cria o doc `usuarios/{uid}` **e** injeta os claims na mesma
+> execução, fechando B.4/B.5 para os usuários semeados sem bootstrap manual nem
+> chamada à Function. Útil para criar os usuários iniciais do piloto com as
+> capabilities da matriz oficial (Spec 22).
+
 ### B.5 Configurar CORS do bucket (necessário para download no navegador)
 O download usa `getBytes` (requisição do navegador ao endpoint do Storage), sujeito
 a **CORS**. Configurar o bucket para aceitar a origem do Hosting:
@@ -181,26 +188,29 @@ firebase deploy --only hosting
 
 ---
 
-## C. Testes e validações pendentes (fazer na ativação do Billing)
+## C. Testes e validações (concluídos na virada)
 
-Automatizáveis já cobertos localmente (manter verdes antes de publicar):
+Automatizáveis (mantidos verdes antes de publicar):
 ```bash
-npm run test:unit                                   # 49/49 esperado
+npm run test:unit                                   # unitários
 docker build -f Dockerfile.rules-test -t portal-musical-rules-test .
-docker run --rm portal-musical-rules-test           # 95/95 esperado (Firestore+Storage)
+docker run --rm portal-musical-rules-test           # rules (Firestore+Storage)
 ```
 
-Validações manuais que **só podem ser feitas com Storage/Functions reais** (hoje
-pendentes de Billing):
+Validações manuais com Storage/Functions reais — **todas concluídas** nos perfis
+Encarregado e Secretário global:
 
-- [ ] Chamada da callable `syncClaimsFromUsuario` por admin ativo retorna `{ ok: true }`.
-- [ ] Chamada por não-admin é negada (`permission-denied`).
-- [ ] Claims aparecem no token após `forcarAtualizacaoToken` (ver `docs/guias/claims-e-sincronizacao.md` §4).
-- [ ] Biblioteca: usuário comum lê `nivel_1` do próprio setor; **não** lê `nivel_2`; **não** lê setor fora da claim.
-- [ ] Biblioteca: admin faz upload/edição/remoção no próprio setor; é negado fora do setor.
-- [ ] Solicitações: admin do setor anexa `resposta.pdf`; **somente o solicitante** baixa a resposta (admin não baixa).
-- [ ] Download real no navegador funciona (CORS OK) para PDF e XLSX.
-- [ ] E-mail real de redefinição de senha chega (template do Firebase Auth) — ver `docs/specs/spec-16-autenticacao-senha.md`.
+- [x] Chamada da callable `syncClaimsFromUsuario` por admin ativo retorna `{ ok: true }`.
+- [x] Chamada por não-admin é negada (`permission-denied`).
+- [x] Claims aparecem no token após `forcarAtualizacaoToken` (ver `docs/guias/claims-e-sincronizacao.md` §4).
+- [x] Biblioteca: usuário comum lê público do próprio setor + globais públicos; **não** lê privados; **não** lê setor fora da claim.
+- [x] Biblioteca (admin/secretário): listagem por tipo **e** busca funcionam vendo privados — exige os índices compostos de `arquivos` sem `arquivo_privado` (publicados na virada). O emulador não exige índice; validar **em produção, logado como admin**.
+- [x] Biblioteca: admin marca arquivo como **Privado** e ele fica realmente privado (some para o encarregado) — correção de visibilidade no formulário.
+- [x] Biblioteca: admin faz upload/edição/remoção no próprio setor; é negado fora do setor.
+- [x] Solicitações: admin do setor anexa `resposta.pdf`; **somente o solicitante** baixa a resposta (admin não baixa).
+- [x] Download real no navegador funciona (CORS OK) para PDF e XLSX.
+- [x] Analytics GA4 registrando eventos em produção.
+- [x] E-mail real de redefinição de senha chega (template do Firebase Auth) — ver `docs/specs/spec-16-autenticacao-senha.md`.
 
 ---
 
@@ -250,9 +260,17 @@ Seguir `docs/guias/piloto-indicadores.md`:
 
 ---
 
-## Pendência conhecida (aceita)
-Cloud Storage real e Cloud Functions permanecem pendentes de **Billing/Blaze**. Em
-desenvolvimento, upload/download/remoção funcionam via Storage emulator e os claims
-são injetados pelo seeder. Ao ativar o Billing, executar o **§B na ordem** e as
-validações do **§C**. Enquanto o Billing não é ativado, o piloto opera com Hosting +
-Auth + Firestore em produção e arquivos no emulador local.
+## Pendências conhecidas (aceitas, pós-piloto)
+A virada para produção foi **concluída** (Billing/Blaze ativo; Cloud Storage real
+e Cloud Functions no ar). Permanecem, como manutenção futura (não bloqueiam):
+
+- **Upgrade `firebase` 11→12:** o `npm audit` reporta CVE transitório em
+  `@grpc/grpc-js` (via `@firebase/firestore`). Não afeta o bundle do browser
+  (grpc-js só roda em Node; ausente em `dist/`). Correção real = upgrade para o
+  major 12 (breaking), agendado. **Não** usar `npm audit fix --force` (faz
+  downgrade 11→9).
+- **Runtime das Cloud Functions Node 20:** descomissionamento em 2026-10-30.
+  Reavaliar upgrade de runtime/`firebase-functions` antes de um novo deploy de
+  Functions.
+
+Registro completo da virada em `docs/decisoes/dia-da-virada.md`.

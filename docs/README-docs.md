@@ -13,15 +13,15 @@ contrato do domínio e a evolução das specs.
 
 - **Sprints 1, 2 e 3 concluídas.** Specs 09 a 16 aplicadas; Analytics GA4 ativo
   (só em `producao`).
-- **Spec 17** (Custom Claims + hardening de rules + Cloud Functions) e **Spec 18**
-  (Biblioteca Global): aplicadas localmente no emulador; **deploy de produção
-  pendente de Billing**.
-- **Spec 19** (UI Motion): aplicada em produção.
-- **Pendência única viva:** ativar o Cloud Billing (Blaze) para habilitar o
-  **Cloud Storage real** e o **deploy das Cloud Functions** (`syncClaimsFromUsuario`).
-  Enquanto isso, operações de arquivo rodam contra o **Storage emulator** local
-  (modo `emulador`) e os claims são injetados pelo seeder. Runbook de ativação em
-  [`guias/guia-publicacao-piloto.md`](guias/guia-publicacao-piloto.md) (§B).
+- **Specs 17 a 23** aplicadas (Custom Claims + hardening de rules + Cloud
+  Functions, Biblioteca Global, UI Motion, primeiro acesso, auditoria de anexo,
+  capabilities e hard cut do legado).
+- **Produção plena (dia da virada concluído):** Hosting, Firestore (regras +
+  índices), Authentication, **Cloud Storage real** e **Cloud Functions**
+  (`syncClaimsFromUsuario`) publicados e validados. **Cloud Billing (Blaze)
+  ativo** — não há mais pendência de Billing. Registro em
+  [`decisoes/dia-da-virada.md`](decisoes/dia-da-virada.md); runbook executado em
+  [`guias/guia-publicacao-piloto.md`](guias/guia-publicacao-piloto.md).
 
 ---
 

@@ -91,21 +91,18 @@ execução datada); citar nomes reais de campos e caminhos. A documentação nã
 afirmar o que o código ou o estado de produção não sustentam. Detalhe completo
 desta regra no `README.md` ("Regra de alinhamento da documentação").
 
-## Regra operacional quando Billing estiver ausente
-Enquanto o Cloud Storage de produção não puder ser usado por ausência de
-Billing/Blaze, o Kiro deve:
+## Billing/Blaze ativo (produção plena)
+O Cloud Billing (Blaze) está **ativo**: o Cloud Storage real e as Cloud
+Functions (`syncClaimsFromUsuario`) estão publicados e validados em produção. A
+regra operacional transitória "quando Billing estiver ausente" foi **encerrada**
+na virada de produção (ver `docs/decisoes/dia-da-virada.md`). Permanecem válidas,
+como invariantes de arquitetura (não como restrição transitória):
 
-- seguir com UI, Auth, Firestore e fluxo normalmente;
-- executar as operações de arquivo de forma real contra o Storage emulator local;
-- manter o acesso a arquivos pela camada de infraestrutura isolada, com interface estável;
-- preservar o contrato de dados e o formato oficial de `id_nuvem`;
-- registrar explicitamente que o Storage de produção e suas regras seguem pendentes.
-
-O Kiro não deve:
-
-- declarar o Storage de produção validado ou suas regras testadas;
-- declarar concluído, de forma definitiva, um lote que dependa da validação real do Storage de produção;
-- introduzir campos ou fluxos temporários no Firestore para contornar a ausência de Billing.
+- acesso a arquivos pela camada de infraestrutura isolada, com interface estável;
+- preservação do contrato de dados e do formato oficial de `id_nuvem`;
+- a interface não conhece o destino do Storage (emulador em desenvolvimento,
+  Cloud Storage real em produção), selecionado por `VITE_APP_MODE`;
+- não introduzir campos ou fluxos temporários no Firestore.
 
 ## Resultado esperado
 O Kiro deve operar como acelerador disciplinado do projeto: rápido na execução, mas restrito por specs, steering e revisão humana.

@@ -58,7 +58,7 @@ Contrato:
 - Efeito: lê `usuarios/{uid}` e grava os claims `ativo`, `ids_setor` e `caps`
   (lista de capabilities derivada do mapa `capabilities`).
 
-### Deploy (requer Billing/Blaze)
+### Deploy (Billing/Blaze ativo)
 
 ```bash
 cd functions
@@ -67,8 +67,8 @@ cd ..
 firebase deploy --only functions
 ```
 
-> Enquanto o Billing não estiver ativo, o **deploy em produção fica pendente**
-> (mesma pendência única do Cloud Storage). O código já está pronto.
+> A Function `syncClaimsFromUsuario` está **publicada e validada em produção**
+> (`us-central1`). Billing ativo. Use os comandos acima para redeploys futuros.
 
 ### Chamada pelo cliente (admin autenticado)
 

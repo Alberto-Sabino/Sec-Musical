@@ -44,11 +44,14 @@ Antes de implementar qualquer coisa, ler nesta ordem:
 
 ### Estado atual do projeto
 
-O MVP está **funcional em produção** (Hosting, Auth, Firestore e regras de
-Storage publicados). As Sprints 1, 2 e 3 estão concluídas (Specs 09 a 16), além
-das Specs 17, 18 e 19. A **única pendência viva** é ativar o Cloud Billing
-(Blaze) para o Cloud Storage real e o deploy das Cloud Functions — runbook em
-`docs/guias/guia-publicacao-piloto.md` (§B).
+O MVP está **funcional em produção** (Hosting, Auth, Firestore, Cloud Storage e
+Cloud Functions publicados e validados). As Sprints 1, 2 e 3 estão concluídas
+(Specs 09 a 16), além das Specs 17, 18, 19 e do hard cut de capabilities (Specs
+22 e 23). O **Cloud Billing (Blaze) está ativo**: o Cloud Storage real
+(bucket em `southamerica-east1`) e as Cloud Functions (`syncClaimsFromUsuario`)
+estão no ar. O registro da publicação está em
+`docs/decisoes/dia-da-virada.md`; o runbook executado, em
+`docs/guias/guia-publicacao-piloto.md`.
 
 ### Specs base de domínio (01 a 08)
 
@@ -72,24 +75,23 @@ a 19).
 
 ---
 
-## Modo transitório sem Billing
+## Modos de execução (emulador e produção)
 
-Enquanto Cloud Billing / Blaze não estiver habilitado, o projeto avança com implementação real de UI, Auth, Firestore, navegação e regras de fluxo. As operações de arquivo (upload/download/remoção) também são **reais**, executadas contra o **Storage emulator local**, que não exige Billing.
+O projeto roda em dois modos, controlados por `VITE_APP_MODE` (`emulador` |
+`producao`), sem reescrever telas ou casos de uso:
 
-> Decisão atual: a antiga camada de arquivos simulada (mock) foi removida. Como o desenvolvimento e o login já dependem dos emuladores, os arquivos passam a usar o SDK real do Storage apontando para o emulador. Não há mais implementação mock.
+- `emulador` (desenvolvimento): Auth/Firestore/Storage nos emuladores locais;
+  a infra de arquivos usa o SDK real apontando para o **Storage emulator**.
+- `producao`: sem emuladores; aponta para o **Cloud Storage real** e as
+  **Cloud Functions** em produção (Billing/Blaze ativo).
 
-Regras:
+Regras que permanecem válidas em ambos os modos:
 
-- manter o mesmo contrato de dados do ambiente real;
+- manter o mesmo contrato de dados;
 - manter o formato oficial de `id_nuvem`;
 - não criar campos temporários no Firestore;
-- não considerar o Storage **de produção** (upload/download/regras) como concluído enquanto Billing não estiver ativo.
-
-Implementação:
-
-- interface estável para operações de arquivo, com uma única implementação real (`firebase.js`);
-- o modo é controlado por `VITE_APP_MODE` (`emulador` | `producao`), sem reescrever telas ou casos de uso;
-- `emulador`: Storage emulator local (sem Billing); `producao`: Storage real (pendente de Billing).
+- a camada de arquivos tem uma única implementação real (`firebase.js`); não há
+  implementação mock.
 
 ---
 

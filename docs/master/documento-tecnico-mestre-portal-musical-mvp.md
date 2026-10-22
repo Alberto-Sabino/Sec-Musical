@@ -310,34 +310,33 @@ Campos principais:
 
 ---
 
-## Modo transitório de execução sem Cloud Storage de produção
-Enquanto o projeto estiver sem Cloud Billing habilitado para o Cloud Storage de produção, as operações de arquivo são executadas de forma **real** contra o **Storage emulator local**, que não exige Billing. Não há camada simulada.
+## Modos de execução (emulador e produção)
+O Cloud Billing (Blaze) está **ativo**: o Cloud Storage real (bucket em
+`southamerica-east1`) e as Cloud Functions (`syncClaimsFromUsuario`) estão
+publicados e validados em produção. As operações de arquivo são **reais** em
+ambos os modos; não há camada simulada.
 
-A infraestrutura de arquivos usa o SDK real do Storage e tem uma única implementação. Em desenvolvimento aponta para o emulador; em produção apontará para o Storage real, pendente de Billing. A seleção de destino fica isolada na camada de infraestrutura, controlada por `VITE_APP_MODE`.
+A infraestrutura de arquivos usa o SDK real do Storage e tem uma única
+implementação. Em desenvolvimento aponta para o **Storage emulator local**; em
+produção aponta para o **Cloud Storage real**. A seleção de destino fica isolada
+na camada de infraestrutura, controlada por `VITE_APP_MODE` (`emulador` |
+`producao`).
 
-### Regras deste modo transitório
-- a interface e os casos de uso permanecem iguais ao modo final;
-- a seleção de destino (emulador vs produção) fica isolada na camada de infraestrutura, controlada por `VITE_APP_MODE`;
+### Invariantes de arquitetura (ambos os modos)
+- a interface e os casos de uso são idênticos nos dois modos;
+- a seleção de destino (emulador vs produção) fica isolada na camada de
+  infraestrutura, controlada por `VITE_APP_MODE`;
 - a interface não conhece o destino do Storage;
 - o contrato de dados não muda;
-- `id_nuvem` continua obrigatório nos fluxos em que ele exista e deve seguir o formato oficial do projeto;
+- `id_nuvem` continua obrigatório nos fluxos em que exista e segue o formato
+  oficial do projeto;
 - não persistir URL pública fixa;
 - não criar campos temporários no Firestore.
 
-### Escopo permitido no modo transitório
-Permitido:
-- listar, baixar, enviar, substituir e remover arquivos da Biblioteca (reais, via emulador);
-- enviar e baixar o anexo final de Solicitações (real, via emulador);
-- persistir no Firestore somente os campos já previstos no contrato.
-
-Não permitido:
-- declarar o Storage de **produção** como validado;
-- declarar as regras de Storage de **produção** como testadas;
-- declarar a segurança de arquivos de **produção** como concluída;
-- alterar o contrato de dados.
-
 ### Objetivo
-Permitir avanço do desenvolvimento com operações de arquivo reais (via emulador), garantindo transição ao Storage de produção apenas trocando `VITE_APP_MODE` para `producao`, sem mudança de telas, fluxos ou contrato.
+Alternar entre desenvolvimento (emulador) e produção (Storage real) apenas pela
+variável `VITE_APP_MODE`, sem mudança de telas, fluxos ou contrato. A publicação
+em produção está registrada em `docs/decisoes/dia-da-virada.md`.
 
 ---
 

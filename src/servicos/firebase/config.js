@@ -17,10 +17,9 @@ export const firebaseConfig = {
 //
 // Valores válidos de VITE_APP_MODE:
 //   "emulador" — emuladores locais ligados (Auth/Firestore/Storage); infra de
-//                arquivos real (SDK) apontando para o Storage emulator (não
-//                exige Billing). Modo de desenvolvimento.
-//   "producao" — sem emuladores; Storage real de produção (pendente de Cloud
-//                Billing/Blaze).
+//                arquivos real (SDK) apontando para o Storage emulator. Modo de
+//                desenvolvimento.
+//   "producao" — sem emuladores; Cloud Storage real de produção (Billing ativo).
 //
 // Observação: o desenvolvimento e o login dependem dos emuladores, portanto
 // os emuladores estão sempre ligados em desenvolvimento (modo "emulador").

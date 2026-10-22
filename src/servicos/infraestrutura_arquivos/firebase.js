@@ -1,11 +1,10 @@
 // Implementação FIREBASE da infraestrutura de arquivos (Cloud Storage).
 // Comunica com o Storage real via SDK. Em desenvolvimento aponta para o
-// Storage emulator (ver src/servicos/firebase/index.js), que NÃO exige Billing.
+// Storage emulator (ver src/servicos/firebase/index.js); em produção aponta
+// para o Cloud Storage real (Billing/Blaze ativo).
 //
-// IMPORTANTE: o Storage de PRODUÇÃO permanece pendente de Cloud Billing/Blaze
-// e NÃO deve ser declarado concluído/validado enquanto Billing não estiver ativo.
-// Esta implementação existe para permitir upload/download/remoção reais contra
-// o emulador local, mantendo o contrato oficial de `id_nuvem`.
+// Única implementação da infra de arquivos, mantendo o contrato oficial de
+// `id_nuvem` (upload/download/remoção reais em ambos os modos).
 //
 // Contrato da interface (única implementação da infra de arquivos):
 //   baixarArquivo(idNuvem: string): Promise<{ nome: string, blob: Blob }>
