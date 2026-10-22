@@ -39,6 +39,40 @@
       ]
     },
     {
+      "collectionGroup": "arquivos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "id_setor", "order": "ASCENDING" },
+        { "fieldPath": "tipo", "order": "ASCENDING" },
+        { "fieldPath": "data_atualizacao", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "arquivos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "escopo", "order": "ASCENDING" },
+        { "fieldPath": "tipo", "order": "ASCENDING" },
+        { "fieldPath": "data_atualizacao", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "arquivos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "id_setor", "order": "ASCENDING" },
+        { "fieldPath": "data_atualizacao", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "arquivos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "escopo", "order": "ASCENDING" },
+        { "fieldPath": "data_atualizacao", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "solicitacoes",
       "queryScope": "COLLECTION",
       "fields": [
