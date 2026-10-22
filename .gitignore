@@ -39,3 +39,6 @@ emulator-data
 Thumbs.db
 *.log
 *.local
+
+# Seeds de produção (não versionar — contêm dados reais do piloto; rodam só no Cloud Shell)
+scripts/seed-producao*.mjs
