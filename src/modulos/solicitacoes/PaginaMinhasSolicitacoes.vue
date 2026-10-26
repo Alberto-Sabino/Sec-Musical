@@ -117,7 +117,6 @@ function abrir(sol) {
 }
 
 function irParaNova() {
-  dispararEvento(ACOES.SOLICITACOES_NOVA)
   router.push({ name: 'solicitacao-nova' })
 }
 

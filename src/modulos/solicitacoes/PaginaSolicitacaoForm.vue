@@ -138,10 +138,6 @@ async function salvar() {
     return
   }
 
-  if (ehEdicao.value) {
-    dispararEvento(ACOES.SOLICITACOES_SALVAR_EDICAO, { tipo: form.tipo })
-  }
-
   salvando.value = true
 
   try {
@@ -162,6 +158,8 @@ async function persistirSolicitacao() {
       { tipo: form.tipo, descricao: form.descricao },
       estado.contexto.id_usuario,
     )
+
+    dispararEvento(ACOES.SOLICITACOES_SALVAR_EDICAO, { tipo: form.tipo })
     return 'Solicitação atualizada.'
   }
 
@@ -174,6 +172,8 @@ async function persistirSolicitacao() {
     nomeBeneficiario: form.nomeBeneficiario,
     descricao: form.descricao,
   })
+
+  dispararEvento(ACOES.SOLICITACOES_NOVA)
   return 'Solicitação aberta.'
 }
 
